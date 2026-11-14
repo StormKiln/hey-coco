@@ -7,6 +7,8 @@ small amounts), so the commonest pet-poison questions never reach it: ``pet_food
 answers them from a fixed, conservative table.
 """
 
+import re
+
 from coco_hub.intents.normalize import tokenize
 
 SAFETY_RULE = (
@@ -93,3 +95,36 @@ def pet_food_answer(text: str) -> str | None:
     if _ATE_WORDS.intersection(words):
         return answer
     return f"No. {answer}"
+
+
+# Questions a small local model must never guess at. Answered with a fixed referral instead
+# (owner decision: family kitchen device; the model called almond butter "generally safe" for a
+# peanut allergy).
+_ALLERGY = re.compile(r"\b(allerg\w*|celiac|coeliac|intoleran\w*|anaphyla\w*|epipen)\b")
+_MEDICINE = re.compile(
+    r"\b(tylenol|advil|motrin|ibuprofen|acetaminophen|paracetamol|benadryl|aspirin|"
+    r"antihistamine|dose|dosage|doses|mg|milligrams?|medicine|medication|meds|pills?)\b"
+)
+_ASKING = re.compile(
+    r"\b(ok|okay|safe|can|could|should|eat|eating|have|having|contain|contains|give|take|"
+    r"taking|mix|with|how much|how many|is it|is this|does this|does it)\b"
+)
+ALLERGY_ANSWER = (
+    "I can't answer allergy questions safely. Check the label, and ask your doctor or "
+    "allergist if you're not sure."
+)
+MEDICINE_ANSWER = (
+    "I can't answer medicine questions safely. Check the label, or ask your doctor or pharmacist."
+)
+
+
+def fixed_safety_answer(text: str) -> str | None:
+    """A fixed referral for allergy and medicine questions, or None for anything else."""
+    t = text.lower()
+    if not _ASKING.search(t):
+        return None
+    if _ALLERGY.search(t):
+        return ALLERGY_ANSWER
+    if _MEDICINE.search(t):
+        return MEDICINE_ANSWER
+    return None

@@ -31,7 +31,7 @@ from coco_hub.intents.normalize import normalize
 from coco_hub.protocol import Action, AnswerView, UtteranceRequest
 from coco_hub.qwen.catalog import GENERAL, NONE, Catalog, Interpretation, InvalidOutput
 from coco_hub.qwen.client import OllamaClient, OllamaError
-from coco_hub.qwen.safety import SAFETY_RULE, pet_food_answer
+from coco_hub.qwen.safety import SAFETY_RULE, fixed_safety_answer, pet_food_answer
 
 log = logging.getLogger(__name__)
 
@@ -171,6 +171,9 @@ class QwenFallback:
         utterance = request.text.strip() or no_match.raw or no_match.text
         if (safe := pet_food_answer(utterance)) is not None:
             log.info("qwen: %r answered from the pet-food table", utterance)
+            return Interpretation(GENERAL, answer=safe)
+        if (safe := fixed_safety_answer(utterance)) is not None:
+            log.info("qwen: %r answered with the fixed allergy/medicine referral", utterance)
             return Interpretation(GENERAL, answer=safe)
         catalog = self.catalog
         reply = await self.client.chat_json(

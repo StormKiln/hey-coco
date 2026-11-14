@@ -6,7 +6,7 @@ from test_fallback import fallback, run
 from coco_hub.intents.engine import IntentContext
 from coco_hub.qwen import catalog as catalog_module
 from coco_hub.qwen.fallback import ANSWER_PROMPT
-from coco_hub.qwen.safety import SAFETY_RULE, pet_food_answer
+from coco_hub.qwen.safety import ALLERGY_ANSWER, SAFETY_RULE, fixed_safety_answer, pet_food_answer
 
 from fake_ollama import FakeOllama, down_transport
 
@@ -123,3 +123,37 @@ def test_safety_rule_is_in_both_prompts():
     assert "Never guess" in SAFETY_RULE
     assert SAFETY_RULE in catalog_module.OUTPUT_RULES
     assert SAFETY_RULE in ANSWER_PROMPT
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "my son is allergic to peanuts, is almond butter ok",
+        "is this safe for someone with a nut allergy",
+        "can a person with celiac eat oats",
+        "I'm allergic to shellfish, can I eat surimi",
+        "does this have gluten, I have an intolerance",
+        "is it ok to give my daughter ibuprofen with tylenol",
+        "how much children's tylenol for a 3 year old",
+    ],
+)
+def test_allergy_and_dosage_questions_never_reach_the_model(text):
+    answer = fixed_safety_answer(text)
+    assert answer is not None
+    assert "doctor" in answer or "pharmacist" in answer
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["how far away is the moon", "how do I make pancakes", "what's an allergy", "set a timer"],
+)
+def test_ordinary_questions_are_not_intercepted(text):
+    assert fixed_safety_answer(text) is None
+
+
+@pytest.mark.anyio
+async def test_allergy_question_never_calls_the_model(ctx):
+    fake = FakeOllama('{"intent": "general.answer", "slots": {}, "answer": "Generally safe."}')
+    action = await run(fallback(fake), "my son is allergic to peanuts, is almond butter ok", ctx)
+    assert action.say == ALLERGY_ANSWER
+    assert fake.chats == []

@@ -47,6 +47,7 @@ public final class ConversationController {
     public static let hubUnreachableMessage = "I can't reach the Coco Hub right now."
     static let unauthorizedMessage = "Coco Hub needs a valid token. Check Settings."
     static let hubFailedMessage = "Sorry, something went wrong at the Coco Hub."
+    static let untrustedHubMessage = "That isn't the Coco Hub I paired with. Check Settings."
     static let didNotHearMessage = "Sorry, I couldn't hear that."
     /// Spoken once if the Hub hasn't answered `oneMomentDelay` after the transcript was sent.
     public static let oneMomentMessage = "One moment."
@@ -251,6 +252,7 @@ public final class ConversationController {
         switch error {
         case .unreachable: hubUnreachableMessage
         case .unauthorized: unauthorizedMessage
+        case .untrustedHub: untrustedHubMessage
         case .server, .decoding: hubFailedMessage
         }
     }

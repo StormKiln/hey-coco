@@ -14,9 +14,10 @@ music requests get "Spotify isn't set up yet."
 1. **Create a Spotify app.** Sign in at <https://developer.spotify.com/dashboard> with the
    Premium account and choose *Create app*:
    - Name / description: anything (e.g. "Coco Hub").
-   - **Redirect URI:** `http://127.0.0.1:8765/spotify/callback` (use your `port` if it
-     isn't 8765). Spotify only accepts `http` redirects to loopback **IP literals**:
-     `localhost` is rejected, so type `127.0.0.1`.
+   - **Redirect URI:** `https://127.0.0.1:8765/spotify/callback` (use your `port` if it
+     isn't 8765). The Hub serves HTTPS only (#54). Spotify wants a loopback **IP literal**:
+     `localhost` is rejected, so type `127.0.0.1`. (An app registered before #54 with
+     `http://127.0.0.1:8765/...` must change it to `https://`.)
    - APIs used: **Web API**.
    - Save, then copy the **Client ID**. (The Hub logs in with PKCE, so the client secret
      is not needed and should not be put anywhere.)
@@ -29,7 +30,7 @@ music requests get "Spotify isn't set up yet."
    [spotify]
    client_id = "your-client-id"
    device_name = "Kitchen iPad"   # the iPad's name as shown in Spotify's device picker
-   # redirect_uri = "http://127.0.0.1:8765/spotify/callback"  # only if you changed it
+   # redirect_uri = "https://127.0.0.1:8765/spotify/callback"  # only if you changed it
    ```
 
    Restart the Hub (`make hub-install-service` again, or restart `make hub-run`).
@@ -38,10 +39,11 @@ music requests get "Spotify isn't set up yet."
 
    ```sh
    make spotify-login        # prints the URL below
-   open http://127.0.0.1:8765/spotify/login
+   open https://127.0.0.1:8765/spotify/login
    ```
 
-   Approve the consent page. The browser lands on "Spotify is connected". The login pages
+   The browser warns that the certificate isn't trusted (it is the Hub's own self-signed one).
+   Check the address is `127.0.0.1` and continue. Approve the consent page. The browser lands on "Spotify is connected". The login pages
    only answer requests from the Mac itself (127.0.0.1 / ::1); from the iPad or any other
    machine they return 403, even with the LAN token.
 

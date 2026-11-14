@@ -328,8 +328,8 @@ private struct Harness {
         AppModel(
             config: UserDefaultsHubConfigStore(
                 defaults: UserDefaults(suiteName: "coco-night-\(UUID().uuidString)")!,
-                tokens: InMemoryTokenStore()),
-            discovery: FakeDiscovery(results: []),
+                tokens: InMemoryTokenStore(), pins: InMemoryTokenStore()),
+            discovery: FakeDiscovery(results: []), probe: FakeHubProbe(),
             makeClient: { _ in FakeHubAPI() },
             makeEvents: { _ in AsyncStream { _ in } },
             night: NightModeController(

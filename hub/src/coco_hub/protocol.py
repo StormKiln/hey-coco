@@ -308,6 +308,19 @@ class ErrorResponse(Message):
     error: ErrorBody
 
 
+# --- Health -----------------------------------------------------------------------------
+
+
+class Health(Message):
+    """``GET /healthz`` (unauthenticated): liveness plus the Hub's identity for pairing."""
+
+    status: Literal["ok"]
+    hub_id: Annotated[str, Field(pattern=r"^[0-9a-f]{16}$")]
+    fingerprint: Annotated[str, Field(pattern=r"^[0-9A-F]{4}(-[0-9A-F]{4}){5}$")] | None
+    """Short certificate fingerprint (``make hub-fingerprint``); ``null`` without TLS.
+    Advisory: the Display computes the fingerprint from the certificate it was served."""
+
+
 # --- Diagnostics ------------------------------------------------------------------------
 
 CheckStatus = Literal["ok", "warn", "error", "off"]

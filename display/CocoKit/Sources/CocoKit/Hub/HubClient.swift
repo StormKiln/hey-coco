@@ -11,6 +11,9 @@ public enum HubError: Error, Sendable, Equatable {
     case server(code: String, message: String)
     /// A 2xx whose body does not match the protocol model.
     case decoding(String)
+    /// The server at this host is not the paired Hub (its certificate doesn't match the pin).
+    /// Nothing was sent: the TLS handshake was refused before the request.
+    case untrustedHub(String)
 }
 
 /// The Hub REST API (`docs/protocol/README.md`). A protocol so `AppModel` can be tested with fakes.
@@ -105,6 +108,7 @@ public struct HubClient: HubAPI {
         do {
             (data, response) = try await session.data(for: request)
         } catch {
+            if session.pinRejected(host: endpoint.host) { throw .untrustedHub(endpoint.host) }
             throw .unreachable(Self.describe(error))
         }
         guard let http = response as? HTTPURLResponse else {

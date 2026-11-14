@@ -7,8 +7,8 @@ private func model(_ store: TimerStore) -> AppModel {
     AppModel(
         config: UserDefaultsHubConfigStore(
             defaults: UserDefaults(suiteName: "coco-alarm-\(UUID().uuidString)")!,
-            tokens: InMemoryTokenStore()),
-        discovery: FakeDiscovery(results: []),
+            tokens: InMemoryTokenStore(), pins: InMemoryTokenStore()),
+        discovery: FakeDiscovery(results: []), probe: FakeHubProbe(),
         makeClient: { _ in FakeHubAPI() },
         makeEvents: { _ in AsyncStream { _ in } },
         timerStore: store)

@@ -159,7 +159,8 @@ class SpotifyService:
         waker: DeviceWaker | None = None,
     ) -> "SpotifyService":
         cfg = settings.spotify
-        redirect = cfg.redirect_uri or f"http://127.0.0.1:{settings.port}/spotify/callback"
+        scheme = "https" if settings.tls.enabled else "http"
+        redirect = cfg.redirect_uri or f"{scheme}://127.0.0.1:{settings.port}/spotify/callback"
         auth = SpotifyAuth(
             conn, client_id=cfg.client_id, redirect_uri=redirect, clock=clock, transport=transport
         )

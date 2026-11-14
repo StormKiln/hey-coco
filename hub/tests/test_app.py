@@ -3,9 +3,10 @@ from fastapi import WebSocket
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
-from coco_hub import discovery
+from coco_hub import discovery, identity
 from coco_hub.app import create_app
 from coco_hub.auth import authorize_websocket
+from coco_hub.settings import Tls
 
 from conftest import TEST_TOKEN
 
@@ -18,10 +19,23 @@ def client(settings):
         yield c
 
 
-def test_healthz_is_open(client):
+def test_healthz_is_open_and_names_the_hub(client, settings):
     response = client.get("/healthz")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    ident = identity.load_or_create(settings.data_dir)
+    assert response.json() == {
+        "status": "ok",
+        "hub_id": ident.hub_id,
+        "fingerprint": ident.short_fingerprint,
+    }
+
+
+def test_healthz_has_no_fingerprint_without_tls(settings):
+    plain = settings.model_copy(update={"tls": Tls(enabled=False)})
+    with TestClient(create_app(plain)) as c:
+        body = c.get("/healthz").json()
+    assert body["fingerprint"] is None
+    assert body["hub_id"] == identity.load_or_create(settings.data_dir).hub_id
 
 
 def test_ping_with_token(client):
@@ -125,7 +139,7 @@ def test_ws_rejects_query_token_without_header(settings):
 class FakeAdvertiser:
     instances: list["FakeAdvertiser"] = []
 
-    def __init__(self, settings):
+    def __init__(self, settings, ident):
         self.started = False
         self.stopped = False
         FakeAdvertiser.instances.append(self)

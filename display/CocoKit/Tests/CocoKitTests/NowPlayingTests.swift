@@ -27,10 +27,10 @@ private func song(playing: Bool = true) -> NowPlaying {
     private func makeModel(api: FakeHubAPI = FakeHubAPI(), updates: [EventStreamUpdate]) -> AppModel {
         let config = UserDefaultsHubConfigStore(
             defaults: UserDefaults(suiteName: "coco-np-\(UUID().uuidString)")!,
-            tokens: InMemoryTokenStore())
-        try! config.save(HubSettings(manualHost: "10.0.0.5", port: 8765, token: "t"))
+            tokens: InMemoryTokenStore(), pins: InMemoryTokenStore())
+        try! config.save(HubSettings(manualHost: "10.0.0.5", port: 8765, token: "t", pin: .test))
         return AppModel(
-            config: config, discovery: FakeDiscovery(results: []),
+            config: config, discovery: FakeDiscovery(results: []), probe: FakeHubProbe(),
             makeClient: { _ in api },
             makeEvents: { _ in
                 AsyncStream { continuation in
@@ -98,10 +98,10 @@ private func song(playing: Bool = true) -> NowPlaying {
     private func makeModel(api: FakeHubAPI) -> AppModel {
         let config = UserDefaultsHubConfigStore(
             defaults: UserDefaults(suiteName: "coco-npc-\(UUID().uuidString)")!,
-            tokens: InMemoryTokenStore())
-        try! config.save(HubSettings(manualHost: "10.0.0.5", port: 8765, token: "t"))
+            tokens: InMemoryTokenStore(), pins: InMemoryTokenStore())
+        try! config.save(HubSettings(manualHost: "10.0.0.5", port: 8765, token: "t", pin: .test))
         return AppModel(
-            config: config, discovery: FakeDiscovery(results: []),
+            config: config, discovery: FakeDiscovery(results: []), probe: FakeHubProbe(),
             makeClient: { _ in api },
             makeEvents: { _ in AsyncStream { $0.yield(.connected) } })
     }

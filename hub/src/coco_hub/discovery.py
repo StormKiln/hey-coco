@@ -8,6 +8,7 @@ import ifaddr
 from zeroconf import IPVersion
 from zeroconf.asyncio import AsyncServiceInfo, AsyncZeroconf
 
+from coco_hub.identity import HubIdentity
 from coco_hub.settings import Settings
 
 SERVICE_TYPE = "_coco._tcp.local."
@@ -29,27 +30,42 @@ def lan_addresses(settings: Settings) -> list[str]:
     return found
 
 
-def build_service_info(settings: Settings, addresses: list[str]) -> AsyncServiceInfo:
+def txt_properties(settings: Settings, ident: HubIdentity) -> dict[str, str]:
+    """``api``, ``id`` (Hub ID) and, with TLS, ``fp`` (short certificate fingerprint).
+
+    Advisory only: anyone on the LAN can advertise ``_coco._tcp`` with any TXT record. The
+    Display trusts the certificate it pinned when pairing, never these values.
+    """
+    properties = {"api": "v1", "id": ident.hub_id}
+    if settings.tls.enabled:
+        properties["fp"] = ident.short_fingerprint
+    return properties
+
+
+def build_service_info(
+    settings: Settings, addresses: list[str], ident: HubIdentity
+) -> AsyncServiceInfo:
     hostname = socket.gethostname().removesuffix(".local").rstrip(".")
     return AsyncServiceInfo(
         SERVICE_TYPE,
         f"{settings.discovery.name}.{SERVICE_TYPE}",
         port=settings.port,
         parsed_addresses=addresses,
-        properties={"api": "v1"},
+        properties=txt_properties(settings, ident),
         server=f"{hostname}.local.",
     )
 
 
 class Advertiser:
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, ident: HubIdentity) -> None:
         self._settings = settings
+        self._identity = ident
         self._zc: AsyncZeroconf | None = None
         self._info: AsyncServiceInfo | None = None
 
     async def start(self) -> None:
         addresses = lan_addresses(self._settings)
-        self._info = build_service_info(self._settings, addresses)
+        self._info = build_service_info(self._settings, addresses, self._identity)
         self._zc = AsyncZeroconf(ip_version=IPVersion.V4Only)
         await self._zc.async_register_service(self._info, allow_name_change=True)
         log.info("Advertising %s on %s:%s", self._info.name, addresses, self._settings.port)

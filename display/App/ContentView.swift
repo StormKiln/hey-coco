@@ -7,6 +7,8 @@ struct ContentView: View {
     let model: AppModel
     @State private var showingSettings = false
     @State private var showingDiagnostics = false
+    /// The Hub waiting for the person to confirm its fingerprint (#54).
+    @State private var pairing: PairingCandidate?
 
     var body: some View {
         ZStack {
@@ -17,7 +19,13 @@ struct ContentView: View {
                 .onLongPressGesture(minimumDuration: 1.5) { showingSettings = true }
         }
         .overlay(alignment: .top) {
-            ConnectionBanner(state: model.connection) { showingSettings = true }
+            ConnectionBanner(state: model.connection) {
+                if case .needsPairing(let candidate) = model.connection {
+                    pairing = candidate
+                } else {
+                    showingSettings = true
+                }
+            }
                 .padding(.top, 12)
                 .animation(.default, value: model.connection)
         }
@@ -33,9 +41,27 @@ struct ContentView: View {
             .accessibilityLabel("Settings")
         }
         .sheet(isPresented: $showingSettings) {
-            SettingsView(settings: model.settings) { settings in
-                try model.saveSettings(settings)
+            SettingsView(
+                settings: model.settings,
+                save: { settings in try model.saveSettings(settings) },
+                forgetHub: { try model.forgetHub() })
+        }
+        .sheet(item: $pairing) { candidate in
+            PairingView(candidate: candidate) {
+                try model.pair(with: candidate)
             }
+        }
+        // Ask as soon as an unpaired Hub turns up (or Settings closes on one). "Not now" leaves
+        // the banner, which asks again when tapped.
+        .onChange(of: model.connection) { _, state in
+            if case .needsPairing(let candidate) = state {
+                if !showingSettings { pairing = candidate }
+            } else {
+                pairing = nil
+            }
+        }
+        .onChange(of: showingSettings) { _, showing in
+            if !showing, case .needsPairing(let candidate) = model.connection { pairing = candidate }
         }
         .sheet(isPresented: $showingDiagnostics) { DiagnosticsSheet() }
         .environment(\.openDiagnostics, OpenDiagnosticsAction { showingDiagnostics = true })
@@ -48,6 +74,7 @@ struct ContentView: View {
             if ringing {
                 showingSettings = false
                 showingDiagnostics = false
+                pairing = nil
             }
         }
         .environment(model)
@@ -111,6 +138,68 @@ struct ConnectionBanner: View {
         case .connecting: ("antenna.radiowaves.left.and.right", "Connecting to Coco Hub…")
         case .unreachable(let reason): ("wifi.exclamationmark", "Can't reach Coco Hub. \(reason)")
         case .unauthorized: ("lock", "Coco Hub needs a valid token. Tap to open Settings.")
+        case .needsPairing: ("link", "Found Coco Hub. Tap to pair.")
+        case .untrustedHub(let host):
+            (
+                "exclamationmark.shield",
+                "Unknown Coco Hub at \(host). Ignoring it. To re-pair, tap and choose Forget Hub."
+            )
+        }
+    }
+}
+
+/// "Pair with Coco Hub?": the person compares the fingerprint with `make hub-fingerprint` on
+/// the Mac. Only after Pair is the Hub pinned and the token sent to it.
+struct PairingView: View {
+    let candidate: PairingCandidate
+    let pair: () throws -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var error: String?
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 28) {
+                Image(systemName: "lock.shield")
+                    .font(.system(size: 64))
+                    .foregroundStyle(.tint)
+                Text("Pair with Coco Hub?")
+                    .font(.largeTitle.weight(.semibold))
+                Text("On the Mac, run `make hub-fingerprint`. Pair only if it shows exactly this:")
+                    .font(.title3)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(.secondary)
+                Text(candidate.pin.fingerprint)
+                    .font(.system(size: 40, weight: .semibold, design: .monospaced))
+                    .textSelection(.enabled)
+                    .accessibilityLabel(
+                        "Fingerprint \(candidate.pin.fingerprint.map { String($0) }.joined(separator: " "))")
+                Text("Hub at \(candidate.address.host), ID \(candidate.pin.hubID)")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                if let error {
+                    Text(error).foregroundStyle(.red)
+                }
+                HStack(spacing: 20) {
+                    Button("Not now", role: .cancel) { dismiss() }
+                        .buttonStyle(.bordered)
+                    Button("It matches. Pair") {
+                        do {
+                            try pair()
+                            dismiss()
+                        } catch {
+                            self.error = "Couldn't save the pairing: \(error.localizedDescription)"
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .controlSize(.large)
+                Text("If it doesn't match, tap Not now: another device is pretending to be Coco Hub.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(40)
+            .frame(maxWidth: 640)
         }
     }
 }
@@ -121,15 +210,21 @@ struct ConnectionBanner: View {
 struct SettingsView: View {
     let saved: HubSettings
     let save: (HubSettings) throws -> Void
+    let forgetHub: () throws -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var host: String
     @State private var port: String
     @State private var newToken = ""
     @State private var error: String?
+    @State private var confirmingForget = false
 
-    init(settings: HubSettings, save: @escaping (HubSettings) throws -> Void) {
+    init(
+        settings: HubSettings, save: @escaping (HubSettings) throws -> Void,
+        forgetHub: @escaping () throws -> Void
+    ) {
         self.saved = settings
         self.save = save
+        self.forgetHub = forgetHub
         _host = State(initialValue: settings.manualHost ?? "")
         _port = State(initialValue: String(settings.port))
     }
@@ -179,6 +274,23 @@ struct SettingsView: View {
                         Label("Token saved. Leave empty to keep it.", systemImage: "checkmark.seal")
                     }
                 }
+                Section {
+                    if let pin = saved.pin {
+                        LabeledContent("Fingerprint") {
+                            Text(pin.fingerprint).font(.body.monospaced())
+                        }
+                        LabeledContent("Hub ID") { Text(pin.hubID).font(.body.monospaced()) }
+                    } else {
+                        Text("Not paired. Coco asks you to pair when it finds Coco Hub.")
+                            .foregroundStyle(.secondary)
+                    }
+                    Button("Forget Hub and Re-pair…", role: .destructive) { confirmingForget = true }
+                        .disabled(saved.pin == nil && !saved.hasToken)
+                } header: {
+                    Text("Paired Hub")
+                } footer: {
+                    Text("Use this after reinstalling Coco Hub or moving it to another Mac. You'll enter the token again and confirm the new fingerprint.")
+                }
                 if let error {
                     Section { Text(error).foregroundStyle(.red) }
                 }
@@ -187,6 +299,20 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Coco Hub")
+            .confirmationDialog(
+                "Forget this Coco Hub?", isPresented: $confirmingForget, titleVisibility: .visible
+            ) {
+                Button("Forget Hub", role: .destructive) {
+                    do {
+                        try forgetHub()
+                        dismiss()
+                    } catch {
+                        self.error = "Couldn't forget the Hub: \(error.localizedDescription)"
+                    }
+                }
+            } message: {
+                Text("Coco stops trusting it and deletes the saved token. Enter the token again, then confirm the fingerprint to pair.")
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }

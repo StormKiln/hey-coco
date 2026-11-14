@@ -138,3 +138,26 @@ def test_event_client_reconnects_after_a_hub_kill(hub):
     hub.start()
     with hub.events() as (_, hello):
         assert [t["id"] for t in hello["timers"]] == [timer["id"]]
+
+
+# --- TLS identity (#54) -----------------------------------------------------------------
+
+
+def test_tls_identity_survives_kill_and_restart(hub):
+    """A pinned iPad keeps working after a crash: same certificate, same Hub ID."""
+    before = hub.get("/healthz").json()
+    cert = hub.cert_path.read_bytes()
+    hub.kill()
+    hub.start()  # verifies against the same certificate file
+    assert hub.get("/healthz").json() == before
+    assert hub.cert_path.read_bytes() == cert
+    assert before["fingerprint"] is not None
+
+
+def test_plain_http_hub_when_tls_is_disabled(make_hub):
+    plain = make_hub(tls=False)
+    plain.start()
+    assert plain.base_url.startswith("http://")
+    assert plain.get("/healthz").json()["fingerprint"] is None
+    with plain.events() as (_, hello):
+        assert hello["timers"] == []

@@ -220,7 +220,7 @@ public final class TimerStore {
             } catch {
                 lastSyncError = error
                 switch error {
-                case .unreachable, .unauthorized:
+                case .unreachable, .unauthorized, .untrustedHub:
                     return  // try again on reconnect
                 case .server, .decoding:
                     // The Hub said no (e.g. timer already gone). Keep any local timer ringing

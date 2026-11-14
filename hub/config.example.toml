@@ -45,6 +45,12 @@ log_transcripts = true    # false: keep what Coco heard/said out of the log file
 enabled = true            # Bonjour _coco._tcp
 name = "Coco Hub"
 
+[tls]
+# HTTPS/WSS with a self-signed certificate created in data_dir/tls on first run. The iPad pins
+# it when you pair (compare `make hub-fingerprint`). Turn off only for local tests: the iPad
+# won't pair with, or send its token to, a Hub without TLS.
+enabled = true
+
 [keys]
 # youtube = ""            # YouTube Data API v3 key (Google Cloud console)
 
@@ -56,5 +62,5 @@ daily_quota = 9000        # API units/day before Coco refuses searches (a search
 # Spotify Premium via the Spotify app on the iPad (Spotify Connect). See docs/spotify.md.
 # Without client_id, Spotify stays off ("Spotify isn't set up yet.").
 # client_id = ""                 # from developer.spotify.com (PKCE login: no secret needed)
-# redirect_uri = "http://127.0.0.1:8765/spotify/callback"   # default; must match the app
+# redirect_uri = "https://127.0.0.1:8765/spotify/callback"  # default; must match the app
 # device_name = "Kitchen iPad"   # Spotify Connect name of the iPad (Spotify app > Devices)

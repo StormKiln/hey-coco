@@ -22,6 +22,7 @@ PREFIXES: dict[str, type[BaseModel] | TypeAdapter] = {
     "event_": p.EVENT_ADAPTER,
     "error": p.ErrorResponse,
     "diagnostics": p.Diagnostics,
+    "health": p.Health,
 }
 
 

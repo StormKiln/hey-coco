@@ -68,7 +68,7 @@ def test_rules_still_win_when_qwen_enabled(settings):
 def test_hub_runs_normally_when_ollama_is_down(settings):
     app = create_app(enabled(settings), ollama_transport=down_transport())
     with TestClient(app) as client:
-        assert client.get("/healthz").json() == {"status": "ok"}
+        assert client.get("/healthz").json()["status"] == "ok"
         response = client.post("/v1/utterance", json=body("why is the sky blue"), headers=AUTH)
         rules = client.post("/v1/utterance", json=body("what time is it"), headers=AUTH)
     assert response.status_code == 200

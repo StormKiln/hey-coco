@@ -14,7 +14,8 @@ There are three layers:
 
 `hub/tests/resilience/` starts the real Hub (`python -m coco_hub`) with a temp config: a random
 free port on `127.0.0.1`, a temp data and log dir, discovery off, a generated token, and Qwen
-and Open-Meteo pointed at localhost ports. Each upstream can be down in two ways:
+and Open-Meteo pointed at localhost ports. TLS is on, as in the kitchen: the test clients trust
+only that Hub's own certificate (`data_dir/tls/hub.crt`), like a paired iPad (#54). Each upstream can be down in two ways:
 
 - **refused**: nothing listens on the port (Ollama is stopped, or DNS or the route fails fast);
 - **black hole**: the connection opens but nothing ever answers (a dead upstream behind working
@@ -32,6 +33,7 @@ These tests are marked `resilience` and left out of `make hub-test` because they
 | Graceful restart | `SIGTERM` (what launchd sends) stops the Hub within 5 s, with or without an event client connected. The lifespan shutdown runs, the DB is closed (WAL checkpointed), `integrity_check` is ok, and after a restart `GET /v1/timers` returns the same timers. |
 | Event stream reconnect | A connected client sees the socket close on `SIGTERM` or `SIGKILL`. After the restart it reconnects and gets a fresh `hello` with the current timers, then live events again. |
 | Internet down (refused and black hole) | `GET /v1/idle` answers in under 1 s with `weather: null`. "What time is it" and "set a timer for 1 minute" work in under 1 s. "What's the weather" says "Sorry, I can't reach the weather service right now." (under 1 s if refused, about 3 s for a black hole). Diagnostics shows weather `error`. |
+| TLS identity across a crash | `SIGKILL` and restart: `/healthz` reports the same `hub_id` and fingerprint and the same certificate is served, so a paired iPad keeps working. `tls.enabled = false` still serves plain HTTP/WS. |
 | Ollama down (refused) | An unmatched utterance says "Sorry, I can't do that yet." in under 1 s. Rules still match (`matched_by: rules`). Diagnostics shows ollama `error`, not reachable. |
 | Ollama hanging (black hole) | An unmatched utterance says "Sorry, that took too long." within `qwen.timeout_s` (6 s). Rules stay fast, and diagnostics answers within its 1.5 s check timeout. |
 

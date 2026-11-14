@@ -20,9 +20,35 @@ in the same PR. Fixtures are mapped to models by filename prefix (`action_*` →
 `TimerInfo`, `PictureImage` and `ViewSpec` to avoid clashing with Foundation/SwiftUI, and
 `Diagnostics` is `HubDiagnostics`.
 
-## Transport and auth
+## Transport, pairing and auth
 
-- Base URL: `http://<hub-host>:8765`. The Hub advertises Bonjour service `_coco._tcp` on that port.
+- Base URL: `https://<hub-host>:8765`; the event stream is `wss://<hub-host>:8765/v1/events`.
+  There is no plain-HTTP listener. The Hub advertises Bonjour service `_coco._tcp` on that port.
+- **TLS with trust on first use.** On first run the Hub creates a self-signed EC P-256
+  certificate, its key (mode 0600) and a random 16-hex-digit Hub ID in `<data_dir>/tls/`, and
+  reuses them on every start. No CA is involved: the Display trusts the Hub because a person
+  compared fingerprints when pairing.
+  - **Fingerprint** = SHA-256 of the DER certificate. Human form = the first 24 hex digits,
+    upper case, as six groups of four: `3F2A-91C0-7B4E-D815-A6C2-0E9F`. `make hub-fingerprint`
+    prints it (and the Hub ID); the Hub also logs it at startup.
+  - **Pin** (stored by the Display in the Keychain): Hub ID + full certificate SHA-256.
+- **Pairing** (Display, when it has no pin):
+  1. Find the Hub (manual host, or Bonjour) and `GET /healthz` over TLS **without** the token,
+     accepting whatever certificate is presented and recording it.
+  2. Show "Pair with Coco Hub?" with the fingerprint computed from that certificate (never the
+     one in the response body or TXT record). The person checks it matches
+     `make hub-fingerprint` on the Mac and taps Pair.
+  3. Save the pin (`hub_id` from `/healthz` + certificate SHA-256). Only now is the token sent.
+- **Every later connection** (REST, the WebSocket, Hub media) runs through a TLS trust check
+  that accepts the handshake only if the leaf certificate's SHA-256 equals the pin; otherwise
+  the handshake is cancelled, so no request (and no token) is ever sent. Before connecting, the
+  Display probes `/healthz` the same way as when pairing and requires both the certificate and
+  `hub_id` to match the pin. A discovered Hub that doesn't match is ignored ("Unknown Coco Hub"
+  notice) and discovery continues; a manual host that doesn't match stops with that notice.
+- **Re-pairing**: "Forget Hub" in the Display's Settings deletes the pin and the token. A new
+  certificate on the Hub (e.g. `data_dir` deleted, Hub moved to another Mac) always needs this.
+- `tls.enabled = false` on the Hub serves plain HTTP/WS for tests and local development only;
+  the Display can't pair with such a Hub.
 - Every endpoint except `GET /healthz` requires `Authorization: Bearer <token>` (shared LAN token
   from Hub settings). The WebSocket takes the same header on its upgrade request; a token in the
   URL (`?token=`) is not accepted, because query strings end up in access logs. A missing or
@@ -34,7 +60,7 @@ in the same PR. Fixtures are mapped to models by filename prefix (`action_*` →
 
 | Method & path | Request | Response |
 |---|---|---|
-| `GET /healthz` | – | `{"status": "ok"}` |
+| `GET /healthz` | – | `Health` (unauthenticated) |
 | `POST /v1/utterance` | `UtteranceRequest` | `Action` |
 | `GET /v1/idle` | – | `IdleInfo` |
 | `GET /v1/timers` | – | `{"timers": [Timer], "server_time": ts}` |
@@ -43,6 +69,31 @@ in the same PR. Fixtures are mapped to models by filename prefix (`action_*` →
 | `DELETE /v1/timers/{id}` | – | `Timer` (state `cancelled`) |
 | `GET /v1/diagnostics` | – | `Diagnostics` |
 | `WS /v1/events` | – | stream of `Event` |
+
+## Health
+
+```json
+{"status": "ok", "hub_id": "5d0c8a91f3b2e746", "fingerprint": "3F2A-91C0-7B4E-D815-A6C2-0E9F"}
+```
+
+`GET /healthz` needs no token: it is liveness and the Hub's identity for pairing
+(`fixtures/health.json`). `hub_id` is 16 lowercase hex digits and never changes for a Hub's
+`data_dir`. `fingerprint` is the short certificate fingerprint, or `null` when the Hub runs
+without TLS (`fixtures/health_no_tls.json`). Both are informational: the Display pins the
+certificate it was actually served.
+
+## Bonjour
+
+Service type `_coco._tcp`, on the Hub's port. TXT record:
+
+| key | value |
+|---|---|
+| `api` | `v1` |
+| `id` | Hub ID (same as `/healthz` `hub_id`) |
+| `fp` | short fingerprint; absent without TLS |
+
+TXT records are unauthenticated (anyone on the LAN can advertise `_coco._tcp` with any TXT), so
+they are advisory only: the Display decides trust from the certificate, never from TXT.
 
 ## UtteranceRequest
 
@@ -92,7 +143,8 @@ in the same PR. Fixtures are mapped to models by filename prefix (`action_*` →
   `title` as the credit.
 - **Sound** `clip_url` / `image_url` may be **Hub-relative paths**
   (`/v1/media/sounds/clips/cow.m4a`, `/v1/media/sounds/images/cow.jpg`). Resolve them against
-  the Hub base URL and send the `Authorization: Bearer` header (they are protected endpoints;
+  the Hub base URL and send the `Authorization: Bearer` header over the pinned connection
+  (they are protected endpoints;
   clips are `audio/mp4`, images `image/jpeg`). An absolute URL is used as is.
   `attribution` is a one-line credit for both (`Sound: A (CC0) · Picture: B (CC BY 2.0)`).
 

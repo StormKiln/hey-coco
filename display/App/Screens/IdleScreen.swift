@@ -75,7 +75,7 @@ private struct ForecastView: View {
     private var stillConnecting: Bool {
         switch connection {
         case .searching, .connecting, .connected: true
-        case .unreachable, .unauthorized: false
+        case .unreachable, .unauthorized, .needsPairing, .untrustedHub: false
         }
     }
 

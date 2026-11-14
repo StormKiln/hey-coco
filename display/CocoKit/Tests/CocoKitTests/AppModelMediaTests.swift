@@ -10,10 +10,10 @@ import Testing
     ) -> AppModel {
         let config = UserDefaultsHubConfigStore(
             defaults: UserDefaults(suiteName: "coco-media-\(UUID().uuidString)")!,
-            tokens: InMemoryTokenStore())
-        try! config.save(HubSettings(manualHost: "10.0.0.5", port: 8765, token: "t"))
+            tokens: InMemoryTokenStore(), pins: InMemoryTokenStore())
+        try! config.save(HubSettings(manualHost: "10.0.0.5", port: 8765, token: "t", pin: .test))
         return AppModel(
-            config: config, discovery: FakeDiscovery(results: []),
+            config: config, discovery: FakeDiscovery(results: []), probe: FakeHubProbe(),
             makeClient: { _ in api },
             makeEvents: { _ in
                 AsyncStream { continuation in

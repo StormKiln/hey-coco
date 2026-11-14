@@ -21,6 +21,7 @@ from coco_hub.media.spotify.service import (
     rank,
 )
 from coco_hub.protocol import NowPlayingEvent
+from coco_hub.settings import Tls
 
 from fake_spotify import (
     IPAD_ID,
@@ -126,11 +127,18 @@ async def test_not_logged_in(make, fake):
     assert fake.requests == []
 
 
-def test_default_redirect_uri_is_a_loopback_ip(make):
+def test_default_redirect_uri_is_a_loopback_ip_over_https(make):
+    # The Hub serves TLS on its one port (#54), so the browser comes back over https.
     service = make(logged_in=False)
+    assert service.auth.redirect_uri == "https://127.0.0.1:8765/spotify/callback"
+    custom = make(logged_in=False, redirect_uri="https://127.0.0.1:9000/spotify/callback")
+    assert custom.auth.redirect_uri == "https://127.0.0.1:9000/spotify/callback"
+
+
+def test_default_redirect_uri_is_http_without_tls(conn, settings, clock):
+    plain = spotify_settings(settings).model_copy(update={"tls": Tls(enabled=False)})
+    service = SpotifyService.from_settings(conn, plain, clock=clock)
     assert service.auth.redirect_uri == "http://127.0.0.1:8765/spotify/callback"
-    custom = make(logged_in=False, redirect_uri="http://127.0.0.1:9000/spotify/callback")
-    assert custom.auth.redirect_uri == "http://127.0.0.1:9000/spotify/callback"
 
 
 # --- devices -----------------------------------------------------------------------------

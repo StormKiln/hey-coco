@@ -3,9 +3,9 @@ import Foundation
 // MARK: - Media (#33, #35, #39)
 
 extension AppModel {
-    /// Loads Hub media (with the token) and public pictures; `nil` until a Hub is found.
+    /// Loads Hub media (with the token, pinned) and public pictures; `nil` until a Hub is found.
     public var mediaLoader: HubMediaLoader? {
-        endpoint.map { HubMediaLoader(endpoint: $0) }
+        endpoint.map { hubSession.mediaLoader(for: $0) }
     }
 
     /// A finished video leaves its screen; a finished sound clip waits on the Sound screen's own

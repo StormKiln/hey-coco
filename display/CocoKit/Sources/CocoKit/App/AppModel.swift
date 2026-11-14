@@ -12,6 +12,12 @@ public enum ConnectionState: Sendable, Equatable {
     case unreachable(reason: String)
     /// Token missing or rejected; needs Settings.
     case unauthorized
+    /// Found a Hub but nothing is paired yet: the person must confirm its fingerprint
+    /// (`AppModel.pair(with:)`). The token has not been sent anywhere.
+    case needsPairing(PairingCandidate)
+    /// A server at `host` is not the paired Hub (its certificate doesn't match the pin). It
+    /// is ignored and never gets the token; "Forget Hub" in Settings re-pairs.
+    case untrustedHub(host: String)
 }
 
 /// Owns the Hub client, the event stream and the screen router. The app's single source of truth.
@@ -43,6 +49,10 @@ public final class AppModel {
 
     @ObservationIgnored private let config: any HubConfigStore
     @ObservationIgnored private let discovery: any HubDiscovery
+    @ObservationIgnored private let probe: any HubProbe
+    /// The pinned session for everything that carries the token (#54).
+    @ObservationIgnored public let hubSession: HubSession
+    @ObservationIgnored private let sleeper: any Sleeper
     @ObservationIgnored private let makeClient: @Sendable (HubEndpoint) -> any HubAPI
     @ObservationIgnored private let makeEvents:
         @Sendable (HubEndpoint) -> AsyncStream<EventStreamUpdate>
@@ -52,6 +62,9 @@ public final class AppModel {
     public init(
         config: any HubConfigStore,
         discovery: any HubDiscovery,
+        probe: any HubProbe,
+        hubSession: HubSession = HubSession(),
+        sleeper: any Sleeper = TaskSleeper(),
         makeClient: @escaping @Sendable (HubEndpoint) -> any HubAPI,
         makeEvents: @escaping @Sendable (HubEndpoint) -> AsyncStream<EventStreamUpdate>,
         timerStore: TimerStore? = nil,
@@ -61,6 +74,9 @@ public final class AppModel {
     ) {
         self.config = config
         self.discovery = discovery
+        self.probe = probe
+        self.hubSession = hubSession
+        self.sleeper = sleeper
         self.makeClient = makeClient
         self.makeEvents = makeEvents
         self.settings = config.load()
@@ -114,25 +130,33 @@ public final class AppModel {
         start()
     }
 
+    /// The person confirmed `candidate`'s fingerprint matches `make hub-fingerprint`: pin it
+    /// and connect (only now does the token go to the Hub).
+    public func pair(with candidate: PairingCandidate) throws {
+        var settings = config.load()
+        settings.pin = candidate.pin
+        try saveSettings(settings)
+    }
+
+    /// "Forget Hub / Re-pair": clears the pin and the token (see `HubSettings.forgettingHub`).
+    public func forgetHub() throws {
+        try saveSettings(config.load().forgettingHub())
+    }
+
     private func run() async {
         client = nil
         endpoint = nil
         timerStore.hubDisconnected()
         let settings = config.load()
         self.settings = settings
+        hubSession.setPin(settings.pin)
         connection = settings.manualHost == nil ? .searching : .connecting
-        guard settings.token != nil else {
+        guard let token = settings.token else {
             connection = .unauthorized
             return
         }
-        guard let endpoint = await HubEndpoint.resolve(settings: settings, discovery: discovery),
-            !Task.isCancelled
-        else {
-            if !Task.isCancelled {
-                connection = .unreachable(reason: "No Coco Hub found on this network.")
-            }
-            return
-        }
+        guard let address = await trustedHub(settings), !Task.isCancelled else { return }
+        let endpoint = HubEndpoint(host: address.host, port: address.port, token: token)
         self.endpoint = endpoint
         let client = makeClient(endpoint)
         self.client = client
@@ -145,6 +169,53 @@ public final class AppModel {
             if Task.isCancelled { return }
             handle(update)
         }
+    }
+
+    /// The address of the paired Hub: the manual host, or the first discovered Hub whose
+    /// certificate matches the pin. Sets `connection` and returns `nil` when pairing is needed,
+    /// the manual host is someone else, or discovery ends. Never sends the token.
+    private func trustedHub(_ settings: HubSettings) async -> HubAddress? {
+        let addresses: AsyncStream<HubAddress>
+        let manual = settings.manualHost != nil
+        if let host = settings.manualHost {
+            addresses = AsyncStream { continuation in
+                continuation.yield(HubAddress(host: host, port: settings.port))
+                continuation.finish()
+            }
+        } else {
+            addresses = discovery.browse()
+        }
+        var sawUntrusted = false
+        for await address in addresses {
+            var backoff = Backoff()
+            // An unreachable address is retried (the Hub may be starting); a definite answer
+            // (trusted, untrusted, unpaired) ends the retries.
+            while !Task.isCancelled {
+                let probed = await probe.identify(address)
+                if Task.isCancelled { return nil }
+                switch HubAssessment.assess(probed, pin: settings.pin) {
+                case .trusted:
+                    return address
+                case .needsPairing(let presented):
+                    connection = .needsPairing(PairingCandidate(address: address, pin: presented))
+                    return nil
+                case .untrusted:
+                    connection = .untrustedHub(host: address.host)
+                    sawUntrusted = true
+                    if manual { return nil }
+                case .unreachable(let reason):
+                    connection = .unreachable(reason: reason)
+                    let delay = backoff.nextDelay()
+                    do { try await sleeper.sleep(for: delay) } catch { return nil }
+                    continue
+                }
+                break
+            }
+        }
+        if !Task.isCancelled && !sawUntrusted {
+            connection = .unreachable(reason: "No Coco Hub found on this network.")
+        }
+        return nil
     }
 
     private func handle(_ update: EventStreamUpdate) {
@@ -168,6 +239,9 @@ public final class AppModel {
             timerStore.hubDisconnected()
         case .unauthorized:
             connection = .unauthorized
+            timerStore.hubDisconnected()
+        case .untrustedHub(let host):
+            connection = .untrustedHub(host: host)
             timerStore.hubDisconnected()
         }
     }
@@ -194,6 +268,7 @@ public final class AppModel {
             switch error {
             case .unauthorized: connection = .unauthorized
             case .unreachable(let reason): connection = .unreachable(reason: reason)
+            case .untrustedHub(let host): connection = .untrustedHub(host: host)
             case .server, .decoding: break
             }
         }
@@ -229,13 +304,17 @@ extension AppModel {
 }
 
 extension AppModel {
-    /// The app's real wiring: Keychain + UserDefaults, Bonjour, URLSession.
+    /// The app's real wiring: Keychain + UserDefaults, Bonjour, and one pinned URLSession for
+    /// the client, the event stream and Hub media.
     public static func live() -> AppModel {
-        AppModel(
+        let session = HubSession()
+        return AppModel(
             config: UserDefaultsHubConfigStore(),
             discovery: BonjourHubDiscovery(),
-            makeClient: { HubClient(endpoint: $0) },
-            makeEvents: { EventStream(url: $0.eventsURL, token: $0.token).updates() },
+            probe: HealthzHubProbe(),
+            hubSession: session,
+            makeClient: { session.client(for: $0) },
+            makeEvents: { session.events(for: $0).updates() },
             timerStore: TimerStore(
                 persistence: FileTimerPersistence.standard(),
                 scheduler: LocalAlarmScheduler.live(),

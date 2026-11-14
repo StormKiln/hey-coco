@@ -153,6 +153,7 @@ final class FakeConversationAudio: ConversationAudio {
 final class FakeConversationHost: ConversationHost {
     let log: CallLog
     var currentView: ViewSpec = .idle
+    var alarmRinging = false
     var result: Result<Action, HubError> = .failure(.unreachable("down"))
     /// When true, `postUtterance` waits for `respond()`.
     var holds = false

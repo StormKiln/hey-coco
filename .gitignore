@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Xcode / Swift
+display/CocoDisplay.xcodeproj/
+display/CocoKit/.build/
+display/CocoKit/.swiftpm/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+
+# Local config & secrets
+hub/config.local.toml
+*.env
+.env*
+*.p8
+*.ppn
+
+# macOS
+.DS_Store

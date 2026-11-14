@@ -45,6 +45,8 @@ struct ConversationLayer: ViewModifier {
             .onAppear(perform: setUp)
             .onChange(of: model.currentView) { updateAutoReturn() }
             .onChange(of: conversation?.state) { updateAutoReturn() }
+            // Coco's own media (sounds, YouTube) drops in volume while it listens and replies.
+            .onChange(of: voice?.ducking ?? false) { _, ducked in model.media.setDucked(ducked) }
             .onChange(of: model.alarmRinging, initial: true) { _, ringing in
                 voice?.alarmRingingChanged(ringing)
             }

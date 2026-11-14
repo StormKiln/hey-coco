@@ -23,6 +23,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: brew install xcodegen
+      - name: Cache Swift packages (Porcupine is a large clone)
+        uses: actions/cache@v4
+        with:
+          path: display/.spm
+          key: spm-${{ runner.os }}-${{ hashFiles('display/project.yml') }}
+          restore-keys: spm-${{ runner.os }}-
       - run: xcodebuild -version && swift --version
       - run: make kit-test
       - run: make display-build

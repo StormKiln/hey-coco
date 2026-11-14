@@ -10,6 +10,7 @@ token = ""
 host = "0.0.0.0"
 port = 8765
 # data_dir = "~/Library/Application Support/CocoHub"
+# sounds_dir = "~/CocoSounds"   # curated sound library; default is the repo's assets/sounds
 
 timezone = "America/Toronto"
 units = "metric"          # "metric" | "imperial"

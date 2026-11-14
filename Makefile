@@ -10,7 +10,7 @@ PLIST_DEST := $(HOME)/Library/LaunchAgents/$(SERVICE_LABEL).plist
 HUB_LOG_DIR := $(HOME)/Library/Logs/CocoHub
 LAUNCH_DOMAIN = gui/$$(id -u)
 
-.PHONY: help hub-sync hub-run hub-test hub-lint hub-fmt hub-render-plist hub-install-service hub-uninstall-service hub-logs display-gen display-build display-test kit-test test lint
+.PHONY: help hub-sync hub-run hub-test hub-lint hub-fmt hub-render-plist hub-install-service hub-uninstall-service hub-logs sounds-build display-gen display-build display-test kit-test test lint
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-18s %s\n", $$1, $$2}'
@@ -56,6 +56,9 @@ hub-uninstall-service: ## Stop and remove the Hub launchd agent
 hub-logs: ## Follow the Hub service logs
 	@mkdir -p "$(HUB_LOG_DIR)"
 	tail -n 100 -F "$(HUB_LOG_DIR)/hub.out.log" "$(HUB_LOG_DIR)/hub.err.log"
+
+sounds-build: ## Rebuild the sound library from assets/sounds/sources.toml (needs ffmpeg, sips; network)
+	uv run --with httpx python assets/sounds/tools/curate.py build $(ARGS)
 
 display-gen: ## Generate the Xcode project from display/project.yml
 	cd display && xcodegen generate -q

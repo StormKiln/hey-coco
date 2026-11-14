@@ -24,6 +24,7 @@ from pydantic_settings import (
 HUB_DIR = Path(__file__).resolve().parents[2]
 DEFAULT_CONFIG_PATH = HUB_DIR / "config.local.toml"
 DEFAULT_DATA_DIR = Path.home() / "Library" / "Application Support" / "CocoHub"
+DEFAULT_SOUNDS_DIR = HUB_DIR.parent / "assets" / "sounds"
 
 _HHMM = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 
@@ -105,6 +106,7 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: Annotated[int, Field(ge=1, le=65535)] = 8765
     data_dir: Path = DEFAULT_DATA_DIR
+    sounds_dir: Path = DEFAULT_SOUNDS_DIR
     location: Location = Location()
     timezone: str = "UTC"
     units: Literal["metric", "imperial"] = "metric"
@@ -114,9 +116,9 @@ class Settings(BaseSettings):
     spotify: Spotify = Spotify()
     discovery: Discovery = Discovery()
 
-    @field_validator("data_dir")
+    @field_validator("data_dir", "sounds_dir")
     @classmethod
-    def _expand_data_dir(cls, value: Path) -> Path:
+    def _expand_paths(cls, value: Path) -> Path:
         return value.expanduser()
 
     @field_validator("timezone")

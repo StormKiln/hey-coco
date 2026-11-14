@@ -116,14 +116,25 @@ class QwenFallback:
     """``async (NoMatch, UtteranceRequest, IntentContext) -> Action`` backed by Ollama."""
 
     def __init__(
-        self, client: OllamaClient, engine: RulesEngine, *, timeout_s: float = 6.0
+        self,
+        client: OllamaClient,
+        engine: RulesEngine,
+        *,
+        timeout_s: float = 6.0,
+        log_transcripts: bool = True,
     ) -> None:
         self.client = client
+        self.log_transcripts = log_transcripts
         self.engine = engine
         self.timeout_s = timeout_s
         self._catalog: Catalog | None = None
         self._catalog_size = -1
         self._warming: asyncio.Task[None] | None = None
+
+    def _t(self, text: str) -> str:
+        """Household speech (and model replies derived from it) only reach the log when
+        ``diagnostics.log_transcripts`` is on."""
+        return text if self.log_transcripts else "<transcript hidden>"
 
     @property
     def catalog(self) -> Catalog:
@@ -142,15 +153,15 @@ class QwenFallback:
             async with asyncio.timeout(self.timeout_s):
                 result = await self.interpret(no_match, request)
         except TimeoutError:
-            log.warning("qwen: gave up on %r after %.1fs", no_match.raw, self.timeout_s)
+            log.warning("qwen: gave up on %r after %.1fs", self._t(no_match.raw), self.timeout_s)
             self.schedule_warm_up()  # a timeout is usually a cold model
             return _say(TOO_SLOW_SAY, NONE, "none")
         except OllamaError as exc:
-            log.warning("qwen: unavailable (%s); no fallback for %r", exc, no_match.raw)
+            log.warning("qwen: unavailable (%s); no fallback for %r", exc, self._t(no_match.raw))
             return await no_fallback(no_match, request, ctx)
         log.info(
             "qwen: %r -> %s %s in %.2fs",
-            no_match.raw,
+            self._t(no_match.raw),
             result.intent if result else "invalid",
             dict(result.slots) if result else "",
             time.monotonic() - started,
@@ -170,10 +181,12 @@ class QwenFallback:
         """
         utterance = request.text.strip() or no_match.raw or no_match.text
         if (safe := pet_food_answer(utterance)) is not None:
-            log.info("qwen: %r answered from the pet-food table", utterance)
+            log.info("qwen: %r answered from the pet-food table", self._t(utterance))
             return Interpretation(GENERAL, answer=safe)
         if (safe := fixed_safety_answer(utterance)) is not None:
-            log.info("qwen: %r answered with the fixed allergy/medicine referral", utterance)
+            log.info(
+                "qwen: %r answered with the fixed allergy/medicine referral", self._t(utterance)
+            )
             return Interpretation(GENERAL, answer=safe)
         catalog = self.catalog
         reply = await self.client.chat_json(
@@ -182,7 +195,7 @@ class QwenFallback:
         try:
             return catalog.validate(reply)
         except InvalidOutput as exc:
-            log.info("qwen: invalid reply %r (%s); asking for a repair", reply[:200], exc)
+            log.info("qwen: invalid reply %r (%s); asking for a repair", self._t(reply[:200]), exc)
             history = [
                 {"role": "assistant", "content": reply},
                 {"role": "user", "content": REPAIR_REQUEST.format(error=exc)},
@@ -193,7 +206,7 @@ class QwenFallback:
         try:
             return catalog.validate(reply)
         except InvalidOutput as exc:
-            log.warning("qwen: invalid reply after repair %r (%s)", reply[:200], exc)
+            log.warning("qwen: invalid reply after repair %r (%s)", self._t(reply[:200]), exc)
         if not looks_like_question(utterance):
             return None
         return await self._answer_only(utterance)
@@ -203,7 +216,7 @@ class QwenFallback:
         try:
             return Catalog.validate_answer(reply)
         except InvalidOutput as exc:
-            log.warning("qwen: no usable answer %r (%s)", reply[:200], exc)
+            log.warning("qwen: no usable answer %r (%s)", self._t(reply[:200]), exc)
             return None
 
     async def act(

@@ -353,3 +353,14 @@ async def test_slots_converted_to_empty_are_dropped(ctx):
     )
     await run(fb, "please do the thing twice", ctx)
     assert seen == {"n": "2"}
+
+
+@pytest.mark.anyio
+async def test_transcripts_stay_out_of_logs_when_disabled(ctx, caplog):
+    fake = FakeOllama(reply("none"))
+    fb = fallback(fake)
+    fb.log_transcripts = False
+    with caplog.at_level("INFO", logger="coco_hub.qwen.fallback"):
+        await run(fb, "my secret kitchen sentence", ctx)
+    assert "my secret kitchen sentence" not in caplog.text
+    assert "<transcript hidden>" in caplog.text

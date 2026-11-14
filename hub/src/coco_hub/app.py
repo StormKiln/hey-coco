@@ -119,6 +119,7 @@ def create_app(
             OllamaClient(settings.qwen.base_url, settings.qwen.model, transport=ollama_transport),
             app.state.engine,
             timeout_s=settings.qwen.timeout_s,
+            log_transcripts=settings.diagnostics.log_transcripts,
         )
         app.state.fallback = app.state.qwen
     app.state.sounds = SoundLibrary.load(settings.sounds_dir)

@@ -1,0 +1,20 @@
+{
+  "say": null,
+  "view": null,
+  "commands": [
+    {
+      "type": "media.resume",
+      "target": "youtube"
+    },
+    {
+      "type": "media.next",
+      "target": "music"
+    },
+    {
+      "type": "media.stop",
+      "target": "sound"
+    }
+  ],
+  "intent": "media.next",
+  "matched_by": "rules"
+}

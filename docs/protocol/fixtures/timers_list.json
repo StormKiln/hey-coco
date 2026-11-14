@@ -1,0 +1,21 @@
+{
+  "timers": [
+    {
+      "id": "t_7f3a",
+      "name": "pasta",
+      "duration_s": 600,
+      "created_at": "2026-11-14T15:00:00Z",
+      "ends_at": "2026-11-14T15:10:00Z",
+      "state": "running"
+    },
+    {
+      "id": "t_91c2",
+      "name": null,
+      "duration_s": 180,
+      "created_at": "2026-11-14T15:03:00Z",
+      "ends_at": "2026-11-14T15:06:00Z",
+      "state": "running"
+    }
+  ],
+  "server_time": "2026-11-14T15:04:05Z"
+}

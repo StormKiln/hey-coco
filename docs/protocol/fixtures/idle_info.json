@@ -1,0 +1,65 @@
+{
+  "server_time": "2026-11-14T15:04:05Z",
+  "timezone": "America/Toronto",
+  "weather": {
+    "current": {
+      "time": "2026-11-14T15:00:00Z",
+      "temp": 4.5,
+      "feels_like": 1.2,
+      "unit": "C",
+      "code": 3,
+      "description": "Overcast",
+      "is_day": true
+    },
+    "hourly": [
+      {
+        "time": "2026-11-14T16:00:00Z",
+        "temp": 4.8,
+        "unit": "C",
+        "code": 3,
+        "precip_probability": 10
+      },
+      {
+        "time": "2026-11-14T17:00:00Z",
+        "temp": 4.1,
+        "unit": "C",
+        "code": 3,
+        "precip_probability": 20
+      },
+      {
+        "time": "2026-11-14T18:00:00Z",
+        "temp": 3.2,
+        "unit": "C",
+        "code": 61,
+        "precip_probability": 55
+      },
+      {
+        "time": "2026-11-14T19:00:00Z",
+        "temp": 2.6,
+        "unit": "C",
+        "code": 61,
+        "precip_probability": 70
+      },
+      {
+        "time": "2026-11-14T20:00:00Z",
+        "temp": 2.0,
+        "unit": "C",
+        "code": 3,
+        "precip_probability": 35
+      },
+      {
+        "time": "2026-11-14T21:00:00Z",
+        "temp": 1.4,
+        "unit": "C",
+        "code": 2,
+        "precip_probability": 10
+      }
+    ],
+    "stale": false
+  },
+  "night": {
+    "start": "21:30",
+    "end": "06:30",
+    "dark_after_idle_s": 300
+  }
+}

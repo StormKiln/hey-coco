@@ -1,0 +1,6 @@
+{
+  "error": {
+    "code": "timer_not_found",
+    "message": "No timer with id t_0000."
+  }
+}

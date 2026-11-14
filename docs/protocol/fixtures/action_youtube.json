@@ -1,0 +1,11 @@
+{
+  "say": "Playing Baby Shark Dance.",
+  "view": {
+    "type": "youtube",
+    "video_id": "XqZsoesa55w",
+    "title": "Baby Shark Dance | Sing and Dance!"
+  },
+  "commands": [],
+  "intent": "youtube.play",
+  "matched_by": "rules"
+}

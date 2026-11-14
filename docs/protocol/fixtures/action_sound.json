@@ -1,0 +1,13 @@
+{
+  "say": "This is what a cow sounds like.",
+  "view": {
+    "type": "sound",
+    "name": "cow",
+    "clip_url": "http://coco-hub.local:8765/v1/sounds/cow.mp3",
+    "image_url": "http://coco-hub.local:8765/v1/sounds/cow.jpg",
+    "attribution": "Cow moo by Freesound user Benboncan, CC BY 4.0"
+  },
+  "commands": [],
+  "intent": "sound.play",
+  "matched_by": "rules"
+}

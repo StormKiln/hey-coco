@@ -1,17 +1,25 @@
 """Coco Hub FastAPI app."""
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, FastAPI
 
 from coco_hub import db, discovery
 from coco_hub.auth import require_token
 from coco_hub.errors import install_error_handlers
+from coco_hub.intents import build_registry
+from coco_hub.intents.engine import RulesEngine, no_fallback
+from coco_hub.routes import utterance
 from coco_hub.settings import Settings, load_settings
 
 
-def create_app(settings: Settings) -> FastAPI:
+def _utc_now() -> datetime:
+    return datetime.now(UTC)
+
+
+def create_app(settings: Settings, *, clock: Callable[[], datetime] = _utc_now) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.db = db.open_db(settings.data_dir)
@@ -28,6 +36,14 @@ def create_app(settings: Settings) -> FastAPI:
 
     app = FastAPI(title="Coco Hub", version="0.1.0", lifespan=lifespan)
     app.state.settings = settings
+    app.state.clock = clock
+    # Intent pipeline. Feature modules register intents into `app.state.intents` (see
+    # coco_hub.intents.INTENT_MODULES), put their services in `app.state.services` (handed to
+    # handlers as `ctx.services`), and the Qwen fallback replaces `app.state.fallback`.
+    app.state.intents = build_registry()
+    app.state.engine = RulesEngine(app.state.intents)
+    app.state.services = {}
+    app.state.fallback = no_fallback
     install_error_handlers(app)
 
     @app.get("/healthz")
@@ -42,6 +58,7 @@ def create_app(settings: Settings) -> FastAPI:
     def ping() -> dict[str, bool]:
         return {"pong": True}
 
+    v1.include_router(utterance.router)
     app.include_router(v1)
     return app
 

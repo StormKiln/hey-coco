@@ -24,3 +24,9 @@ def settings(tmp_path: Path) -> Settings:
         data_dir=tmp_path / "data",
         discovery={"enabled": False},
     )
+
+
+@pytest.fixture
+def anyio_backend() -> str:
+    """Run ``@pytest.mark.anyio`` tests on asyncio only."""
+    return "asyncio"

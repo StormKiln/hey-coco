@@ -36,6 +36,7 @@ struct ContentView: View {
                 try model.saveSettings(settings)
             }
         }
+        .conversationLayer(model: model)
     }
 }
 
@@ -49,11 +50,7 @@ struct ScreenView: View {
         case .idle:
             IdleView(idleInfo: idleInfo)
         case .answer(let text):
-            Text(text)
-                .font(.system(size: 56, weight: .semibold, design: .rounded))
-                .multilineTextAlignment(.center)
-                .minimumScaleFactor(0.3)
-                .padding(48)
+            AnswerScreen(text: text)
         default:
             Text(view.type)
                 .font(.system(size: 48, weight: .semibold, design: .rounded))

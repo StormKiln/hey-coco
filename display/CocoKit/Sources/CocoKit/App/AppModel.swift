@@ -36,7 +36,7 @@ public final class AppModel {
     @ObservationIgnored private let makeClient: @Sendable (HubEndpoint) -> any HubAPI
     @ObservationIgnored private let makeEvents:
         @Sendable (HubEndpoint) -> AsyncStream<EventStreamUpdate>
-    @ObservationIgnored private var client: (any HubAPI)?
+    @ObservationIgnored private(set) var client: (any HubAPI)?
     @ObservationIgnored private var runTask: Task<Void, Never>?
 
     public init(

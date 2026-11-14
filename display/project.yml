@@ -38,6 +38,8 @@ targets:
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         INFOPLIST_KEY_UIRequiresFullScreen: YES
         INFOPLIST_KEY_NSLocalNetworkUsageDescription: "Coco Display finds and talks to Coco Hub on your home network."
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "Coco listens through the microphone when you tap the mic so you can ask it things."
+        INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "Coco turns what you say into text so it can answer you."
         CODE_SIGNING_ALLOWED: NO
 schemes:
   CocoDisplay:

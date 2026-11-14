@@ -201,6 +201,11 @@ class SpotifyService:
             raise SpotifyNoDevice(f"device {self.device_name or '(any)'} not visible")
         return device
 
+    async def visible_device(self) -> Device | None:
+        """The device we'd play on, if Spotify sees it now; never wakes one (diagnostics)."""
+        self.ensure_ready()
+        return choose_device(await self._client.devices(), self.device_name)
+
     # --- search + play -----------------------------------------------------------------
 
     async def search(self, query: str, kind: MusicKind) -> list[Item]:

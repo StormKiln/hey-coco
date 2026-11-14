@@ -306,3 +306,93 @@ class ErrorBody(Message):
 
 class ErrorResponse(Message):
     error: ErrorBody
+
+
+# --- Diagnostics ------------------------------------------------------------------------
+
+CheckStatus = Literal["ok", "warn", "error", "off"]
+"""``off``: not configured / disabled. ``warn``: works but needs attention. ``error``: broken,
+or the check failed or timed out (``detail`` says which)."""
+
+
+class UtteranceTrace(Message):
+    ts: UtcDatetime
+    text: str
+    source: Literal["voice", "touch"]
+    view: ViewType
+    """``context.view`` of the request."""
+    intent: str | None
+    """``None`` when handling raised (see ``error``)."""
+    matched_by: Literal["rules", "qwen", "none"] | None
+    say: str | None
+    latency_ms: Annotated[int, Field(ge=0)]
+    error: str | None
+
+
+class QwenSummary(Message):
+    enabled: bool
+    model: str
+
+
+class SpotifySummary(Message):
+    configured: bool
+    logged_in: bool
+
+
+class DiagnosticsSettings(Message):
+    timezone: str
+    units: Literal["metric", "imperial"]
+    location_set: bool
+    qwen: QwenSummary
+    youtube_configured: bool
+    spotify: SpotifySummary
+    night: Night
+    log_transcripts: bool
+
+
+class OllamaHealth(Message):
+    status: CheckStatus
+    reachable: bool
+    model_present: bool
+    model_loaded: bool
+    detail: str | None
+
+
+class WeatherHealth(Message):
+    status: CheckStatus
+    fetched_at: UtcDatetime | None
+    stale: bool
+    detail: str | None
+
+
+class YoutubeHealth(Message):
+    status: CheckStatus
+    quota_used: Annotated[int, Field(ge=0)]
+    quota_limit: Annotated[int, Field(ge=0)]
+    detail: str | None
+
+
+class SpotifyHealth(Message):
+    status: CheckStatus
+    device_visible: bool
+    device_name: str | None
+    detail: str | None
+
+
+class DiagnosticsHealth(Message):
+    ollama: OllamaHealth
+    weather: WeatherHealth
+    youtube: YoutubeHealth
+    spotify: SpotifyHealth
+
+
+class Diagnostics(Message):
+    server_time: UtcDatetime
+    version: str
+    git_sha: str | None
+    started_at: UtcDatetime
+    uptime_s: Seconds
+    settings: DiagnosticsSettings
+    health: DiagnosticsHealth
+    utterances: list[UtteranceTrace]
+    """The most recent utterances (up to 20), newest first."""

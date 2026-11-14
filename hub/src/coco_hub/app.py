@@ -9,11 +9,12 @@ from datetime import UTC, datetime
 import httpx
 from fastapi import APIRouter, Depends, FastAPI
 
-from coco_hub import db, discovery, events
+from coco_hub import db, diagnostics, discovery, events
 from coco_hub.auth import require_token
 from coco_hub.errors import install_error_handlers
 from coco_hub.intents import build_registry
 from coco_hub.intents.engine import RulesEngine, no_fallback
+from coco_hub.logging_setup import configure_logging
 from coco_hub.media.policy import AllowAllPolicy
 from coco_hub.media.spotify import auth as spotify_auth
 from coco_hub.media.spotify.service import SpotifyService
@@ -118,6 +119,7 @@ def create_app(
             OllamaClient(settings.qwen.base_url, settings.qwen.model, transport=ollama_transport),
             app.state.engine,
             timeout_s=settings.qwen.timeout_s,
+            log_transcripts=settings.diagnostics.log_transcripts,
         )
         app.state.fallback = app.state.qwen
     app.state.sounds = SoundLibrary.load(settings.sounds_dir)
@@ -126,6 +128,7 @@ def create_app(
     app.state.services["media_policy"] = AllowAllPolicy()
     app.state.services["pictures"] = PictureService(clock=clock)
     app.state.events = events.EventBus()
+    app.state.diagnostics = diagnostics.DiagnosticsService(settings, clock=clock)
     install_error_handlers(app)
 
     @app.get("/healthz")
@@ -144,6 +147,7 @@ def create_app(
     v1.include_router(media_router)
     v1.include_router(timer_routes.router)
     v1.include_router(idle.router)
+    v1.include_router(diagnostics.router)
     app.include_router(v1)
     # WebSocket routes authorize themselves (auth.authorize_websocket), so they live outside
     # the bearer-token dependency.
@@ -155,5 +159,11 @@ def create_app(
 
 
 def create_app_from_env() -> FastAPI:
-    """Uvicorn factory: ``uvicorn coco_hub.app:create_app_from_env --factory``."""
-    return create_app(load_settings())
+    """Uvicorn factory: ``uvicorn coco_hub.app:create_app_from_env --factory``.
+
+    Configures logging here (not in ``create_app``, which tests call many times) so the
+    worker process logs JSON lines even when ``--reload`` runs it in a subprocess.
+    """
+    settings = load_settings()
+    configure_logging(settings)
+    return create_app(settings)

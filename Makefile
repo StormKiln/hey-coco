@@ -10,7 +10,7 @@ PLIST_DEST := $(HOME)/Library/LaunchAgents/$(SERVICE_LABEL).plist
 HUB_LOG_DIR := $(HOME)/Library/Logs/CocoHub
 LAUNCH_DOMAIN = gui/$$(id -u)
 
-.PHONY: help hub-sync hub-run hub-test hub-lint hub-eval hub-fmt hub-render-plist hub-install-service hub-uninstall-service hub-logs spotify-login sounds-build display-gen display-build display-test kit-test test lint
+.PHONY: help hub-sync hub-run hub-test hub-lint hub-eval hub-fmt hub-render-plist hub-install-service hub-uninstall-service hub-logs hub-logs-launchd hub-diag spotify-login sounds-build display-gen display-build display-test kit-test test lint
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-18s %s\n", $$1, $$2}'
@@ -63,9 +63,18 @@ spotify-login: ## Print the URL to connect Spotify (open it in a browser on the 
 	@echo "  open http://127.0.0.1:$(HUB_PORT)/spotify/login"
 	@echo "See docs/spotify.md for the one-time Spotify developer app setup."
 
-hub-logs: ## Follow the Hub service logs
+hub-logs: ## Follow the Hub's JSON log (hub.jsonl), pretty-printed
+	@mkdir -p "$(HUB_LOG_DIR)"
+	@tail -n 100 -F "$(HUB_LOG_DIR)/hub.jsonl" | python3 -u hub/src/coco_hub/logfmt.py
+
+hub-logs-launchd: ## Follow launchd's raw stdout/stderr capture (startup crashes land here)
 	@mkdir -p "$(HUB_LOG_DIR)"
 	tail -n 100 -F "$(HUB_LOG_DIR)/hub.out.log" "$(HUB_LOG_DIR)/hub.err.log"
+
+# The token goes to curl on stdin (-H @-), never on a command line or the terminal.
+hub-diag: ## Show GET /v1/diagnostics from the local Hub (token from hub/config.local.toml / env)
+	@cd hub && uv run --quiet python -c 'from coco_hub.settings import load_settings; print("Authorization: Bearer " + load_settings().token.get_secret_value())' \
+		| curl -fsS -H @- "http://127.0.0.1:$(HUB_PORT)/v1/diagnostics" | python3 -m json.tool
 
 sounds-build: ## Rebuild the sound library from assets/sounds/sources.toml (needs ffmpeg, sips; network)
 	uv run --with httpx python assets/sounds/tools/curate.py build $(ARGS)

@@ -1,0 +1,85 @@
+{
+  "server_time": "2026-11-14T20:05:00Z",
+  "version": "0.1.0",
+  "git_sha": "3e190cd",
+  "started_at": "2026-11-14T08:00:00Z",
+  "uptime_s": 43500,
+  "settings": {
+    "timezone": "America/Toronto",
+    "units": "metric",
+    "location_set": true,
+    "qwen": {"enabled": true, "model": "qwen3:8b"},
+    "youtube_configured": true,
+    "spotify": {"configured": true, "logged_in": true},
+    "night": {"start": "21:30", "end": "06:30", "dark_after_idle_s": 300},
+    "log_transcripts": true
+  },
+  "health": {
+    "ollama": {
+      "status": "ok",
+      "reachable": true,
+      "model_present": true,
+      "model_loaded": true,
+      "detail": null
+    },
+    "weather": {
+      "status": "warn",
+      "fetched_at": "2026-11-14T19:20:00Z",
+      "stale": true,
+      "detail": "last fetch failed"
+    },
+    "youtube": {"status": "ok", "quota_used": 300, "quota_limit": 9000, "detail": null},
+    "spotify": {
+      "status": "error",
+      "device_visible": false,
+      "device_name": "Kitchen iPad",
+      "detail": "timed out"
+    }
+  },
+  "utterances": [
+    {
+      "ts": "2026-11-14T20:04:51Z",
+      "text": "why is the sky blue",
+      "source": "voice",
+      "view": "idle",
+      "intent": "general.answer",
+      "matched_by": "qwen",
+      "say": "Sunlight scatters off air, and blue scatters the most.",
+      "latency_ms": 1840,
+      "error": null
+    },
+    {
+      "ts": "2026-11-14T20:03:10Z",
+      "text": "flibbertigibbet",
+      "source": "voice",
+      "view": "timers",
+      "intent": "none",
+      "matched_by": "none",
+      "say": "Sorry, I can't do that yet.",
+      "latency_ms": 2,
+      "error": null
+    },
+    {
+      "ts": "2026-11-14T20:01:00Z",
+      "text": "play raffi",
+      "source": "touch",
+      "view": "now_playing",
+      "intent": null,
+      "matched_by": null,
+      "say": null,
+      "latency_ms": 312,
+      "error": "SpotifyError: HTTP 502"
+    },
+    {
+      "ts": "2026-11-14T20:00:00Z",
+      "text": "set a pasta timer for 10 minutes",
+      "source": "voice",
+      "view": "idle",
+      "intent": "timer.create",
+      "matched_by": "rules",
+      "say": "Pasta timer set for 10 minutes.",
+      "latency_ms": 4,
+      "error": null
+    }
+  ]
+}

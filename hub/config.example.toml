@@ -11,6 +11,7 @@ host = "0.0.0.0"
 port = 8765
 # data_dir = "~/Library/Application Support/CocoHub"
 # sounds_dir = "~/CocoSounds"   # curated sound library; default is the repo's assets/sounds
+# log_dir = "~/Library/Logs/CocoHub"   # hub.jsonl (rotated 5 MB x 5); `make hub-logs` follows it
 
 timezone = "America/Toronto"
 units = "metric"          # "metric" | "imperial"
@@ -36,6 +37,9 @@ timeout_s = 6.0           # give up with "Sorry, that took too long." after this
 [timers]
 ring_cap_s = 600          # a ringing timer is auto-dismissed after this long
 missed_grace_s = 3600     # timers that ended while the Hub was down ring if this recent
+
+[diagnostics]
+log_transcripts = true    # false: keep what Coco heard/said out of the log file (memory only)
 
 [discovery]
 enabled = true            # Bonjour _coco._tcp

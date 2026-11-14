@@ -17,7 +17,8 @@ that decode every fixture, so a change here must update the Hub models
 (`hub/src/coco_hub/protocol.py`) and the Swift models (`display/CocoKit/Sources/CocoKit/Protocol/`)
 in the same PR. Fixtures are mapped to models by filename prefix (`action_*` → `Action`,
 `event_*` → `Event`, `timer_*` → `Timer`, …). In Swift, `Timer`, `Image` and `View` are named
-`TimerInfo`, `PictureImage` and `ViewSpec` to avoid clashing with Foundation/SwiftUI.
+`TimerInfo`, `PictureImage` and `ViewSpec` to avoid clashing with Foundation/SwiftUI, and
+`Diagnostics` is `HubDiagnostics`.
 
 ## Transport and auth
 
@@ -40,6 +41,7 @@ in the same PR. Fixtures are mapped to models by filename prefix (`action_*` →
 | `POST /v1/timers` | `{"name": str \| null, "duration_s": int}` | `Timer` (touch-created timer) |
 | `POST /v1/timers/{id}/dismiss` | – | `Timer` |
 | `DELETE /v1/timers/{id}` | – | `Timer` (state `cancelled`) |
+| `GET /v1/diagnostics` | – | `Diagnostics` |
 | `WS /v1/events` | – | stream of `Event` |
 
 ## UtteranceRequest
@@ -165,3 +167,38 @@ Every event has `type` and `server_time`.
 
 `Image`: `url`, `thumb_url`, `title`, `width`, `height`, `license`, `author` (nullable),
 `source_url`.
+
+## Diagnostics
+
+`GET /v1/diagnostics` (protected) feeds the hidden diagnostics screen
+(`fixtures/diagnostics.json`). It never contains a secret: settings are summarised as booleans
+and names. It answers within about 1.5 s: each health check runs concurrently with a short
+timeout, and a check that fails or times out reports `status: "error"` (`detail` says why)
+instead of failing the request.
+
+```json
+{"server_time": "…", "version": "0.1.0", "git_sha": "3e190cd" | null,
+ "started_at": "…", "uptime_s": 43500,
+ "settings": {"timezone": "America/Toronto", "units": "metric", "location_set": true,
+              "qwen": {"enabled": true, "model": "qwen3:8b"}, "youtube_configured": true,
+              "spotify": {"configured": true, "logged_in": true},
+              "night": Night, "log_transcripts": true},
+ "health": {"ollama": OllamaHealth, "weather": WeatherHealth,
+            "youtube": YoutubeHealth, "spotify": SpotifyHealth},
+ "utterances": [UtteranceTrace …up to 20, newest first]}
+```
+
+- `version`: Hub package version. `git_sha`: short commit, best-effort (`null` if unknown).
+- Every health entry has `status` (`ok` | `warn` | `error` | `off`) and `detail`
+  (nullable human text). `off` means not configured / disabled.
+  - `OllamaHealth`: `reachable`, `model_present`, `model_loaded` (all `false` when `off`).
+  - `WeatherHealth`: `fetched_at` (nullable), `stale`.
+  - `YoutubeHealth`: `quota_used`, `quota_limit` (API units today, Pacific day).
+  - `SpotifyHealth`: `device_visible`, `device_name` (nullable).
+- `UtteranceTrace`: `ts`, `text`, `source`, `view` (the request's `context.view`), `intent`,
+  `matched_by`, `say`, `latency_ms`, `error`. `intent`, `matched_by` and `say` are `null` and
+  `error` is set (`"<ExceptionType>: <message>"`) when handling failed.
+
+Hub behaviour (not a shape change): the Hub keeps the last 100 traces in memory only and logs
+each at INFO to its local log file. With `diagnostics.log_transcripts = false` the log lines
+omit `text` and `say`; this endpoint still returns them.

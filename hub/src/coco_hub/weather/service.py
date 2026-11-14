@@ -62,6 +62,16 @@ class WeatherService:
         loc = self._settings.location
         return loc.lat is not None and loc.lon is not None
 
+    @property
+    def snapshot(self) -> WeatherSnapshot | None:
+        """The cached forecast, without fetching (diagnostics)."""
+        return self._snapshot
+
+    @property
+    def last_failed_at(self) -> datetime | None:
+        """When the last fetch failed, or None if the last fetch worked (diagnostics)."""
+        return self._failed_at
+
     def _fresh(self, now: datetime) -> bool:
         return self._snapshot is not None and now - self._snapshot.fetched_at < self._ttl
 

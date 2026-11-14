@@ -1,0 +1,60 @@
+{"text": "can you give me ten minutes for the eggs", "intent": "timer.create", "slots": {"name": "eggs", "duration_s": 600}}
+{"text": "start a twenty minute countdown", "intent": "timer.create", "slots": {"duration_s": 1200}}
+{"text": "remind me in an hour and a half to take the bread out", "intent": "timer.create", "slots": {"name": "bread", "duration_s": 5400}}
+{"text": "pasta needs eleven minutes", "intent": "timer.create", "slots": {"name": "pasta", "duration_s": 660}}
+{"text": "set one for 45 seconds", "intent": "timer.create", "slots": {"duration_s": 45}}
+{"text": "how much longer on the rice", "intent": "timer.query", "slots": {"name": "rice"}}
+{"text": "is the cookie timer almost done", "intent": "timer.query", "slots": {"name": "cookie"}}
+{"text": "kill the timer", "intent": "timer.cancel", "slots": {}}
+{"text": "never mind the potato timer", "intent": "timer.cancel", "slots": {"name": "potato"}}
+{"text": "get rid of all of them timers", "intent": "timer.cancel", "slots": {"all": true}}
+{"text": "chuck another five minutes on the chicken", "intent": "timer.add_time", "slots": {"name": "chicken", "duration_s": 300}}
+{"text": "give it two more minutes", "intent": "timer.add_time", "slots": {"duration_s": 120}}
+{"text": "what timers have I got going", "intent": "timer.list", "slots": {}}
+{"text": "what time is it right now", "intent": "time.now", "slots": {}}
+{"text": "what's the date today", "intent": "date.today", "slots": {}}
+{"text": "how's it looking outside", "intent": "weather.current", "slots": {}}
+{"text": "is it cold out right now", "intent": "weather.current", "slots": {}}
+{"text": "what's it gonna be like tomorrow", "intent": "weather.forecast", "slots": {"when": "tomorrow"}}
+{"text": "will it be nice this weekend", "intent": "weather.forecast", "slots": {"when": "this_weekend"}}
+{"text": "do the kids need umbrellas this afternoon", "intent": "weather.rain", "slots": {"when": "this_afternoon"}}
+{"text": "is it gonna pour tonight", "intent": "weather.rain", "slots": {"when": "tonight"}}
+{"text": "I wanna see a picture of a narwhal", "intent": "picture.show", "slots": {"query": "narwhal"}}
+{"text": "what does a komodo dragon look like", "intent": "picture.show", "slots": {"query": "komodo dragon"}}
+{"text": "what's the doggo noise", "intent": "sound.play", "slots": {"name": "dog"}}
+{"text": "what does a cow say", "intent": "sound.play", "slots": {"name": "cow"}}
+{"text": "make a fire truck sound", "intent": "sound.play", "slots": {"name": "fire truck"}}
+{"text": "find the baby shark video on youtube", "intent": "youtube.play", "slots": {"query": "baby shark"}}
+{"text": "put on some Raffi", "intent": "music.play", "slots": {"query": "Raffi", "kind": "artist"}}
+{"text": "play the Frozen soundtrack", "intent": "music.play", "slots": {"query": "Frozen", "kind": "album"}}
+{"text": "chuck on some dinner party jazz", "intent": "music.play", "slots": {"query": "dinner party jazz", "kind": "playlist"}}
+{"text": "hold on, pause that", "intent": "media.pause", "slots": {}}
+{"text": "ok keep going with the music", "intent": "media.resume", "slots": {}}
+{"text": "skip this one", "intent": "media.next", "slots": {}}
+{"text": "turn the music off", "intent": "media.stop", "slots": {}}
+{"text": "make it louder", "intent": "volume.change", "slots": {"delta": "+"}}
+{"text": "too loud, bring it down a bit", "intent": "volume.change", "slots": {"delta": "-"}}
+{"text": "volume to half", "intent": "volume.set", "slots": {"level": 50}}
+{"text": "shut that beeping up", "intent": "alarm.stop", "slots": {}}
+{"text": "okay okay I heard you, turn the alarm off", "intent": "alarm.stop", "slots": {}}
+{"text": "how many timers are there", "intent": "timer.list", "slots": {}}
+{"text": "how far away is the moon", "intent": "general.answer", "slots": {}, "fact": "about 384,000 km / 239,000 miles"}
+{"text": "how do you spell necessary", "intent": "general.answer", "slots": {}, "fact": "N-E-C-E-S-S-A-R-Y"}
+{"text": "how many cups in a litre", "intent": "general.answer", "slots": {}, "fact": "about 4 (4.2 US cups; 4 metric cups)"}
+{"text": "why is the sky blue", "intent": "general.answer", "slots": {}, "fact": "Rayleigh scattering of short wavelengths"}
+{"text": "how many legs does a spider have", "intent": "general.answer", "slots": {}, "fact": "eight"}
+{"text": "what's the biggest animal in the world", "intent": "general.answer", "slots": {}, "fact": "blue whale"}
+{"text": "what can I use instead of buttermilk", "intent": "general.answer", "slots": {}, "fact": "milk + 1 tbsp lemon juice or vinegar per cup"}
+{"text": "how long do I boil an egg for a runny yolk", "intent": "general.answer", "slots": {}, "fact": "about 6 minutes from boiling"}
+{"text": "what's 350 fahrenheit in celsius", "intent": "general.answer", "slots": {}, "fact": "about 177 C (175-180)"}
+{"text": "what's seven times eight", "intent": "general.answer", "slots": {}, "fact": "56"}
+{"text": "do penguins have knees", "intent": "general.answer", "slots": {}, "fact": "yes, hidden under feathers"}
+{"text": "who was the first person on the moon", "intent": "general.answer", "slots": {}, "fact": "Neil Armstrong, 1969"}
+{"text": "how many teaspoons in a tablespoon", "intent": "general.answer", "slots": {}, "fact": "three"}
+{"text": "why do onions make you cry", "intent": "general.answer", "slots": {}, "fact": "a sulfur gas (syn-propanethial-S-oxide) irritates the eyes"}
+{"text": "what's the capital of Australia", "intent": "general.answer", "slots": {}, "fact": "Canberra"}
+{"text": "order more milk", "intent": "none", "slots": {}}
+{"text": "call grandma", "intent": "none", "slots": {}}
+{"text": "turn on the kitchen lights", "intent": "none", "slots": {}}
+{"text": "text dad that dinner's ready", "intent": "none", "slots": {}}
+{"text": "add eggs to the shopping list", "intent": "none", "slots": {}}

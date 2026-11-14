@@ -1,0 +1,15 @@
+{"text": "can I get a quarter of an hour on the lasagna", "intent": "timer.create", "slots": {"name": "lasagna", "duration_s": 900}}
+{"text": "buzz me in three minutes", "intent": "timer.create", "slots": {"duration_s": 180}}
+{"text": "how are the muffins doing", "intent": "timer.query", "slots": {"name": "muffin"}}
+{"text": "scrap the broccoli one", "intent": "timer.cancel", "slots": {"name": "broccoli"}}
+{"text": "bump the soup up by ten minutes", "intent": "timer.add_time", "slots": {"name": "soup", "duration_s": 600}}
+{"text": "do I need a jacket today", "intent": "weather.forecast", "slots": {"when": "today"}, "alt": ["weather.current"]}
+{"text": "what noise does a tractor make", "intent": "sound.play", "slots": {"name": "tractor"}}
+{"text": "show us a photo of a red panda", "intent": "picture.show", "slots": {"query": "red panda"}}
+{"text": "let's hear some Taylor Swift", "intent": "music.play", "slots": {"query": "Taylor Swift", "kind": "artist"}}
+{"text": "next song please", "intent": "media.next", "slots": {}}
+{"text": "I can't hear it", "intent": "volume.change", "slots": {"delta": "+"}}
+{"text": "how many grams in an ounce", "intent": "general.answer", "slots": {}, "fact": "about 28 grams"}
+{"text": "why do cats purr", "intent": "general.answer", "slots": {}, "fact": "contentment/communication; also when stressed or healing"}
+{"text": "how do you spell rhythm", "intent": "general.answer", "slots": {}, "fact": "R-H-Y-T-H-M"}
+{"text": "book a table for friday", "intent": "none", "slots": {}}

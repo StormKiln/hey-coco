@@ -16,6 +16,7 @@ from coco_hub.intents import build_registry
 from coco_hub.intents.engine import RulesEngine, no_fallback
 from coco_hub.media.policy import AllowAllPolicy
 from coco_hub.media.youtube import YoutubeService
+from coco_hub.pictures.commons import PictureService
 from coco_hub.qwen.client import OllamaClient
 from coco_hub.qwen.fallback import QwenFallback
 from coco_hub.routes import idle, utterance
@@ -106,6 +107,7 @@ def create_app(
     app.state.services["sounds"] = app.state.sounds
     # The one media choke point (parental controls go here; see coco_hub.media.policy).
     app.state.services["media_policy"] = AllowAllPolicy()
+    app.state.services["pictures"] = PictureService(clock=clock)
     app.state.events = events.EventBus()
     install_error_handlers(app)
 

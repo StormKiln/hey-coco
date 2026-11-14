@@ -75,10 +75,31 @@ in the same PR. Fixtures are mapped to models by filename prefix (`action_*` →
 | `answer` | `text` |
 | `timers` | – (Display renders from its timer state) |
 | `weather` | `current: WeatherNow`, `hourly: [WeatherHour]`, `daily: [WeatherDay]` |
-| `picture` | `query`, `images: [Image]` (first shown, "next" advances) |
-| `sound` | `name`, `clip_url`, `image_url`, `attribution` |
+| `picture` | `query`, `images: [Image]` (first shown, "next" advances) — see below |
+| `sound` | `name`, `clip_url`, `image_url`, `attribution` — see below |
 | `youtube` | `video_id`, `title` |
 | `now_playing` | – (Display renders from now-playing events) |
+
+#### Media URLs in `picture` and `sound` views
+
+- **Picture** `Image.url` / `thumb_url` are **absolute public URLs** on Wikimedia Commons'
+  media hosts (`upload.wikimedia.org`, `thumb.wikimedia.org`). Load them directly, with **no** bearer header.
+  `thumb_url` is about 1280 px wide (or the original when that is smaller); `url` is the
+  original file. `width`/`height` are the original's. The Hub only sends bitmap photos with
+  a reusable licence (CC0, public domain, CC BY, CC BY-SA); show `license`, `author` and
+  `title` as the credit.
+- **Sound** `clip_url` / `image_url` may be **Hub-relative paths**
+  (`/v1/media/sounds/clips/cow.m4a`, `/v1/media/sounds/images/cow.jpg`). Resolve them against
+  the Hub base URL and send the `Authorization: Bearer` header (they are protected endpoints;
+  clips are `audio/mp4`, images `image/jpeg`). An absolute URL is used as is.
+  `attribution` is a one-line credit for both (`Sound: A (CC0) · Picture: B (CC BY 2.0)`).
+
+Hub behaviour (not a shape change):
+
+- On "next" / "another" while a `picture` view is on screen, the Hub resends the same
+  `picture` view with `images` rotated so the next image is first (`say` is `null`).
+- On "again" while a `sound` view is on screen, the Hub resends the same `sound` view with
+  `say: null`; receiving a `sound` view (even an identical one) plays the clip from the start.
 
 ### Commands (`commands[].type`)
 

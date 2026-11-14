@@ -42,7 +42,11 @@ enabled = true            # Bonjour _coco._tcp
 name = "Coco Hub"
 
 [keys]
-# youtube = ""
+# youtube = ""            # YouTube Data API v3 key (Google Cloud console)
+
+[youtube]
+region = "CA"             # ISO country code for search results
+daily_quota = 9000        # API units/day before Coco refuses searches (a search costs 100)
 
 [spotify]
 # client_id = ""

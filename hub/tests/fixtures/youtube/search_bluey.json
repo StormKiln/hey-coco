@@ -1,0 +1,96 @@
+{
+  "kind": "youtube#searchListResponse",
+  "etag": "q0JcYk3kQe9n2RZ7y8gW0vB4tXc",
+  "nextPageToken": "CAUQAA",
+  "regionCode": "CA",
+  "pageInfo": {
+    "totalResults": 1000000,
+    "resultsPerPage": 5
+  },
+  "items": [
+    {
+      "kind": "youtube#searchResult",
+      "etag": "Wm1y0FQyq3dE6cJbR8xK2nL5pAs",
+      "id": {
+        "kind": "youtube#video",
+        "videoId": "a1B2c3D4e5F"
+      },
+      "snippet": {
+        "publishedAt": "2024-03-01T09:00:12Z",
+        "channelId": "UCVzLLZkDuFGAE2BGdBuBNBg",
+        "title": "Bluey Full Episodes | Season 3 | Rug Island, Dad Baby &amp; more | Bluey",
+        "description": "Watch Bluey full episodes from Season 3! Subscribe for more Bluey ...",
+        "thumbnails": {
+          "default": {"url": "https://i.ytimg.com/vi/a1B2c3D4e5F/default.jpg", "width": 120, "height": 90},
+          "medium": {"url": "https://i.ytimg.com/vi/a1B2c3D4e5F/mqdefault.jpg", "width": 320, "height": 180},
+          "high": {"url": "https://i.ytimg.com/vi/a1B2c3D4e5F/hqdefault.jpg", "width": 480, "height": 360}
+        },
+        "channelTitle": "Bluey - Official Channel",
+        "liveBroadcastContent": "none",
+        "publishTime": "2024-03-01T09:00:12Z"
+      }
+    },
+    {
+      "kind": "youtube#searchResult",
+      "etag": "c3Rq9vB2xYz7KmN0pL4wE8tUaHg",
+      "id": {
+        "kind": "youtube#video",
+        "videoId": "Zz9Yy8Xx7Ww"
+      },
+      "snippet": {
+        "publishedAt": "2023-11-20T15:30:00Z",
+        "channelId": "UCVzLLZkDuFGAE2BGdBuBNBg",
+        "title": "Bluey&#39;s Big Play",
+        "description": "Bluey and Bingo put on a show for Dad.",
+        "thumbnails": {
+          "default": {"url": "https://i.ytimg.com/vi/Zz9Yy8Xx7Ww/default.jpg", "width": 120, "height": 90},
+          "medium": {"url": "https://i.ytimg.com/vi/Zz9Yy8Xx7Ww/mqdefault.jpg", "width": 320, "height": 180},
+          "high": {"url": "https://i.ytimg.com/vi/Zz9Yy8Xx7Ww/hqdefault.jpg", "width": 480, "height": 360}
+        },
+        "channelTitle": "Bluey - Official Channel",
+        "liveBroadcastContent": "none",
+        "publishTime": "2023-11-20T15:30:00Z"
+      }
+    },
+    {
+      "kind": "youtube#searchResult",
+      "etag": "pK7sT2vW9xQ1rY4uZ6aB3cD5eFg",
+      "id": {
+        "kind": "youtube#video",
+        "videoId": "Up7Coming00"
+      },
+      "snippet": {
+        "publishedAt": "2026-11-15T00:00:00Z",
+        "channelId": "UCVzLLZkDuFGAE2BGdBuBNBg",
+        "title": "Bluey Christmas Premiere",
+        "description": "Premiering soon.",
+        "thumbnails": {
+          "default": {"url": "https://i.ytimg.com/vi/Up7Coming00/default.jpg", "width": 120, "height": 90}
+        },
+        "channelTitle": "Bluey - Official Channel",
+        "liveBroadcastContent": "upcoming",
+        "publishTime": "2026-11-15T00:00:00Z"
+      }
+    },
+    {
+      "kind": "youtube#searchResult",
+      "etag": "hJ2kL4mN6pQ8rS0tU1vW3xY5zA7",
+      "id": {
+        "kind": "youtube#video",
+        "videoId": "Kk1Ll2Mm3Nn"
+      },
+      "snippet": {
+        "publishedAt": "2022-06-10T12:00:00Z",
+        "channelId": "UCaBcDeFgHiJkLmNoPqRsTuV",
+        "title": "&quot;Keepy Uppy&quot; - Bluey Song Sing-Along",
+        "description": "Sing along with Bluey and Bingo.",
+        "thumbnails": {
+          "default": {"url": "https://i.ytimg.com/vi/Kk1Ll2Mm3Nn/default.jpg", "width": 120, "height": 90}
+        },
+        "channelTitle": "Kids Songs &amp; Stories",
+        "liveBroadcastContent": "none",
+        "publishTime": "2022-06-10T12:00:00Z"
+      }
+    }
+  ]
+}

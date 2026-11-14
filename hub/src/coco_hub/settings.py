@@ -70,6 +70,14 @@ class Keys(BaseModel):
     youtube: SecretStr | None = None
 
 
+class YouTube(BaseModel):
+    region: Annotated[str, Field(pattern=r"^[A-Z]{2}$")] = "CA"
+    """ISO 3166-1 alpha-2 region for search results."""
+    daily_quota: Annotated[int, Field(ge=0, le=10_000)] = 9000
+    """Refuse searches past this many API units per day (a search costs 100; YouTube's free
+    quota is 10,000/day, reset at midnight Pacific)."""
+
+
 class Spotify(BaseModel):
     client_id: str | None = None
     client_secret: SecretStr | None = None
@@ -126,6 +134,7 @@ class Settings(BaseSettings):
     night: Night = Night()
     qwen: Qwen = Qwen()
     keys: Keys = Keys()
+    youtube: YouTube = YouTube()
     spotify: Spotify = Spotify()
     discovery: Discovery = Discovery()
     timers: Timers = Timers()

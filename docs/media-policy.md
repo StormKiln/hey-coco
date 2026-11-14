@@ -1,0 +1,31 @@
+# Media policy (lockdown hook)
+
+All media that Coco starts goes through one Hub module:
+`hub/src/coco_hub/media/policy.py`. **This is where parental controls / content lockdown
+go.** v1 ships `AllowAllPolicy` (the family chose no lockdown for now; see the design doc).
+
+## How it works
+
+- The app registers one policy at `app.state.services["media_policy"]`.
+- Intents get it with `policy_from(ctx.services)`, which fails closed: no policy registered
+  is an error, never "allow".
+- For a search (YouTube now, Spotify later), the policy is asked twice:
+  1. `MediaRequest(kind, query)` before searching, so a blocked query costs no API quota;
+  2. once per candidate with `item_id`, `title` and `channel` filled in. Coco plays the
+     first allowed item. "Next" checks the following items the same way.
+- A denial is spoken using `MediaDecision.reason` (default: "Sorry, I can't play that.").
+- Pause / resume / stop / volume don't start new content and aren't checked.
+
+In `hub/src/coco_hub/intents/media.py`, `_play_first_allowed` is the only code that makes a
+`YoutubeView`. Tests in `hub/tests/intents/test_media_intents.py` check that play and next
+both call the policy and that a deny policy blocks with its reason.
+
+## Adding controls later
+
+Implement `check(request: MediaRequest) -> MediaDecision` (for example: a channel
+allow-list, blocked words, time-of-day rules, per-kind rules), register it in `app.py`
+instead of `AllowAllPolicy`, and make every new media intent (music, sounds, pictures) call
+it before it shows or plays anything.
+
+YouTube searches use `safeSearch=moderate` as a default. That is not the lockdown: content
+decisions belong in the policy.

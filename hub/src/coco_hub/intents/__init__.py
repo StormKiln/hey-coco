@@ -10,13 +10,14 @@ and, if its patterns capture slots, ``llm_slots`` (see ``engine.LlmSlot``;
 
 from collections.abc import Callable
 
-from coco_hub.intents import builtin, timers, weather
+from coco_hub.intents import builtin, media, timers, weather
 from coco_hub.intents.engine import IntentRegistry
 
 INTENT_MODULES: list[Callable[[IntentRegistry], None]] = [
     builtin.register,
     timers.register,
     weather.register,
+    media.register,
 ]
 
 

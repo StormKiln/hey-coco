@@ -86,7 +86,7 @@ kit-test: ## Run CocoKit (Display logic) tests on macOS
 	cd display/CocoKit && swift test
 
 display-build: display-gen ## Build Coco Display for the iOS simulator
-	cd display && xcodebuild -project CocoDisplay.xcodeproj -scheme CocoDisplay -destination '$(SIM_DEST)' build -quiet
+	cd display && xcodebuild -project CocoDisplay.xcodeproj -scheme CocoDisplay -destination '$(SIM_DEST)' -clonedSourcePackagesDirPath .spm build -quiet
 
 display-test: kit-test display-build ## Test CocoKit and build the app
 

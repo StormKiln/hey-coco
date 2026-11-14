@@ -11,6 +11,9 @@ import Foundation
 public final class AppleSpeechRecognizer: SpeechRecognizer {
     public let locale: Locale
     public let policy: UtteranceEndpointer.Policy
+    /// Echo cancellation on the mic (`VoiceLoop` turns it on so Coco can be heard over its own
+    /// media and alarm).
+    public let voiceProcessing: Bool
     /// After the audio ends, how long to wait for the recognizer's final before using the last
     /// partial instead.
     private let finalGrace: Duration = .seconds(2)
@@ -24,9 +27,13 @@ public final class AppleSpeechRecognizer: SpeechRecognizer {
     private var audioEnded = false
     private var session = 0
 
-    public init(locale: Locale = AppleSpeechRecognizer.preferredLocale(), policy: UtteranceEndpointer.Policy = .init()) {
+    public init(
+        locale: Locale = AppleSpeechRecognizer.preferredLocale(), policy: UtteranceEndpointer.Policy = .init(),
+        voiceProcessing: Bool = false
+    ) {
         self.locale = locale
         self.policy = policy
+        self.voiceProcessing = voiceProcessing
     }
 
     /// The device locale when Speech supports it, else en-US.
@@ -66,6 +73,8 @@ public final class AppleSpeechRecognizer: SpeechRecognizer {
 
         let engine = AVAudioEngine()
         let input = engine.inputNode
+        // Best effort: without it recognition still works, just with more echo.
+        if voiceProcessing { try? VoiceProcessing.enable(on: input) }
         input.installTap(
             onBus: 0, bufferSize: 1024, format: input.outputFormat(forBus: 0),
             block: Self.tapBlock(appendingTo: request))

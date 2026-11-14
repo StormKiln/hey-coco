@@ -20,9 +20,13 @@ hub/config.local.toml
 .env*
 *.p8
 *.ppn
+# Wake-word AccessKey and keyword files (docs/wake-word.md)
+display/WakeWord/*
+!display/WakeWord/README.md
 
 # macOS
 .DS_Store
 
 # Sound curation download cache
 assets/sounds/.cache/
+display/.spm/

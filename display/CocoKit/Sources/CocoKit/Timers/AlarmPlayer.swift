@@ -66,6 +66,8 @@ public final class AudioAlarmPlayer: AlarmPlayer {
         watchdog = nil
         player?.stop()
         player = nil
+        // The voice loop keeps the session for the wake word.
+        if AudioSessionCoordinator.shared.alarmDidStop() { return }
         #if os(iOS)
             try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         #endif
@@ -85,6 +87,9 @@ public final class AudioAlarmPlayer: AlarmPlayer {
     }
 
     private func activateSession() {
+        // While the voice loop owns the session (play-and-record, so a bare "stop" can be heard
+        // over the alarm), don't switch it to `.playback`.
+        if AudioSessionCoordinator.shared.prepareForAlarm() { return }
         #if os(iOS)
             // `.playback` ignores the silent switch and interrupts other audio (music pauses).
             let session = AVAudioSession.sharedInstance()

@@ -47,6 +47,21 @@ MIGRATIONS: list[Migration] = [
         CREATE INDEX timers_state_ends_at ON timers (state, ends_at);
         """,
     ),
+    Migration(
+        3,
+        "create youtube quota and cache",
+        """
+        CREATE TABLE youtube_quota (
+            day TEXT PRIMARY KEY,
+            units INTEGER NOT NULL CHECK (units >= 0)
+        );
+        CREATE TABLE youtube_cache (
+            query_key TEXT PRIMARY KEY,
+            results TEXT NOT NULL,
+            fetched_at TEXT NOT NULL
+        );
+        """,
+    ),
 ]
 
 _SCHEMA_MIGRATIONS = """

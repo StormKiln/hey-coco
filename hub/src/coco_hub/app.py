@@ -14,6 +14,8 @@ from coco_hub.auth import require_token
 from coco_hub.errors import install_error_handlers
 from coco_hub.intents import build_registry
 from coco_hub.intents.engine import RulesEngine, no_fallback
+from coco_hub.media.policy import AllowAllPolicy
+from coco_hub.media.youtube import YoutubeService
 from coco_hub.qwen.client import OllamaClient
 from coco_hub.qwen.fallback import QwenFallback
 from coco_hub.routes import idle, utterance
@@ -48,6 +50,8 @@ def create_app(
             missed_grace_s=settings.timers.missed_grace_s,
         )
         app.state.services["timers"] = timers
+        youtube = YoutubeService.from_settings(app.state.db, settings, clock=clock)
+        app.state.services["youtube"] = youtube
         # The first tick also settles timers that ended while the Hub was down.
         timer_task = asyncio.create_task(timers.run(), name="timers")
         advertiser = None
@@ -76,6 +80,8 @@ def create_app(
             with contextlib.suppress(asyncio.CancelledError):
                 await timer_task
             app.state.services.pop("timers", None)
+            await youtube.aclose()
+            app.state.services.pop("youtube", None)
             app.state.db.close()
 
     app = FastAPI(title="Coco Hub", version="0.1.0", lifespan=lifespan)
@@ -98,6 +104,8 @@ def create_app(
         app.state.fallback = app.state.qwen
     app.state.sounds = SoundLibrary.load(settings.sounds_dir)
     app.state.services["sounds"] = app.state.sounds
+    # The one media choke point (parental controls go here; see coco_hub.media.policy).
+    app.state.services["media_policy"] = AllowAllPolicy()
     app.state.events = events.EventBus()
     install_error_handlers(app)
 

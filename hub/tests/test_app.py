@@ -62,6 +62,19 @@ def test_lifespan_opens_db_in_data_dir(settings):
         assert (settings.data_dir / "coco-hub.sqlite3").exists()
 
 
+def test_media_services_registered(settings):
+    from coco_hub.media.policy import AllowAllPolicy
+    from coco_hub.media.youtube import YoutubeService
+
+    app = create_app(settings)
+    assert isinstance(app.state.services["media_policy"], AllowAllPolicy)
+    with TestClient(app):
+        youtube = app.state.services["youtube"]
+        assert isinstance(youtube, YoutubeService)
+        assert not youtube.configured  # no keys.youtube in tests
+    assert "youtube" not in app.state.services
+
+
 def ws_app(settings):
     app = create_app(settings)
 

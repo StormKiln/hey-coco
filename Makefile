@@ -10,7 +10,7 @@ PLIST_DEST := $(HOME)/Library/LaunchAgents/$(SERVICE_LABEL).plist
 HUB_LOG_DIR := $(HOME)/Library/Logs/CocoHub
 LAUNCH_DOMAIN = gui/$$(id -u)
 
-.PHONY: help hub-sync hub-run hub-test hub-lint hub-eval hub-fmt hub-render-plist hub-install-service hub-uninstall-service hub-logs sounds-build display-gen display-build display-test kit-test test lint
+.PHONY: help hub-sync hub-run hub-test hub-lint hub-eval hub-fmt hub-render-plist hub-install-service hub-uninstall-service hub-logs spotify-login sounds-build display-gen display-build display-test kit-test test lint
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-18s %s\n", $$1, $$2}'
@@ -55,6 +55,13 @@ hub-install-service: hub-sync ## Install + start the Hub launchd agent (starts a
 hub-uninstall-service: ## Stop and remove the Hub launchd agent
 	-launchctl bootout $(LAUNCH_DOMAIN)/$(SERVICE_LABEL) 2>/dev/null
 	rm -f "$(PLIST_DEST)"
+
+HUB_PORT ?= 8765
+
+spotify-login: ## Print the URL to connect Spotify (open it in a browser on the Hub's Mac)
+	@echo "With the Hub running, open this on the Hub's Mac (loopback only):"
+	@echo "  open http://127.0.0.1:$(HUB_PORT)/spotify/login"
+	@echo "See docs/spotify.md for the one-time Spotify developer app setup."
 
 hub-logs: ## Follow the Hub service logs
 	@mkdir -p "$(HUB_LOG_DIR)"

@@ -1,0 +1,14 @@
+{
+  "devices": [
+    {
+      "id": "9f8e7d6c5b4a39281706f5e4d3c2b1a098765432",
+      "is_active": false,
+      "is_private_session": false,
+      "is_restricted": false,
+      "name": "Office MacBook Pro",
+      "supports_volume": true,
+      "type": "Computer",
+      "volume_percent": 75
+    }
+  ]
+}

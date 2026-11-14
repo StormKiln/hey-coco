@@ -62,6 +62,20 @@ MIGRATIONS: list[Migration] = [
         );
         """,
     ),
+    Migration(
+        4,
+        "create spotify tokens",
+        """
+        CREATE TABLE spotify_tokens (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            refresh_token TEXT NOT NULL,
+            access_token TEXT,
+            expires_at TEXT,
+            scope TEXT,
+            updated_at TEXT NOT NULL
+        );
+        """,
+    ),
 ]
 
 _SCHEMA_MIGRATIONS = """

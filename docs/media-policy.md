@@ -20,6 +20,12 @@ In `hub/src/coco_hub/intents/media.py`, `_play_first_allowed` is the only code t
 `YoutubeView`. Tests in `hub/tests/intents/test_media_intents.py` check that play and next
 both call the policy and that a deny policy blocks with its reason.
 
+Spotify (`hub/src/coco_hub/intents/music.py`, kind `music`) works the same way: the query
+is checked before searching, then each ranked candidate with `item_id` = Spotify URI,
+`title` = its name and `channel` = the artist (or playlist owner); the first allowed one
+plays. "Play some music" (resume whatever Spotify last had) is checked at the query level
+only. `hub/tests/spotify/test_music_intents.py` checks every play phrasing hits the policy.
+
 ## Adding controls later
 
 Implement `check(request: MediaRequest) -> MediaDecision` (for example: a channel

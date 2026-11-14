@@ -1,0 +1,108 @@
+{
+  "artists": {
+    "href": "https://api.spotify.com/v1/search?query=raffi&type=artist&offset=0&limit=5",
+    "limit": 5,
+    "offset": 0,
+    "total": 3,
+    "items": [
+      {
+        "type": "artist",
+        "id": "7RaffaellaCarraId0000a",
+        "uri": "spotify:artist:7RaffaellaCarraId0000a",
+        "name": "Raffaella Carrà",
+        "popularity": 66,
+        "genres": ["italian pop"],
+        "images": []
+      },
+      {
+        "type": "artist",
+        "id": "4RaffiArtistId0000000a",
+        "uri": "spotify:artist:4RaffiArtistId0000000a",
+        "name": "Raffi",
+        "popularity": 58,
+        "genres": ["children's music"],
+        "images": []
+      },
+      {
+        "type": "artist",
+        "id": "6RaffiTributeBand0000a",
+        "uri": "spotify:artist:6RaffiTributeBand0000a",
+        "name": "Raffi Tribute Band",
+        "popularity": 3,
+        "genres": [],
+        "images": []
+      }
+    ]
+  },
+  "tracks": {
+    "href": "https://api.spotify.com/v1/search?query=raffi&type=track&offset=0&limit=5",
+    "limit": 5,
+    "offset": 0,
+    "total": 1,
+    "items": [
+      {
+        "type": "track",
+        "id": "3BananaPhoneTrackId000a",
+        "uri": "spotify:track:3BananaPhoneTrackId000a",
+        "name": "Bananaphone",
+        "popularity": 55,
+        "artists": [
+          {
+            "type": "artist",
+            "id": "4RaffiArtistId0000000a",
+            "name": "Raffi",
+            "uri": "spotify:artist:4RaffiArtistId0000000a"
+          }
+        ],
+        "album": {
+          "type": "album",
+          "id": "5BananaphoneAlbumId000a",
+          "name": "Bananaphone",
+          "uri": "spotify:album:5BananaphoneAlbumId000a",
+          "images": []
+        }
+      }
+    ]
+  },
+  "albums": {
+    "href": "https://api.spotify.com/v1/search?query=raffi&type=album&offset=0&limit=5",
+    "limit": 5,
+    "offset": 0,
+    "total": 1,
+    "items": [
+      {
+        "type": "album",
+        "album_type": "compilation",
+        "id": "8RaffiBestOfAlbumId00a",
+        "uri": "spotify:album:8RaffiBestOfAlbumId00a",
+        "name": "The Best of Raffi",
+        "artists": [
+          {
+            "type": "artist",
+            "id": "4RaffiArtistId0000000a",
+            "name": "Raffi",
+            "uri": "spotify:artist:4RaffiArtistId0000000a"
+          }
+        ],
+        "images": []
+      }
+    ]
+  },
+  "playlists": {
+    "href": "https://api.spotify.com/v1/search?query=raffi&type=playlist&offset=0&limit=5",
+    "limit": 5,
+    "offset": 0,
+    "total": 2,
+    "items": [
+      null,
+      {
+        "type": "playlist",
+        "id": "2RaffiPlaylistId000000a",
+        "uri": "spotify:playlist:2RaffiPlaylistId000000a",
+        "name": "Raffi Radio",
+        "owner": {"display_name": "Spotify", "id": "spotify"},
+        "images": []
+      }
+    ]
+  }
+}

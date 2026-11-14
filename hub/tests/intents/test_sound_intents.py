@@ -47,6 +47,7 @@ PHRASES: list[tuple[str, UtteranceContext, str | None, str | None]] = [
     ("a horse noise please", IDLE, "sound.play", "horse"),
     ("let me hear a rooster", IDLE, "sound.play", "rooster"),
     ("can I hear an owl", IDLE, "sound.play", "owl"),
+    ("I want to hear the tractor noise", IDLE, "sound.play", "tractor"),
     ("what is the sound of a steam train", IDLE, "sound.play", "steam train"),
     ("what does the fox say", IDLE, "sound.play", "fox"),
     ("Hey Coco, what does a cat say", IDLE, "sound.play", "cat"),

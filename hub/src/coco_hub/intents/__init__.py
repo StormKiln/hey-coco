@@ -10,7 +10,7 @@ and, if its patterns capture slots, ``llm_slots`` (see ``engine.LlmSlot``;
 
 from collections.abc import Callable
 
-from coco_hub.intents import builtin, media, pictures, sounds, timers, weather
+from coco_hub.intents import builtin, media, music, pictures, sounds, timers, weather
 from coco_hub.intents.engine import IntentRegistry
 
 INTENT_MODULES: list[Callable[[IntentRegistry], None]] = [
@@ -20,6 +20,7 @@ INTENT_MODULES: list[Callable[[IntentRegistry], None]] = [
     media.register,
     pictures.register,
     sounds.register,
+    music.register,
 ]
 
 

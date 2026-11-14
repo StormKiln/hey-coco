@@ -13,6 +13,7 @@ from coco_hub.intents import build_registry
 from coco_hub.intents.engine import RulesEngine, no_fallback
 from coco_hub.routes import utterance
 from coco_hub.settings import Settings, load_settings
+from coco_hub.sounds import SoundLibrary, media_router
 
 
 def _utc_now() -> datetime:
@@ -44,6 +45,8 @@ def create_app(settings: Settings, *, clock: Callable[[], datetime] = _utc_now) 
     app.state.engine = RulesEngine(app.state.intents)
     app.state.services = {}
     app.state.fallback = no_fallback
+    app.state.sounds = SoundLibrary.load(settings.sounds_dir)
+    app.state.services["sounds"] = app.state.sounds
     install_error_handlers(app)
 
     @app.get("/healthz")
@@ -59,6 +62,7 @@ def create_app(settings: Settings, *, clock: Callable[[], datetime] = _utc_now) 
         return {"pong": True}
 
     v1.include_router(utterance.router)
+    v1.include_router(media_router)
     app.include_router(v1)
     return app
 

@@ -23,3 +23,6 @@ hub/config.local.toml
 
 # macOS
 .DS_Store
+
+# Sound curation download cache
+assets/sounds/.cache/

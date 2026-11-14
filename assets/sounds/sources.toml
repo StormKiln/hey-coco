@@ -1,0 +1,462 @@
+# Curated sound library sources. One [[sound]] per clip.
+#
+#   id        stable slug; becomes clips/<id>.m4a and images/<id>.jpg
+#   name      what Coco calls it ("This is what a <name> sounds like")
+#   aliases   other things a child might say (matched case-insensitively, plural-tolerant)
+#   category  "animal" | "vehicle"
+#   audio     Commons file title of the recording
+#   image     Commons file title of the picture
+#   start/end optional trim in seconds; if start is omitted on a long recording, curate.py
+#             picks the loudest 6 s window and records it in manifest.json (curation.start_used)
+#
+# Rebuild: uv run --with httpx python assets/sounds/tools/curate.py build
+
+# ---------------------------------------------------------------- farm
+
+[[sound]]
+id = "cow"
+name = "cow"
+aliases = ["moo", "moo cow", "cattle", "bull", "calf"]
+category = "animal"
+audio = "File:Single Cow Moo.ogg"
+image = "File:Cow (Fleckvieh breed) Oeschinensee Slaunger 2009-07-07.jpg"
+
+[[sound]]
+id = "pig"
+name = "pig"
+aliases = ["oink", "oink oink", "piggy", "piglet", "hog"]
+category = "animal"
+audio = "File:Pig grunt - Erdie.ogg"
+image = "File:Two Kunekune Pigs.jpg"
+
+[[sound]]
+id = "sheep"
+name = "sheep"
+aliases = ["baa", "baa baa", "lamb"]
+category = "animal"
+audio = "File:Sheep bleating.ogg"
+image = "File:Flock of sheep.jpg"
+
+[[sound]]
+id = "goat"
+name = "goat"
+aliases = ["billy goat", "nanny goat", "kid goat"]
+category = "animal"
+audio = "File:Herd of goats bleating.ogg"
+image = "File:Hausziege 04.jpg"
+
+[[sound]]
+id = "horse"
+name = "horse"
+aliases = ["neigh", "neigh neigh", "pony", "horsey", "whinny"]
+category = "animal"
+audio = "File:Wiehern.ogg"
+image = "File:Nokota Horses cropped.jpg"
+
+[[sound]]
+id = "donkey"
+name = "donkey"
+aliases = ["hee haw", "eeyore", "mule"]
+category = "animal"
+audio = "File:157763 felix-blume a-donkey-is-braying-in-his-enclosure-in-south-of-france.wav"
+image = "File:Donkey in Clovelly, North Devon, England.jpg"
+
+[[sound]]
+id = "rooster"
+name = "rooster"
+aliases = ["cock a doodle doo", "cockadoodledoo", "cockerel"]
+category = "animal"
+audio = "File:Rooster crowing.ogg"
+image = "File:Orange rooster crowing.jpg"
+
+[[sound]]
+id = "chicken"
+name = "chicken"
+aliases = ["hen", "cluck", "cluck cluck", "chook"]
+category = "animal"
+audio = "File:Hen announcing shes lain an egg.ogg"
+image = "File:Hen chicken.jpg"
+
+[[sound]]
+id = "duck"
+name = "duck"
+aliases = ["quack", "quack quack", "duckling", "ducky", "mallard"]
+category = "animal"
+audio = "File:Anas platyrhynchos - Mallard - XC62258.ogg"
+image = "File:Anas platyrhynchos male female quadrat.jpg"
+
+[[sound]]
+id = "turkey"
+name = "turkey"
+aliases = ["gobble", "gobble gobble"]
+category = "animal"
+audio = "File:Meleagris gallopavo - Wild Turkey XC136045.ogg"
+image = "File:20260428 tom wild turkey matthaei botanical gardens PD08952.jpg"
+
+# ---------------------------------------------------------------- pets
+
+[[sound]]
+id = "dog"
+name = "dog"
+aliases = ["woof", "woof woof", "bark", "doggy", "doggie", "puppy", "pup"]
+category = "animal"
+audio = "File:Barking of a dog.ogg"
+image = "File:Golden Retriever Dukedestiny01 drvd.jpg"
+
+[[sound]]
+id = "cat"
+name = "cat"
+aliases = ["meow", "miaow", "kitty", "kitten", "pussycat", "kitty cat"]
+category = "animal"
+audio = "File:Felis silvestris catus meows.ogg"
+image = "File:Siam lilacpoint.jpg"
+
+[[sound]]
+id = "guinea_pig"
+name = "guinea pig"
+aliases = ["wheek", "cavy"]
+category = "animal"
+audio = "File:Guinea Pig Feeding Wheek.ogg"
+image = "File:George the amazing guinea pig.jpg"
+
+[[sound]]
+id = "parrot"
+name = "parrot"
+aliases = ["polly", "african grey"]
+category = "animal"
+audio = "File:African grey parrot sound.wav"
+image = "File:Perroquet à Yampopo Beach - Douala.jpg"
+
+# ---------------------------------------------------------------- zoo and wild
+
+[[sound]]
+id = "lion"
+name = "lion"
+aliases = ["roar", "lioness", "lion roar"]
+category = "animal"
+audio = "File:Lion raring-sound1TamilNadu178.ogg"
+image = "File:020 The lion king Snyggve in the Serengeti National Park Photo by Giles Laurent.jpg"
+
+[[sound]]
+id = "tiger"
+name = "tiger"
+aliases = ["growl", "tiger growl"]
+category = "animal"
+audio = "File:439280 schots angry-tiger.wav"
+image = "File:Bengal tiger (Panthera tigris tigris) female 3 crop.jpg"
+
+[[sound]]
+id = "elephant"
+name = "elephant"
+aliases = ["trumpet", "elephant trumpet", "nellie"]
+category = "animal"
+audio = "File:Elephant voice - trumpeting.ogg"
+image = "File:Elephas maximus (Bandipur).jpg"
+
+[[sound]]
+id = "wolf"
+name = "wolf"
+aliases = ["howl", "awoo", "wolves"]
+category = "animal"
+audio = "File:Wolf howls.ogg"
+image = "File:Eurasian wolf 2.jpg"
+
+[[sound]]
+id = "bear"
+name = "bear"
+aliases = ["grizzly", "grizzly bear", "brown bear"]
+category = "animal"
+audio = "File:Yellowstone sound library - Grizzly Bear vocalizations - 001.mp3"
+image = "File:GrizzlyBearJeanBeaufort.jpg"
+
+[[sound]]
+id = "monkey"
+name = "monkey"
+aliases = ["ooh ooh aah aah", "ape", "chimp"]
+category = "animal"
+audio = "File:Brown woolly monkey alarm call.wav"
+image = "File:Lagothrix lagotricha (male).jpg"
+
+[[sound]]
+id = "frog"
+name = "frog"
+aliases = ["ribbit", "croak", "toad", "froggy"]
+category = "animal"
+audio = "File:Single Frog Croak.oga"
+image = "File:Red-eyed Leaf Frog (49661076226).jpg"
+
+[[sound]]
+id = "whale"
+name = "whale"
+aliases = ["humpback whale", "whale song"]
+category = "animal"
+audio = "File:Humpback-Whale-Song-and-Foraging-Behavior-on-an-Antarctic-Feeding-Ground-pone.0051214.s001.oga"
+image = "File:Humpback whale breaching off Cabo San Lucas.jpg"
+
+[[sound]]
+id = "penguin"
+name = "penguin"
+aliases = ["little penguin", "fairy penguin"]
+category = "animal"
+audio = "File:Little Penguin (Eudyptula minor).ogg"
+image = "File:Eudyptula minor Bruny 1.jpg"
+
+[[sound]]
+id = "bee"
+name = "bee"
+aliases = ["buzz", "bumblebee", "honeybee", "honey bee", "buzzy bee"]
+category = "animal"
+audio = "File:Honeybee-hive.ogg"
+image = "File:The Lone Pollinator.jpg"
+
+[[sound]]
+id = "cricket"
+name = "cricket"
+aliases = ["chirp", "grasshopper"]
+category = "animal"
+audio = "File:Cricket Gryllus bimaculatus Chirps.oga"
+image = "File:Gryllus campestris MHNT.jpg"
+
+# ---------------------------------------------------------------- birds
+
+[[sound]]
+id = "owl"
+name = "owl"
+aliases = ["hoot", "twit twoo", "too whit too whoo", "hoot hoot", "tawny owl"]
+category = "animal"
+audio = "File:Strix aluco male.oga"
+image = "File:Strix aluco 3 (Martin Mecnarowski).jpg"
+
+[[sound]]
+id = "bird"
+name = "bird"
+aliases = ["tweet", "tweet tweet", "birdie", "songbird", "blackbird", "birdsong"]
+category = "animal"
+audio = "File:Turdus merula male song at dawn(20s).ogg"
+image = "File:Common Blackbird.jpg"
+
+[[sound]]
+id = "cuckoo"
+name = "cuckoo"
+aliases = ["cuckoo bird"]
+category = "animal"
+audio = "File:Cuculus canorus - Common Cuckoo XC542432.mp3"
+image = "File:Cuckoo (51169010335).jpg"
+
+[[sound]]
+id = "woodpecker"
+name = "woodpecker"
+aliases = ["tap tap", "woody woodpecker"]
+category = "animal"
+audio = "File:Great Spotted Woodpecker drum.ogg"
+image = "File:Great spotted woodpecker (Dendrocopos major) male Drenthe.jpg"
+
+[[sound]]
+id = "seagull"
+name = "seagull"
+aliases = ["gull", "herring gull", "sea gull"]
+category = "animal"
+audio = "File:XC707075 - European Herring Gull - Larus argentatus.mp3"
+image = "File:European herring gull vocalizing (00170).jpg"
+
+[[sound]]
+id = "pigeon"
+name = "pigeon"
+aliases = ["coo", "dove", "coo coo"]
+category = "animal"
+audio = "File:Columba livia - Rock Dove XC541143.mp3"
+image = "File:Columba livia (Rock Dove, wild), Duncansby Head, Caithness, Scotland 1.jpg"
+
+[[sound]]
+id = "crow"
+name = "crow"
+aliases = ["caw", "caw caw", "raven"]
+category = "animal"
+audio = "File:Corvus corone - Carrion Crow XC509842.mp3"
+image = "File:Carrion crow 2022 04 05 05 02.jpg"
+
+[[sound]]
+id = "kookaburra"
+name = "kookaburra"
+aliases = ["laughing kookaburra", "laughing bird"]
+category = "animal"
+audio = "File:Dacelo novaeguineae ANWC X00520.opus"
+image = "File:Laughing Kookaburra 1.jpg"
+
+# ---------------------------------------------------------------- emergency vehicles
+
+[[sound]]
+id = "fire_truck"
+name = "fire truck"
+aliases = ["fire engine", "nee naw", "nee nah", "fire siren", "firetruck", "siren"]
+category = "vehicle"
+audio = "File:Whelen.ogg"
+image = "File:FireEngine-5236.jpg"
+
+[[sound]]
+id = "police_car"
+name = "police car"
+aliases = ["police", "police siren", "cop car", "wee woo"]
+category = "vehicle"
+audio = "File:American police siren i.ogg"
+image = "File:Washington DC Metropolitan Police Department Dodge Charger No. 1605.jpg"
+
+[[sound]]
+id = "ambulance"
+name = "ambulance"
+aliases = ["ambulance siren"]
+category = "vehicle"
+audio = "File:Ambulance Sounds2.wav"
+image = "File:Stockholm, ambulans, 2014, 21.jpg"
+
+# ---------------------------------------------------------------- trains
+
+[[sound]]
+id = "steam_train"
+name = "steam train"
+aliases = ["choo choo", "choo choo train", "steam engine", "train whistle", "thomas"]
+category = "vehicle"
+audio = "File:WWS SteamWhistle.ogg"
+image = "File:Number 4468 Mallard in York.jpg"
+
+[[sound]]
+id = "train"
+name = "train"
+aliases = ["train horn", "diesel train", "locomotive", "freight train"]
+category = "vehicle"
+audio = "File:Nathan M5.ogg"
+image = "File:ЧМЭ3-2908, Украина, Днепропетровская область, перегон Встречный - Днепропетровск-Южный (Trainpix 138895).jpg"
+
+[[sound]]
+id = "subway"
+name = "subway train"
+aliases = ["subway", "underground", "tube", "metro", "tube train"]
+category = "vehicle"
+audio = "File:London Underground 1996 Stock train arriving in a station.ogg"
+image = "File:Stanmore tube station MMB 02 1996 Stock.jpg"
+
+# ---------------------------------------------------------------- air and space
+
+[[sound]]
+id = "airplane"
+name = "airplane"
+aliases = ["aeroplane", "plane", "jet", "jet plane", "aircraft"]
+category = "vehicle"
+audio = "File:Jet airliner overhead.ogg"
+image = "File:United A320 N405UA at BOS (33787222465).jpg"
+
+[[sound]]
+id = "propeller_plane"
+name = "propeller plane"
+aliases = ["propeller", "small plane", "prop plane"]
+category = "vehicle"
+audio = "File:Propeller-plane-flying-steady-01.wav"
+image = "File:Cessna 172 on ground.jpg"
+
+[[sound]]
+id = "helicopter"
+name = "helicopter"
+aliases = ["chopper", "helicopters"]
+category = "vehicle"
+audio = "File:Helicopter over a lake.ogg"
+image = "File:VH-SUF Taking Off.jpg"
+
+[[sound]]
+id = "rocket"
+name = "rocket"
+aliases = ["rocket launch", "space shuttle", "blast off", "spaceship", "liftoff"]
+category = "vehicle"
+audio = "File:Discovery - STS-41D Liftoff.mp3"
+image = "File:STS120LaunchHiRes-edit1.jpg"
+
+# ---------------------------------------------------------------- road
+
+[[sound]]
+id = "car"
+name = "car"
+aliases = ["vroom", "vroom vroom", "car engine"]
+category = "vehicle"
+audio = "File:WWS CarPrinzNSU1200Cengine.ogg"
+image = "File:2005 Toyota Corolla (ZZE122R 5Y) Ascent sedan 01.jpg"
+
+[[sound]]
+id = "car_horn"
+name = "car horn"
+aliases = ["beep beep", "honk", "honk honk", "horn", "hooter"]
+category = "vehicle"
+audio = "File:Car Horn.wav"
+image = "File:1974 Imperial LeBaron Coupe-3.jpg"
+
+[[sound]]
+id = "race_car"
+name = "race car"
+aliases = ["racing car", "racecar", "sports car"]
+category = "vehicle"
+audio = "File:Audi R8 (2000).ogg"
+image = "File:2000 Audi R8 LMP1 Front.jpg"
+
+[[sound]]
+id = "motorcycle"
+name = "motorcycle"
+aliases = ["motorbike", "motor bike", "dirt bike"]
+category = "vehicle"
+audio = "File:Motorbike 1.ogg"
+image = "File:Jawa motorcycle Utrecht.jpg"
+
+[[sound]]
+id = "bus"
+name = "bus"
+aliases = ["city bus", "bus horn", "school bus"]
+category = "vehicle"
+audio = "File:WWS CityBusMANSG220horn.ogg"
+image = "File:LTZ1328-19-20241030-160332.jpg"
+
+[[sound]]
+id = "garbage_truck"
+name = "garbage truck"
+aliases = ["rubbish truck", "bin lorry", "trash truck", "beep beep beep"]
+category = "vehicle"
+audio = "File:Back-up beeper.ogg"
+image = "File:LA-City-Sanitation-trash-truck-1.jpg"
+
+[[sound]]
+id = "tractor"
+name = "tractor"
+aliases = ["farm tractor", "john deere"]
+category = "vehicle"
+audio = "File:WWS JohnDeereTractor.ogg"
+image = "File:Ford 8N.jpg"
+
+[[sound]]
+id = "digger"
+name = "digger"
+aliases = ["excavator", "bulldozer", "construction truck"]
+category = "vehicle"
+audio = "File:A small orange excavator shoveling gravel.ogg"
+image = "File:Excavator Postiguet Beach 2.jpg"
+
+[[sound]]
+id = "bicycle"
+name = "bicycle"
+aliases = ["bike", "bicycle bell", "bike bell", "ring ring", "ding ding"]
+category = "vehicle"
+audio = "File:Bicycle-bell-1.wav"
+image = "File:Silver Bicycle bell on bicycle.jpg"
+
+# ---------------------------------------------------------------- water
+
+[[sound]]
+id = "ship"
+name = "ship"
+aliases = ["boat", "boat horn", "ship horn", "cruise ship", "toot toot"]
+category = "vehicle"
+audio = "File:Cruise ship Albatros ship horn.ogg"
+image = "File:Albatros Burnie 20200221-001.jpg"
+
+[[sound]]
+id = "submarine"
+name = "submarine"
+aliases = ["sub", "dive alarm", "klaxon"]
+category = "vehicle"
+audio = "File:WWII submarine dive klaxon.ogg"
+image = "File:US Navy 040730-N-1234E-002 PCU Virginia (SSN 774) returns to the General Dynamics Electric Boat shipyard.jpg"

@@ -13,6 +13,10 @@ Handlers get ``(match, request, ctx)`` and return a ``Reply``; the engine turns 
 protocol ``Action`` stamped with the intent name and how it was matched, so handlers can't
 misreport provenance and a fallback (Qwen) can reuse them via ``RulesEngine.dispatch``.
 Handlers may be sync or async.
+
+An intent is offered to the Qwen fallback when it has a ``description`` and, if its patterns
+capture slots, declares ``llm_slots``: how Qwen should fill each slot and how the typed value
+becomes the string slot the handler already reads (see ``LlmSlot``).
 """
 
 import inspect
@@ -75,6 +79,37 @@ class Reply:
     commands: tuple[Command, ...] = ()
 
 
+@dataclass(frozen=True)
+class LlmSlot:
+    """A slot Qwen may fill for an intent, as a typed JSON value.
+
+    ``slot`` is the handler's slot name (default: the LLM slot's own key) and ``to_slot``
+    turns the validated value into the string the handler expects, e.g. ``duration_s=600``
+    -> ``duration="600 seconds"``. ``hint`` is one line added to the prompt's slot rules.
+    LLM slots with the same key on different intents share one schema property, so they must
+    agree on ``type``.
+    """
+
+    type: Literal["string", "integer", "boolean"] = "string"
+    required: bool = False
+    enum: tuple[str, ...] | None = None
+    minimum: int | None = None
+    maximum: int | None = None
+    hint: str = ""
+    slot: str | None = None
+    to_slot: Callable[[Any], str] | None = None
+
+    def handler_slot(self, key: str, value: Any) -> tuple[str, str]:
+        """(handler slot name, string value) for a validated ``value``."""
+        if self.to_slot is not None:
+            text = self.to_slot(value)
+        elif isinstance(value, bool):
+            text = "true" if value else "false"
+        else:
+            text = str(value)
+        return (self.slot or key, text)
+
+
 Handler = Callable[[Match, UtteranceRequest, IntentContext], Reply | Awaitable[Reply]]
 Fallback = Callable[[NoMatch, UtteranceRequest, IntentContext], Awaitable[Action]]
 
@@ -98,12 +133,21 @@ class Intent:
     context (e.g. ``lambda c: c.alarm_ringing``). Without a context the intent is skipped."""
     description: str = ""
     """One line for the fallback's closed set of intents."""
+    llm_slots: Mapping[str, LlmSlot] = field(default_factory=dict, hash=False)
+    """Slots Qwen may fill (key = JSON slot name). See ``LlmSlot``."""
 
     def __post_init__(self) -> None:
         compiled = tuple(_compile(p) for p in self.patterns)
         if not compiled:
             raise ValueError(f"intent {self.name!r} needs at least one pattern")
         object.__setattr__(self, "patterns", compiled)
+        object.__setattr__(self, "llm_slots", dict(self.llm_slots))
+
+    @property
+    def offered_to_llm(self) -> bool:
+        """Whether the Qwen fallback may pick this intent: it needs a description, and an
+        intent whose patterns capture slots must say how Qwen fills them."""
+        return bool(self.description) and (bool(self.llm_slots) or not self.slot_names)
 
     @property
     def slot_names(self) -> tuple[str, ...]:

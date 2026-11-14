@@ -12,6 +12,7 @@ phrases like ``"an hour and a half"``.
 
 import re
 
+from coco_hub.intents.engine import LlmSlot
 from coco_hub.intents.normalize import normalize
 
 _UNIT_SECONDS = {
@@ -56,3 +57,23 @@ def parse_duration(text: str) -> int | None:
         seen.add(scale)
         total += float(number) * scale
     return int(total + 0.5)
+
+
+MAX_LLM_DURATION_S = 24 * 3600
+
+
+def llm_duration_slot(slot: str = "duration", *, required: bool = True) -> LlmSlot:
+    """``duration_s`` for the Qwen fallback: whole seconds (1 s to 24 h), handed to the
+    handler as ``slots[slot] = "<n> seconds"`` so ``parse_duration`` reads it as usual."""
+    return LlmSlot(
+        type="integer",
+        required=required,
+        minimum=1,
+        maximum=MAX_LLM_DURATION_S,
+        slot=slot,
+        to_slot=lambda seconds: f"{seconds} seconds",
+        hint=(
+            'duration_s is in SECONDS: "45 seconds" = 45, "eleven minutes" = 660, '
+            '"an hour and a half" = 5400.'
+        ),
+    )

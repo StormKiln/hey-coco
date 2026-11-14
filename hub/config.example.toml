@@ -28,8 +28,10 @@ end = "06:30"
 dark_after_idle_s = 300
 
 [qwen]
-enabled = false
+enabled = false           # needs Ollama running with the model pulled (ollama pull qwen3:8b)
 model = "qwen3:8b"
+base_url = "http://localhost:11434"
+timeout_s = 6.0           # give up with "Sorry, that took too long." after this
 
 [timers]
 ring_cap_s = 600          # a ringing timer is auto-dismissed after this long

@@ -10,7 +10,7 @@ PLIST_DEST := $(HOME)/Library/LaunchAgents/$(SERVICE_LABEL).plist
 HUB_LOG_DIR := $(HOME)/Library/Logs/CocoHub
 LAUNCH_DOMAIN = gui/$$(id -u)
 
-.PHONY: help hub-sync hub-run hub-test hub-lint hub-fmt hub-render-plist hub-install-service hub-uninstall-service hub-logs sounds-build display-gen display-build display-test kit-test test lint
+.PHONY: help hub-sync hub-run hub-test hub-lint hub-eval hub-fmt hub-render-plist hub-install-service hub-uninstall-service hub-logs sounds-build display-gen display-build display-test kit-test test lint
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-18s %s\n", $$1, $$2}'
@@ -26,6 +26,9 @@ hub-test: hub-sync ## Run Hub tests
 
 hub-lint: hub-sync ## Lint and format-check the Hub
 	cd hub && uv run ruff check . && uv run ruff format --check .
+
+hub-eval: hub-sync ## Score rules + Qwen on hub/eval/utterances.jsonl (needs local Ollama; not CI)
+	cd hub && uv run python eval/run_eval.py $(ARGS)
 
 hub-fmt: hub-sync ## Auto-format the Hub
 	cd hub && uv run ruff format . && uv run ruff check --fix .

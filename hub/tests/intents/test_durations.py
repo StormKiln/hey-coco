@@ -2,8 +2,17 @@ import re
 
 import pytest
 
-from coco_hub.intents.durations import DURATION, parse_duration
+from coco_hub.intents.durations import DURATION, llm_duration_slot, parse_duration
 from coco_hub.intents.normalize import normalize
+
+
+def test_llm_duration_slot_hands_seconds_to_parse_duration():
+    slot = llm_duration_slot()
+    assert (slot.type, slot.required, slot.minimum, slot.maximum) == ("integer", True, 1, 86400)
+    key, text = slot.handler_slot("duration_s", 5400)
+    assert (key, text) == ("duration", "5400 seconds")
+    assert parse_duration(text) == 5400
+
 
 DURATION_CASES = [
     ("10 minutes", 600),

@@ -85,7 +85,8 @@ class LlmSlot:
 
     ``slot`` is the handler's slot name (default: the LLM slot's own key) and ``to_slot``
     turns the validated value into the string the handler expects, e.g. ``duration_s=600``
-    -> ``duration="600 seconds"``. ``hint`` is one line added to the prompt's slot rules.
+    -> ``duration="600 seconds"``; returning ``""`` drops the slot (a repair, e.g. a made-up
+    timer name). ``hint`` is one line added to the prompt's slot rules.
     LLM slots with the same key on different intents share one schema property, so they must
     agree on ``type``.
     """

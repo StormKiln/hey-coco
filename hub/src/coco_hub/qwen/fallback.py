@@ -31,6 +31,7 @@ from coco_hub.intents.normalize import normalize
 from coco_hub.protocol import Action, AnswerView, UtteranceRequest
 from coco_hub.qwen.catalog import GENERAL, NONE, Catalog, Interpretation, InvalidOutput
 from coco_hub.qwen.client import OllamaClient, OllamaError
+from coco_hub.qwen.safety import SAFETY_RULE, fixed_safety_answer, pet_food_answer
 
 log = logging.getLogger(__name__)
 
@@ -54,7 +55,7 @@ ANSWER_PROMPT = (
     "You are Coco, a voice assistant on a family kitchen iPad. Kids and adults talk to you. "
     'Answer the question below. Reply with ONLY {"answer": "<text>"}: one or two short '
     "sentences, plain words a child understands, no lists, no markdown, no emoji. If you are "
-    "not sure of a fact, say so briefly."
+    "not sure of a fact, say so briefly.\n" + SAFETY_RULE
 )
 
 _QUESTION_WORDS = frozenset(
@@ -164,10 +165,17 @@ class QwenFallback:
         """What Qwen makes of the utterance, or None if it never gave a usable reply.
 
         No deadline of its own (the caller sets one). Raises ``OllamaError`` if Ollama is
-        down or broken.
+        down or broken. Common pet-poison questions are answered from a fixed table without
+        the model (``safety.pet_food_answer``).
         """
-        catalog = self.catalog
         utterance = request.text.strip() or no_match.raw or no_match.text
+        if (safe := pet_food_answer(utterance)) is not None:
+            log.info("qwen: %r answered from the pet-food table", utterance)
+            return Interpretation(GENERAL, answer=safe)
+        if (safe := fixed_safety_answer(utterance)) is not None:
+            log.info("qwen: %r answered with the fixed allergy/medicine referral", utterance)
+            return Interpretation(GENERAL, answer=safe)
+        catalog = self.catalog
         reply = await self.client.chat_json(
             catalog.system_prompt, utterance, catalog.schema, self.timeout_s
         )
@@ -213,9 +221,10 @@ class QwenFallback:
         if intent.applies is not None and not intent.applies(request.context):
             log.info("qwen: %s does not apply in this context", intent.name)
             return _say(UNMATCHED_SAY, NONE, "qwen")
-        slots = dict(
+        converted = (
             intent.llm_slots[key].handler_slot(key, value) for key, value in result.slots.items()
         )
+        slots = {key: text for key, text in converted if text}
         match = Match(intent=intent.name, slots=slots, text=no_match.text)
         return await self.engine.dispatch(match, request, ctx, matched_by="qwen")
 

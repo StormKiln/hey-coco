@@ -2,7 +2,8 @@
 
 The system prompt and JSON schema follow the spike's v2 prompt (docs/spikes/qwen.md) word for
 word, except that the intent list, slot properties and slot rules are generated from the
-intents the registry offers to the LLM (``Intent.offered_to_llm``). Newly registered intents
+intents the registry offers to the LLM (``Intent.offered_to_llm``), and the output rules end
+with the food, pet and health safety rule (``safety.SAFETY_RULE``). Newly registered intents
 show up without touching this module.
 
 ``Catalog.validate`` is the Hub-side check the spike calls "validate, then repair": parse the
@@ -18,6 +19,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from coco_hub.intents.engine import Intent, IntentRegistry, LlmSlot
+from coco_hub.qwen.safety import SAFETY_RULE
 
 GENERAL = "general.answer"
 NONE = "none"
@@ -31,22 +33,27 @@ PREAMBLE = (
 )
 GENERAL_LINE = (
     "- general.answer - any question about the world you can answer: science, nature, space, "
-    "animals, cooking, conversions, maths, spelling, history, geography."
+    "animals, cooking, conversions, maths, spelling, history, geography, and food safety, pet "
+    "or health questions (answered cautiously, see the safety rule)."
 )
 NONE_LINE = (
     "- none - actions you cannot do: shopping, ordering, lists, calls, messages, lights, "
-    "bookings, or anything unsafe or unclear."
+    "bookings, alarms or reminders at a clock time, or anything unsafe or unclear."
 )
 FIRST_SLOT_RULE = (
     "- Include only slots the person actually said. Never output null; leave the slot out instead."
 )
-OUTPUT_RULES = """Output rules:
+OUTPUT_RULES = (
+    """Output rules:
 - Reply with ONLY one JSON object, on one line: {"intent": "<intent>", "slots": {...}, \
 "answer": <string or null>}.
 - "answer" is null for every intent except general.answer.
 - For general.answer, "slots" is {} and "answer" is spoken aloud: one or two short sentences, \
 plain words a child understands, no lists, no markdown, no emoji. When spelling a word, spell \
-it carefully letter by letter with dashes. If you are not sure of a fact, say so briefly."""
+it carefully letter by letter with dashes. If you are not sure of a fact, say so briefly.
+"""
+    + SAFETY_RULE
+)
 
 _INT_RE = re.compile(r"^[+-]?\d+(?:\.0+)?$")
 _OBJECT_RE = re.compile(r"\{.*\}", re.DOTALL)

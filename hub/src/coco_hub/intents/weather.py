@@ -10,7 +10,14 @@ from datetime import date, datetime, time, timedelta, tzinfo
 from statistics import fmean
 
 from coco_hub.intents.builtin import answer
-from coco_hub.intents.engine import Intent, IntentContext, IntentRegistry, Match, Reply
+from coco_hub.intents.engine import (
+    Intent,
+    IntentContext,
+    IntentRegistry,
+    LlmSlot,
+    Match,
+    Reply,
+)
 from coco_hub.protocol import UtteranceRequest, WeatherView
 from coco_hub.weather import codes
 from coco_hub.weather.model import WET_PERCENT, Day, Forecast, Hour, representative_code
@@ -316,13 +323,41 @@ HIGH_LOW_PATTERNS = [
 ]
 
 
+# --- Qwen fallback slots ----------------------------------------------------------------
+
+# Every value is a period ``resolve_period`` accepts once "_" becomes a space (a test checks).
+LLM_WHEN_VALUES = (
+    "today",
+    "tonight",
+    "this_morning",
+    "this_afternoon",
+    "this_evening",
+    "tomorrow",
+    "tomorrow_morning",
+    "tomorrow_afternoon",
+    "tomorrow_evening",
+    "tomorrow_night",
+    "this_weekend",
+)
+LLM_WHEN = LlmSlot(
+    enum=LLM_WHEN_VALUES,
+    to_slot=lambda v: v.replace("_", " "),
+    hint=f"when is one of: {', '.join(LLM_WHEN_VALUES)}; leave it out for right now.",
+)
+LLM_WHICH = LlmSlot(
+    enum=("high", "low", "both"),
+    to_slot=lambda v: "high and low" if v == "both" else v,
+    hint='which is high (warmest, "how hot"), low (coldest, "how cold") or both.',
+)
+
+
 def register(registry: IntentRegistry) -> None:
     registry.register(
         Intent(
             "weather.current",
             patterns=CURRENT_PATTERNS,
             handler=_handler(say_current),
-            description="Current weather at home",
+            description="weather or temperature outside right now",
         )
     )
     registry.register(
@@ -330,7 +365,11 @@ def register(registry: IntentRegistry) -> None:
             "weather.forecast",
             patterns=FORECAST_PATTERNS,
             handler=_handler(say_forecast),
-            description="Forecast for today, tonight, tomorrow, part of a day, or the weekend",
+            description=(
+                "what the weather will be like later (today, tonight, tomorrow, the weekend), "
+                "including what to wear"
+            ),
+            llm_slots={"when": LLM_WHEN},
         )
     )
     registry.register(
@@ -338,7 +377,8 @@ def register(registry: IntentRegistry) -> None:
             "weather.rain",
             patterns=RAIN_PATTERNS,
             handler=_handler(say_rain),
-            description="Whether it will rain or snow (or an umbrella is needed)",
+            description="only questions about rain, snow, showers, storms or umbrellas",
+            llm_slots={"when": LLM_WHEN},
         )
     )
     registry.register(
@@ -346,6 +386,10 @@ def register(registry: IntentRegistry) -> None:
             "weather.high_low",
             patterns=HIGH_LOW_PATTERNS,
             handler=_handler(say_high_low),
-            description="High and/or low temperature for a day or part of a day",
+            description=(
+                "the forecast high or low temperature for a day or part of a day "
+                "(how hot or how cold it will get), not the temperature right now"
+            ),
+            llm_slots={"when": LLM_WHEN, "which": LLM_WHICH},
         )
     )

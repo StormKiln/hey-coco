@@ -13,7 +13,14 @@ import random
 import re
 from dataclasses import dataclass
 
-from coco_hub.intents.engine import Intent, IntentContext, IntentRegistry, Match, Reply
+from coco_hub.intents.engine import (
+    Intent,
+    IntentContext,
+    IntentRegistry,
+    LlmSlot,
+    Match,
+    Reply,
+)
 from coco_hub.protocol import SoundView, UtteranceRequest
 from coco_hub.sounds import Sound, SoundLibrary
 
@@ -206,10 +213,18 @@ def register(registry: IntentRegistry, *, rng: random.Random | None = None) -> N
             patterns=_PLAY_PATTERNS,
             handler=sound_play,
             description=(
-                "Play the sound an animal or vehicle makes, with its picture, e.g. 'what does "
-                "a cow say', 'play a fire truck sound', 'moo'. Slot name: the animal or "
-                "vehicle (or the sound word), e.g. 'cow', 'fire truck', 'choo choo'."
+                "play the noise an animal or vehicle makes; also "
+                '"what does an X say / sound like / what noise does an X make"'
             ),
+            llm_slots={
+                "name": LlmSlot(
+                    required=True,
+                    hint=(
+                        "sound name is the plain animal or vehicle, singular: "
+                        '"doggo noise" -> "dog", "the noise a police car makes" -> "police car".'
+                    ),
+                )
+            },
         )
     )
     registry.register(
@@ -219,6 +234,7 @@ def register(registry: IntentRegistry, *, rng: random.Random | None = None) -> N
             handler=sound_again,
             priority=1,
             applies=lambda c: c.view == "sound",
-            description="Play the sound on screen again ('again', 'play it again').",
+            # Offered to Qwen; the fallback refuses it unless a sound is on screen.
+            description="play the sound again, only while a sound is on screen",
         )
     )

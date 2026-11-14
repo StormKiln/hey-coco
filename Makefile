@@ -10,7 +10,7 @@ PLIST_DEST := $(HOME)/Library/LaunchAgents/$(SERVICE_LABEL).plist
 HUB_LOG_DIR := $(HOME)/Library/Logs/CocoHub
 LAUNCH_DOMAIN = gui/$$(id -u)
 
-.PHONY: help hub-sync hub-run hub-test hub-lint hub-eval hub-fmt hub-render-plist hub-install-service hub-uninstall-service hub-logs hub-logs-launchd hub-diag spotify-login sounds-build display-gen display-build display-test kit-test test lint
+.PHONY: help hub-sync hub-run hub-test hub-lint hub-eval hub-fmt hub-render-plist hub-install-service hub-uninstall-service hub-logs hub-logs-launchd hub-diag spotify-login sounds-build display-gen display-build display-build-mac display-run-mac display-test kit-test test lint
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-18s %s\n", $$1, $$2}'
@@ -87,6 +87,22 @@ kit-test: ## Run CocoKit (Display logic) tests on macOS
 
 display-build: display-gen ## Build Coco Display for the iOS simulator
 	cd display && xcodebuild -project CocoDisplay.xcodeproj -scheme CocoDisplay -destination '$(SIM_DEST)' -clonedSourcePackagesDirPath .spm build -quiet
+
+# Coco Display on an Apple silicon Mac as "Designed for iPad" (#25). Launching it needs a signed
+# build: pass your Apple Developer team, e.g. `make display-run-mac DEVELOPMENT_TEAM=ABCDE12345`.
+MAC_DEST ?= platform=macOS,arch=arm64,variant=Designed for iPad
+MAC_DERIVED := DerivedData/mac
+MAC_APP := display/$(MAC_DERIVED)/Build/Products/Debug-iphoneos/CocoDisplay.app
+DEVELOPMENT_TEAM ?=
+MAC_SIGNING = $(if $(DEVELOPMENT_TEAM),CODE_SIGNING_ALLOWED=YES CODE_SIGN_STYLE=Automatic DEVELOPMENT_TEAM=$(DEVELOPMENT_TEAM) -allowProvisioningUpdates,)
+
+display-build-mac: display-gen ## Build Coco Display for this Mac ("Designed for iPad"; unsigned without DEVELOPMENT_TEAM)
+	cd display && xcodebuild -project CocoDisplay.xcodeproj -scheme CocoDisplay -destination '$(MAC_DEST)' -clonedSourcePackagesDirPath .spm -derivedDataPath $(MAC_DERIVED) build -quiet $(MAC_SIGNING)
+
+display-run-mac: ## Build, sign and open Coco Display on this Mac (needs DEVELOPMENT_TEAM=<team id>)
+	@test -n "$(DEVELOPMENT_TEAM)" || { echo "Set DEVELOPMENT_TEAM=<your Apple team ID>: macOS only runs signed iPad apps (docs/kitchen-setup.md)" >&2; exit 1; }
+	$(MAKE) display-build-mac DEVELOPMENT_TEAM=$(DEVELOPMENT_TEAM)
+	open "$(MAC_APP)"
 
 display-test: kit-test display-build ## Test CocoKit and build the app
 

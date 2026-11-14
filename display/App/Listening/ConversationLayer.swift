@@ -50,6 +50,10 @@ struct ConversationLayer: ViewModifier {
             .onChange(of: model.alarmRinging, initial: true) { _, ringing in
                 voice?.alarmRingingChanged(ringing)
             }
+            // "Hey coco" or a tap wakes night mode, which stays up while Coco listens and talks.
+            .onChange(of: conversation?.state.isActive ?? false) { _, active in
+                model.night.setHold(.conversation, active)
+            }
             .onChange(of: scenePhase) { _, phase in
                 guard phase == .active, let voice else { return }
                 Task { await voice.resume() }

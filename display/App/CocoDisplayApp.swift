@@ -17,8 +17,11 @@ struct CocoDisplayApp: App {
                 }
         }
         .onChange(of: scenePhase, initial: true) { _, phase in
-            // Kitchen display: keep the screen on whenever Coco is in front.
-            UIApplication.shared.isIdleTimerDisabled = phase == .active
+            // Kitchen display: keep the screen on whenever Coco is in front. Not on a Mac
+            // ("Designed for iPad"), where the Mac's own energy settings decide (#25).
+            if !ProcessInfo.processInfo.isiOSAppOnMac {
+                UIApplication.shared.isIdleTimerDisabled = phase == .active
+            }
             // Ring anything that came due while the app was suspended.
             if phase == .active { model.timerStore.fireDueAlarms() }
         }

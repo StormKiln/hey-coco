@@ -72,8 +72,10 @@ it later, re-run step 1.4.
    - `[location]`: your home `lat` and `lon` (right-click your house in Google Maps to copy them)
      and a `name`. Without a location there is no forecast on the idle screen.
    - `[night]`: `start` and `end` as 24-hour `HH:MM`, for example `"21:30"` and `"06:30"`, and
-     `dark_after_idle_s`, the idle seconds before the screen goes dark. The Hub already sends this
-     schedule to the iPad. The iPad acting on it is coming in #24.
+     `dark_after_idle_s`, the idle seconds before the screen goes dark. At `start` the iPad dims;
+     after `dark_after_idle_s` with nobody using it the screen goes black at minimum brightness.
+     "Hey coco", a tap anywhere or a ringing timer wakes it, and at `end` it returns to your normal
+     brightness. It never goes dark while a timer rings or Coco is playing something.
    - `[qwen]`: change `enabled = false` to `enabled = true`. Leave `model = "qwen3:8b"` and
      `base_url = "http://localhost:11434"` as they are.
 
@@ -240,10 +242,36 @@ Do these once, in the iPad's Settings app.
    before it ends. The iPad should still ring. Then restore the Hub with
    `make hub-install-service`.
 5. Leave it for a day. Check that the screen is still on, Coco is still in front, and timers
-   work. Night-mode dimming is coming in #24.
+   work. At bedtime it should dim, go black after the idle time, and wake on a tap.
 
 On-device verification of this guide is still pending. If a step was wrong or unclear, please
 fix it here.
+
+## Run on the MacBook
+
+The same Display app runs on an Apple silicon Mac as "Designed for iPad", for development or as a
+spare display. It is not a Mac Catalyst build.
+
+1. Xcode signed in with your Apple ID (Xcode, then Settings, then Accounts). macOS only launches a
+   signed iPad app, so you need your team ID (Accounts, select the team, the ID is shown there, or
+   developer.apple.com, then Membership).
+2. For "hey coco", put `hey-coco_mac.ppn` (and the AccessKey) in `display/WakeWord/`, see
+   `docs/wake-word.md`. Without the Mac keyword the iOS one is tried; without either, use the mic
+   button.
+3. Build, sign and open it:
+
+   ```sh
+   make display-run-mac DEVELOPMENT_TEAM=ABCDE12345
+   ```
+
+   `make display-build-mac` builds without signing (a compile check only). The app ends up in
+   `display/DerivedData/mac/`.
+4. First launch: allow Local Network, Microphone and Speech Recognition, then connect it to the Hub
+   as in section 2.3.
+
+Differences from the iPad: night mode blacks out the window but cannot change the Mac's display
+brightness, and the app does not keep the Mac awake. Use the Mac's own Lock Screen and Energy
+settings for that. Guided Access does not apply.
 
 ## Troubleshooting
 

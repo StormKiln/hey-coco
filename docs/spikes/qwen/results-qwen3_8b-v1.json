@@ -1,0 +1,1694 @@
+{
+  "model": "qwen3:8b",
+  "structured_output": true,
+  "cold": {
+    "raw": "{\"intent\": \"general.answer\", \"slots\": {}, \"answer\": \"A spider has eight legs.\"}",
+    "ttft_s": 1.826,
+    "total_s": 2.219,
+    "load_s": 0.797,
+    "prompt_tokens": 621,
+    "prompt_eval_s": 1.024,
+    "eval_tokens": 23,
+    "tok_per_s": 58.6
+  },
+  "ollama_ps": "NAME          ID              SIZE      PROCESSOR    CONTEXT    RUNNER      UNTIL               \nqwen3:8b      500a1f067a9f    5.1 GB    100% GPU     4096       llamacpp    29 minutes from now    \nqwen3.5:4b    7f3251fa6878    4.1 GB    100% GPU     262144     mlx         8 minutes from now     \n",
+  "ps": {
+    "size": 5076072529,
+    "size_vram": 5076072529,
+    "context_length": 4096
+  },
+  "summary": {
+    "main": {
+      "n": 60,
+      "valid_json_strict": "60/60",
+      "valid_after_repair": "60/60",
+      "intent_ok_all": "54/60",
+      "intent_ok_commands": "35/40",
+      "intent_ok_general": "14/15",
+      "intent_ok_none": "5/5",
+      "slot_duration_ok": "5/6",
+      "slot_name_ok": "9/12",
+      "slot_other_ok": "14/15",
+      "fully_right": "49/60",
+      "lat_cmd_p50": 0.46,
+      "lat_cmd_p90": 0.65,
+      "lat_gen_p50": 0.6,
+      "lat_gen_p90": 1.0,
+      "lat_max": 1.04,
+      "ttft_p50": 0.09,
+      "prompt_eval_p50": 0.08,
+      "tok_per_s_p50": 58.5,
+      "answers_over_3_sentences": 0,
+      "answers_over_2_sentences": 0
+    }
+  },
+  "rows": [
+    {
+      "set": "main",
+      "text": "can you give me ten minutes for the eggs",
+      "intent": "timer.create",
+      "slots": {
+        "name": "eggs",
+        "duration_s": 600
+      },
+      "raw": "{\"intent\": \"timer.create\", \"slots\": {\"name\": \"eggs\", \"duration_s\": 600}, \"answer\": null}",
+      "ttft_s": 0.084,
+      "total_s": 0.649,
+      "load_s": 0.001,
+      "prompt_tokens": 623,
+      "prompt_eval_s": 0.079,
+      "eval_tokens": 32,
+      "tok_per_s": 56.7,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "timer.create",
+        "slots": {
+          "name": "eggs",
+          "duration_s": 600
+        },
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {
+        "name": true,
+        "duration_s": true
+      }
+    },
+    {
+      "set": "main",
+      "text": "start a twenty minute countdown",
+      "intent": "timer.create",
+      "slots": {
+        "duration_s": 1200
+      },
+      "raw": "{\"intent\": \"timer.create\", \"slots\": {\"name\": \"countdown\", \"duration_s\": 1200}, \"answer\": null}",
+      "ttft_s": 0.087,
+      "total_s": 0.663,
+      "load_s": 0.001,
+      "prompt_tokens": 619,
+      "prompt_eval_s": 0.081,
+      "eval_tokens": 33,
+      "tok_per_s": 57.3,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "timer.create",
+        "slots": {
+          "name": "countdown",
+          "duration_s": 1200
+        },
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {
+        "duration_s": true,
+        "name_spurious": false
+      }
+    },
+    {
+      "set": "main",
+      "text": "remind me in an hour and a half to take the bread out",
+      "intent": "timer.create",
+      "slots": {
+        "name": "bread",
+        "duration_s": 5400
+      },
+      "raw": "{\"intent\": \"none\", \"slots\": {}, \"answer\": \"I can't set reminders, but you can use the timer function to help you remember.\"}",
+      "ttft_s": 0.086,
+      "total_s": 0.673,
+      "load_s": 0.001,
+      "prompt_tokens": 628,
+      "prompt_eval_s": 0.08,
+      "eval_tokens": 34,
+      "tok_per_s": 57.9,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "none",
+        "slots": {},
+        "answer": "I can't set reminders, but you can use the timer function to help you remember."
+      },
+      "intent_ok": false
+    },
+    {
+      "set": "main",
+      "text": "pasta needs eleven minutes",
+      "intent": "timer.create",
+      "slots": {
+        "name": "pasta",
+        "duration_s": 660
+      },
+      "raw": "{\"intent\": \"timer.create\", \"slots\": {\"name\": \"pasta\", \"duration_s\": 11}, \"answer\": null}",
+      "ttft_s": 0.086,
+      "total_s": 0.632,
+      "load_s": 0.001,
+      "prompt_tokens": 619,
+      "prompt_eval_s": 0.081,
+      "eval_tokens": 31,
+      "tok_per_s": 56.8,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "timer.create",
+        "slots": {
+          "name": "pasta",
+          "duration_s": 11
+        },
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {
+        "name": true,
+        "duration_s": false
+      }
+    },
+    {
+      "set": "main",
+      "text": "set one for 45 seconds",
+      "intent": "timer.create",
+      "slots": {
+        "duration_s": 45
+      },
+      "raw": "{\"intent\": \"timer.create\", \"slots\": {\"name\": \"one\", \"duration_s\": 45}, \"answer\": null}",
+      "ttft_s": 0.084,
+      "total_s": 0.613,
+      "load_s": 0.001,
+      "prompt_tokens": 621,
+      "prompt_eval_s": 0.079,
+      "eval_tokens": 30,
+      "tok_per_s": 56.7,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "timer.create",
+        "slots": {
+          "name": "one",
+          "duration_s": 45
+        },
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {
+        "duration_s": true,
+        "name_spurious": false
+      }
+    },
+    {
+      "set": "main",
+      "text": "how much longer on the rice",
+      "intent": "timer.query",
+      "slots": {
+        "name": "rice"
+      },
+      "raw": "{\"intent\": \"timer.query\", \"slots\": {\"name\": \"rice\"}, \"answer\": null}",
+      "ttft_s": 0.087,
+      "total_s": 0.461,
+      "load_s": 0.001,
+      "prompt_tokens": 620,
+      "prompt_eval_s": 0.082,
+      "eval_tokens": 22,
+      "tok_per_s": 58.8,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "timer.query",
+        "slots": {
+          "name": "rice"
+        },
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {
+        "name": true
+      }
+    },
+    {
+      "set": "main",
+      "text": "is the cookie timer almost done",
+      "intent": "timer.query",
+      "slots": {
+        "name": "cookie"
+      },
+      "raw": "{\"intent\": \"timer.query\", \"slots\": {\"name\": \"cookie\"}, \"answer\": null}",
+      "ttft_s": 0.087,
+      "total_s": 0.462,
+      "load_s": 0.001,
+      "prompt_tokens": 620,
+      "prompt_eval_s": 0.082,
+      "eval_tokens": 22,
+      "tok_per_s": 58.7,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "timer.query",
+        "slots": {
+          "name": "cookie"
+        },
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {
+        "name": true
+      }
+    },
+    {
+      "set": "main",
+      "text": "kill the timer",
+      "intent": "timer.cancel",
+      "slots": {},
+      "raw": "{\"intent\": \"timer.cancel\", \"slots\": {\"all\": true}, \"answer\": null}",
+      "ttft_s": 0.28,
+      "total_s": 0.636,
+      "load_s": 0.001,
+      "prompt_tokens": 617,
+      "prompt_eval_s": 0.275,
+      "eval_tokens": 21,
+      "tok_per_s": 59.0,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "timer.cancel",
+        "slots": {
+          "all": true
+        },
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {}
+    },
+    {
+      "set": "main",
+      "text": "never mind the potato timer",
+      "intent": "timer.cancel",
+      "slots": {
+        "name": "potato"
+      },
+      "raw": "{\"intent\": \"timer.cancel\", \"slots\": {\"name\": \"potato\"}, \"answer\": null}",
+      "ttft_s": 0.087,
+      "total_s": 0.479,
+      "load_s": 0.001,
+      "prompt_tokens": 619,
+      "prompt_eval_s": 0.081,
+      "eval_tokens": 23,
+      "tok_per_s": 58.6,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "timer.cancel",
+        "slots": {
+          "name": "potato"
+        },
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {
+        "name": true
+      }
+    },
+    {
+      "set": "main",
+      "text": "get rid of all of them timers",
+      "intent": "timer.cancel",
+      "slots": {
+        "all": true
+      },
+      "raw": "{\"intent\": \"timer.cancel\", \"slots\": {\"all\": true}, \"answer\": null}",
+      "ttft_s": 0.084,
+      "total_s": 0.441,
+      "load_s": 0.001,
+      "prompt_tokens": 621,
+      "prompt_eval_s": 0.079,
+      "eval_tokens": 21,
+      "tok_per_s": 58.8,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "timer.cancel",
+        "slots": {
+          "all": true
+        },
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {
+        "all": true
+      }
+    },
+    {
+      "set": "main",
+      "text": "chuck another five minutes on the chicken",
+      "intent": "timer.add_time",
+      "slots": {
+        "name": "chicken",
+        "duration_s": 300
+      },
+      "raw": "{\"intent\": \"timer.add_time\", \"slots\": {\"name\": \"chicken\", \"duration_s\": 300}, \"answer\": null}",
+      "ttft_s": 0.084,
+      "total_s": 0.654,
+      "load_s": 0.001,
+      "prompt_tokens": 622,
+      "prompt_eval_s": 0.079,
+      "eval_tokens": 33,
+      "tok_per_s": 58.0,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "timer.add_time",
+        "slots": {
+          "name": "chicken",
+          "duration_s": 300
+        },
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {
+        "name": true,
+        "duration_s": true
+      }
+    },
+    {
+      "set": "main",
+      "text": "give it two more minutes",
+      "intent": "timer.add_time",
+      "slots": {
+        "duration_s": 120
+      },
+      "raw": "{\"intent\": \"timer.add_time\", \"slots\": {\"name\": \"it\", \"duration_s\": 120}, \"answer\": null}",
+      "ttft_s": 0.085,
+      "total_s": 0.633,
+      "load_s": 0.001,
+      "prompt_tokens": 619,
+      "prompt_eval_s": 0.08,
+      "eval_tokens": 32,
+      "tok_per_s": 58.5,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "timer.add_time",
+        "slots": {
+          "name": "it",
+          "duration_s": 120
+        },
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {
+        "duration_s": true,
+        "name_spurious": false
+      }
+    },
+    {
+      "set": "main",
+      "text": "what timers have I got going",
+      "intent": "timer.list",
+      "slots": {},
+      "raw": "{\"intent\": \"timer.list\", \"slots\": {}, \"answer\": null}",
+      "ttft_s": 0.085,
+      "total_s": 0.371,
+      "load_s": 0.001,
+      "prompt_tokens": 620,
+      "prompt_eval_s": 0.081,
+      "eval_tokens": 17,
+      "tok_per_s": 59.5,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "timer.list",
+        "slots": {},
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {}
+    },
+    {
+      "set": "main",
+      "text": "what time is it right now",
+      "intent": "time.now",
+      "slots": {},
+      "raw": "{\"intent\": \"time.now\", \"slots\": {}, \"answer\": null}",
+      "ttft_s": 0.087,
+      "total_s": 0.373,
+      "load_s": 0.001,
+      "prompt_tokens": 620,
+      "prompt_eval_s": 0.081,
+      "eval_tokens": 17,
+      "tok_per_s": 59.4,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "time.now",
+        "slots": {},
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {}
+    },
+    {
+      "set": "main",
+      "text": "what's the date today",
+      "intent": "date.today",
+      "slots": {},
+      "raw": "{\"intent\": \"date.today\", \"slots\": {}, \"answer\": null}",
+      "ttft_s": 0.085,
+      "total_s": 0.371,
+      "load_s": 0.001,
+      "prompt_tokens": 619,
+      "prompt_eval_s": 0.08,
+      "eval_tokens": 17,
+      "tok_per_s": 59.5,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "date.today",
+        "slots": {},
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {}
+    },
+    {
+      "set": "main",
+      "text": "how's it looking outside",
+      "intent": "weather.current",
+      "slots": {},
+      "raw": "{\"intent\": \"weather.current\", \"slots\": {}, \"answer\": null}",
+      "ttft_s": 0.087,
+      "total_s": 0.373,
+      "load_s": 0.001,
+      "prompt_tokens": 619,
+      "prompt_eval_s": 0.081,
+      "eval_tokens": 17,
+      "tok_per_s": 59.4,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "weather.current",
+        "slots": {},
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {}
+    },
+    {
+      "set": "main",
+      "text": "is it cold out right now",
+      "intent": "weather.current",
+      "slots": {},
+      "raw": "{\"intent\": \"weather.current\", \"slots\": {\"query\": \"temperature\"}, \"answer\": null}",
+      "ttft_s": 0.087,
+      "total_s": 0.462,
+      "load_s": 0.001,
+      "prompt_tokens": 620,
+      "prompt_eval_s": 0.082,
+      "eval_tokens": 22,
+      "tok_per_s": 58.7,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "weather.current",
+        "slots": {
+          "query": "temperature"
+        },
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {}
+    },
+    {
+      "set": "main",
+      "text": "what's it gonna be like tomorrow",
+      "intent": "weather.forecast",
+      "slots": {
+        "when": "tomorrow"
+      },
+      "raw": "{\"intent\": \"weather.forecast\", \"slots\": {\"when\": \"tomorrow\"}, \"answer\": null}",
+      "ttft_s": 0.084,
+      "total_s": 0.495,
+      "load_s": 0.001,
+      "prompt_tokens": 621,
+      "prompt_eval_s": 0.079,
+      "eval_tokens": 24,
+      "tok_per_s": 58.5,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "weather.forecast",
+        "slots": {
+          "when": "tomorrow"
+        },
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {
+        "when": true
+      }
+    },
+    {
+      "set": "main",
+      "text": "will it be nice this weekend",
+      "intent": "weather.forecast",
+      "slots": {
+        "when": "this_weekend"
+      },
+      "raw": "{\"intent\": \"weather.rain\", \"slots\": {\"when\": \"this_weekend\"}, \"answer\": null}",
+      "ttft_s": 0.087,
+      "total_s": 0.515,
+      "load_s": 0.001,
+      "prompt_tokens": 620,
+      "prompt_eval_s": 0.081,
+      "eval_tokens": 25,
+      "tok_per_s": 58.4,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "weather.rain",
+        "slots": {
+          "when": "this_weekend"
+        },
+        "answer": null
+      },
+      "intent_ok": false
+    },
+    {
+      "set": "main",
+      "text": "do the kids need umbrellas this afternoon",
+      "intent": "weather.rain",
+      "slots": {
+        "when": "this_afternoon"
+      },
+      "raw": "{\"intent\": \"weather.rain\", \"slots\": {\"when\": \"this_afternoon\"}, \"answer\": null}",
+      "ttft_s": 0.085,
+      "total_s": 0.512,
+      "load_s": 0.001,
+      "prompt_tokens": 622,
+      "prompt_eval_s": 0.079,
+      "eval_tokens": 25,
+      "tok_per_s": 58.4,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "weather.rain",
+        "slots": {
+          "when": "this_afternoon"
+        },
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {
+        "when": true
+      }
+    },
+    {
+      "set": "main",
+      "text": "is it gonna pour tonight",
+      "intent": "weather.rain",
+      "slots": {
+        "when": "tonight"
+      },
+      "raw": "{\"intent\": \"weather.rain\", \"slots\": {\"when\": \"tonight\"}, \"answer\": null}",
+      "ttft_s": 0.086,
+      "total_s": 0.496,
+      "load_s": 0.001,
+      "prompt_tokens": 619,
+      "prompt_eval_s": 0.081,
+      "eval_tokens": 24,
+      "tok_per_s": 58.5,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "weather.rain",
+        "slots": {
+          "when": "tonight"
+        },
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {
+        "when": true
+      }
+    },
+    {
+      "set": "main",
+      "text": "I wanna see a picture of a narwhal",
+      "intent": "picture.show",
+      "slots": {
+        "query": "narwhal"
+      },
+      "raw": "{\"intent\": \"picture.show\", \"slots\": {\"query\": \"narwhal\"}, \"answer\": null}",
+      "ttft_s": 0.085,
+      "total_s": 0.496,
+      "load_s": 0.001,
+      "prompt_tokens": 624,
+      "prompt_eval_s": 0.079,
+      "eval_tokens": 24,
+      "tok_per_s": 58.4,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "picture.show",
+        "slots": {
+          "query": "narwhal"
+        },
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {
+        "query": true
+      }
+    },
+    {
+      "set": "main",
+      "text": "what does a komodo dragon look like",
+      "intent": "picture.show",
+      "slots": {
+        "query": "komodo dragon"
+      },
+      "raw": "{\"intent\": \"general.answer\", \"slots\": {}, \"answer\": \"A komodo dragon has a thick body, a long tail, and is covered in scales. It usually has a dark color with some lighter markings.\"}",
+      "ttft_s": 0.085,
+      "total_s": 0.905,
+      "load_s": 0.001,
+      "prompt_tokens": 622,
+      "prompt_eval_s": 0.079,
+      "eval_tokens": 47,
+      "tok_per_s": 57.3,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "general.answer",
+        "slots": {},
+        "answer": "A komodo dragon has a thick body, a long tail, and is covered in scales. It usually has a dark color with some lighter markings."
+      },
+      "intent_ok": false,
+      "answer_sentences": 2,
+      "answer_words": 25
+    },
+    {
+      "set": "main",
+      "text": "what's the doggo noise",
+      "intent": "sound.play",
+      "slots": {
+        "name": "dog"
+      },
+      "raw": "{\"intent\": \"sound.play\", \"slots\": {\"name\": \"dog\"}, \"answer\": null}",
+      "ttft_s": 0.086,
+      "total_s": 0.45,
+      "load_s": 0.001,
+      "prompt_tokens": 620,
+      "prompt_eval_s": 0.08,
+      "eval_tokens": 22,
+      "tok_per_s": 60.4,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "sound.play",
+        "slots": {
+          "name": "dog"
+        },
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {
+        "name": true
+      }
+    },
+    {
+      "set": "main",
+      "text": "what does a cow say",
+      "intent": "sound.play",
+      "slots": {
+        "name": "cow"
+      },
+      "raw": "{\"intent\": \"sound.play\", \"slots\": {\"name\": \"cow\"}, \"answer\": null}",
+      "ttft_s": 0.084,
+      "total_s": 0.451,
+      "load_s": 0.001,
+      "prompt_tokens": 619,
+      "prompt_eval_s": 0.079,
+      "eval_tokens": 22,
+      "tok_per_s": 59.9,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "sound.play",
+        "slots": {
+          "name": "cow"
+        },
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {
+        "name": true
+      }
+    },
+    {
+      "set": "main",
+      "text": "make a fire truck sound",
+      "intent": "sound.play",
+      "slots": {
+        "name": "fire truck"
+      },
+      "raw": "{\"intent\": \"sound.play\", \"slots\": {\"name\": \"fire truck\"}, \"answer\": null}",
+      "ttft_s": 0.084,
+      "total_s": 0.465,
+      "load_s": 0.001,
+      "prompt_tokens": 619,
+      "prompt_eval_s": 0.08,
+      "eval_tokens": 23,
+      "tok_per_s": 60.5,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "sound.play",
+        "slots": {
+          "name": "fire truck"
+        },
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {
+        "name": true
+      }
+    },
+    {
+      "set": "main",
+      "text": "find the baby shark video on youtube",
+      "intent": "youtube.play",
+      "slots": {
+        "query": "baby shark"
+      },
+      "raw": "{\"intent\": \"youtube.play\", \"slots\": {\"query\": \"baby shark\"}, \"answer\": null}",
+      "ttft_s": 0.082,
+      "total_s": 0.469,
+      "load_s": 0.001,
+      "prompt_tokens": 621,
+      "prompt_eval_s": 0.078,
+      "eval_tokens": 23,
+      "tok_per_s": 59.4,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "youtube.play",
+        "slots": {
+          "query": "baby shark"
+        },
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {
+        "query": true
+      }
+    },
+    {
+      "set": "main",
+      "text": "put on some Raffi",
+      "intent": "music.play",
+      "slots": {
+        "query": "Raffi",
+        "kind": "artist"
+      },
+      "raw": "{\"intent\": \"music.play\", \"slots\": {\"query\": \"Raffi\", \"kind\": \"artist\"}, \"answer\": null}",
+      "ttft_s": 0.086,
+      "total_s": 0.603,
+      "load_s": 0.001,
+      "prompt_tokens": 620,
+      "prompt_eval_s": 0.081,
+      "eval_tokens": 30,
+      "tok_per_s": 58.0,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "music.play",
+        "slots": {
+          "query": "Raffi",
+          "kind": "artist"
+        },
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {
+        "query": true,
+        "kind": true
+      }
+    },
+    {
+      "set": "main",
+      "text": "play the Frozen soundtrack",
+      "intent": "music.play",
+      "slots": {
+        "query": "Frozen",
+        "kind": "album"
+      },
+      "raw": "{\"intent\": \"music.play\", \"slots\": {\"query\": \"Frozen\", \"kind\": \"playlist\"}, \"answer\": null}",
+      "ttft_s": 0.085,
+      "total_s": 0.582,
+      "load_s": 0.001,
+      "prompt_tokens": 618,
+      "prompt_eval_s": 0.08,
+      "eval_tokens": 28,
+      "tok_per_s": 56.3,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "music.play",
+        "slots": {
+          "query": "Frozen",
+          "kind": "playlist"
+        },
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {
+        "query": true,
+        "kind": false
+      }
+    },
+    {
+      "set": "main",
+      "text": "chuck on some dinner party jazz",
+      "intent": "music.play",
+      "slots": {
+        "query": "dinner party jazz",
+        "kind": "playlist"
+      },
+      "raw": "{\"intent\": \"music.play\", \"slots\": {\"query\": \"dinner party jazz\", \"kind\": \"playlist\"}, \"answer\": null}",
+      "ttft_s": 0.084,
+      "total_s": 0.62,
+      "load_s": 0.001,
+      "prompt_tokens": 621,
+      "prompt_eval_s": 0.079,
+      "eval_tokens": 31,
+      "tok_per_s": 57.9,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "music.play",
+        "slots": {
+          "query": "dinner party jazz",
+          "kind": "playlist"
+        },
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {
+        "query": true,
+        "kind": true
+      }
+    },
+    {
+      "set": "main",
+      "text": "hold on, pause that",
+      "intent": "media.pause",
+      "slots": {},
+      "raw": "{\"intent\": \"media.pause\", \"slots\": {}, \"answer\": null}",
+      "ttft_s": 0.087,
+      "total_s": 0.374,
+      "load_s": 0.001,
+      "prompt_tokens": 619,
+      "prompt_eval_s": 0.081,
+      "eval_tokens": 17,
+      "tok_per_s": 59.2,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "media.pause",
+        "slots": {},
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {}
+    },
+    {
+      "set": "main",
+      "text": "ok keep going with the music",
+      "intent": "media.resume",
+      "slots": {},
+      "raw": "{\"intent\": \"media.next\", \"slots\": {}, \"answer\": null}",
+      "ttft_s": 0.086,
+      "total_s": 0.373,
+      "load_s": 0.001,
+      "prompt_tokens": 620,
+      "prompt_eval_s": 0.081,
+      "eval_tokens": 17,
+      "tok_per_s": 59.4,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "media.next",
+        "slots": {},
+        "answer": null
+      },
+      "intent_ok": false
+    },
+    {
+      "set": "main",
+      "text": "skip this one",
+      "intent": "media.next",
+      "slots": {},
+      "raw": "{\"intent\": \"none\", \"slots\": {}, \"answer\": null}",
+      "ttft_s": 0.056,
+      "total_s": 0.325,
+      "load_s": 0.001,
+      "prompt_tokens": 617,
+      "prompt_eval_s": 0.05,
+      "eval_tokens": 16,
+      "tok_per_s": 59.5,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "none",
+        "slots": {},
+        "answer": null
+      },
+      "intent_ok": false
+    },
+    {
+      "set": "main",
+      "text": "turn the music off",
+      "intent": "media.stop",
+      "slots": {},
+      "raw": "{\"intent\": \"media.stop\", \"slots\": {}, \"answer\": null}",
+      "ttft_s": 0.086,
+      "total_s": 0.373,
+      "load_s": 0.001,
+      "prompt_tokens": 618,
+      "prompt_eval_s": 0.081,
+      "eval_tokens": 17,
+      "tok_per_s": 59.4,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "media.stop",
+        "slots": {},
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {}
+    },
+    {
+      "set": "main",
+      "text": "make it louder",
+      "intent": "volume.change",
+      "slots": {
+        "delta": "+"
+      },
+      "raw": "{\"intent\": \"volume.change\", \"slots\": {\"delta\": 10}, \"answer\": null}",
+      "ttft_s": 0.056,
+      "total_s": 0.448,
+      "load_s": 0.001,
+      "prompt_tokens": 617,
+      "prompt_eval_s": 0.05,
+      "eval_tokens": 23,
+      "tok_per_s": 58.6,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "volume.change",
+        "slots": {
+          "delta": 10
+        },
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {
+        "delta": true
+      }
+    },
+    {
+      "set": "main",
+      "text": "too loud, bring it down a bit",
+      "intent": "volume.change",
+      "slots": {
+        "delta": "-"
+      },
+      "raw": "{\"intent\": \"volume.change\", \"slots\": {\"delta\": -10}, \"answer\": null}",
+      "ttft_s": 0.085,
+      "total_s": 0.493,
+      "load_s": 0.001,
+      "prompt_tokens": 622,
+      "prompt_eval_s": 0.079,
+      "eval_tokens": 23,
+      "tok_per_s": 56.3,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "volume.change",
+        "slots": {
+          "delta": -10
+        },
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {
+        "delta": true
+      }
+    },
+    {
+      "set": "main",
+      "text": "volume to half",
+      "intent": "volume.set",
+      "slots": {
+        "level": 50
+      },
+      "raw": "{\"intent\": \"volume.set\", \"slots\": {\"level\": 50}, \"answer\": null}",
+      "ttft_s": 0.055,
+      "total_s": 0.464,
+      "load_s": 0.001,
+      "prompt_tokens": 617,
+      "prompt_eval_s": 0.05,
+      "eval_tokens": 23,
+      "tok_per_s": 56.3,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "volume.set",
+        "slots": {
+          "level": 50
+        },
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {
+        "level": true
+      }
+    },
+    {
+      "set": "main",
+      "text": "shut that beeping up",
+      "intent": "alarm.stop",
+      "slots": {},
+      "raw": "{\"intent\": \"alarm.stop\", \"slots\": {}, \"answer\": null}",
+      "ttft_s": 0.087,
+      "total_s": 0.374,
+      "load_s": 0.001,
+      "prompt_tokens": 620,
+      "prompt_eval_s": 0.082,
+      "eval_tokens": 17,
+      "tok_per_s": 59.2,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "alarm.stop",
+        "slots": {},
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {}
+    },
+    {
+      "set": "main",
+      "text": "okay okay I heard you, turn the alarm off",
+      "intent": "alarm.stop",
+      "slots": {},
+      "raw": "{\"intent\": \"alarm.stop\", \"slots\": {}, \"answer\": null}",
+      "ttft_s": 0.085,
+      "total_s": 0.372,
+      "load_s": 0.001,
+      "prompt_tokens": 624,
+      "prompt_eval_s": 0.079,
+      "eval_tokens": 17,
+      "tok_per_s": 59.2,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "alarm.stop",
+        "slots": {},
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {}
+    },
+    {
+      "set": "main",
+      "text": "how many timers are there",
+      "intent": "timer.list",
+      "slots": {},
+      "raw": "{\"intent\": \"timer.list\", \"slots\": {}, \"answer\": null}",
+      "ttft_s": 0.086,
+      "total_s": 0.373,
+      "load_s": 0.001,
+      "prompt_tokens": 619,
+      "prompt_eval_s": 0.081,
+      "eval_tokens": 17,
+      "tok_per_s": 59.2,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "timer.list",
+        "slots": {},
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {}
+    },
+    {
+      "set": "main",
+      "text": "how far away is the moon",
+      "intent": "general.answer",
+      "slots": {},
+      "fact": "about 384,000 km / 239,000 miles",
+      "raw": "{\"intent\": \"none\", \"slots\": {}, \"answer\": \"I can't tell you how far away the moon is right now.\"}",
+      "ttft_s": 0.086,
+      "total_s": 0.604,
+      "load_s": 0.001,
+      "prompt_tokens": 620,
+      "prompt_eval_s": 0.081,
+      "eval_tokens": 30,
+      "tok_per_s": 58.0,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "none",
+        "slots": {},
+        "answer": "I can't tell you how far away the moon is right now."
+      },
+      "intent_ok": false
+    },
+    {
+      "set": "main",
+      "text": "how do you spell necessary",
+      "intent": "general.answer",
+      "slots": {},
+      "fact": "N-E-C-E-S-S-A-R-Y",
+      "raw": "{\"intent\": \"general.answer\", \"slots\": {}, \"answer\": \"N-e-c-e-s-s-a-r-y.\"}",
+      "ttft_s": 0.086,
+      "total_s": 0.55,
+      "load_s": 0.001,
+      "prompt_tokens": 619,
+      "prompt_eval_s": 0.081,
+      "eval_tokens": 27,
+      "tok_per_s": 58.2,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "general.answer",
+        "slots": {},
+        "answer": "N-e-c-e-s-s-a-r-y."
+      },
+      "intent_ok": true,
+      "answer_sentences": 1,
+      "answer_words": 1
+    },
+    {
+      "set": "main",
+      "text": "how many cups in a litre",
+      "intent": "general.answer",
+      "slots": {},
+      "fact": "about 4 (4.2 US cups; 4 metric cups)",
+      "raw": "{\"intent\": \"general.answer\", \"slots\": {}, \"answer\": \"There are approximately 4 cups in a litre.\"}",
+      "ttft_s": 0.086,
+      "total_s": 0.551,
+      "load_s": 0.001,
+      "prompt_tokens": 620,
+      "prompt_eval_s": 0.081,
+      "eval_tokens": 27,
+      "tok_per_s": 58.1,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "general.answer",
+        "slots": {},
+        "answer": "There are approximately 4 cups in a litre."
+      },
+      "intent_ok": true,
+      "answer_sentences": 1,
+      "answer_words": 8
+    },
+    {
+      "set": "main",
+      "text": "why is the sky blue",
+      "intent": "general.answer",
+      "slots": {},
+      "fact": "Rayleigh scattering of short wavelengths",
+      "raw": "{\"intent\": \"general.answer\", \"slots\": {}, \"answer\": \"The sky appears blue because the sunlight scatters more in the shorter wavelengths, like blue, when it passes through the Earth's atmosphere. This scattering makes the sky look blue to our eyes.\"}",
+      "ttft_s": 0.087,
+      "total_s": 1.037,
+      "load_s": 0.001,
+      "prompt_tokens": 619,
+      "prompt_eval_s": 0.081,
+      "eval_tokens": 55,
+      "tok_per_s": 57.8,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "general.answer",
+        "slots": {},
+        "answer": "The sky appears blue because the sunlight scatters more in the shorter wavelengths, like blue, when it passes through the Earth's atmosphere. This scattering makes the sky look blue to our eyes."
+      },
+      "intent_ok": true,
+      "answer_sentences": 2,
+      "answer_words": 32
+    },
+    {
+      "set": "main",
+      "text": "how many legs does a spider have",
+      "intent": "general.answer",
+      "slots": {},
+      "fact": "eight",
+      "raw": "{\"intent\": \"general.answer\", \"slots\": {}, \"answer\": \"A spider has eight legs.\"}",
+      "ttft_s": 0.082,
+      "total_s": 0.463,
+      "load_s": 0.001,
+      "prompt_tokens": 621,
+      "prompt_eval_s": 0.078,
+      "eval_tokens": 23,
+      "tok_per_s": 60.4,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "general.answer",
+        "slots": {},
+        "answer": "A spider has eight legs."
+      },
+      "intent_ok": true,
+      "answer_sentences": 1,
+      "answer_words": 5
+    },
+    {
+      "set": "main",
+      "text": "what's the biggest animal in the world",
+      "intent": "general.answer",
+      "slots": {},
+      "fact": "blue whale",
+      "raw": "{\"intent\": \"general.answer\", \"slots\": {}, \"answer\": \"The blue whale is the biggest animal in the world. It can grow up to 100 feet long and weigh as much as 200 tons.\"}",
+      "ttft_s": 0.083,
+      "total_s": 0.939,
+      "load_s": 0.001,
+      "prompt_tokens": 622,
+      "prompt_eval_s": 0.078,
+      "eval_tokens": 50,
+      "tok_per_s": 58.4,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "general.answer",
+        "slots": {},
+        "answer": "The blue whale is the biggest animal in the world. It can grow up to 100 feet long and weigh as much as 200 tons."
+      },
+      "intent_ok": true,
+      "answer_sentences": 2,
+      "answer_words": 25
+    },
+    {
+      "set": "main",
+      "text": "what can I use instead of buttermilk",
+      "intent": "general.answer",
+      "slots": {},
+      "fact": "milk + 1 tbsp lemon juice or vinegar per cup",
+      "raw": "{\"intent\": \"general.answer\", \"slots\": {}, \"answer\": \"You can use milk or yogurt as a substitute for buttermilk. Let the milk or yogurt sit at room temperature for about 30 minutes to thicken slightly.\"}",
+      "ttft_s": 0.084,
+      "total_s": 0.966,
+      "load_s": 0.001,
+      "prompt_tokens": 623,
+      "prompt_eval_s": 0.079,
+      "eval_tokens": 51,
+      "tok_per_s": 57.9,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "general.answer",
+        "slots": {},
+        "answer": "You can use milk or yogurt as a substitute for buttermilk. Let the milk or yogurt sit at room temperature for about 30 minutes to thicken slightly."
+      },
+      "intent_ok": true,
+      "answer_sentences": 2,
+      "answer_words": 27
+    },
+    {
+      "set": "main",
+      "text": "how long do I boil an egg for a runny yolk",
+      "intent": "general.answer",
+      "slots": {},
+      "fact": "about 6 minutes from boiling",
+      "raw": "{\"intent\": \"general.answer\", \"slots\": {}, \"answer\": \"Boil an egg for about 4 to 5 minutes for a runny yolk.\"}",
+      "ttft_s": 0.085,
+      "total_s": 0.703,
+      "load_s": 0.001,
+      "prompt_tokens": 627,
+      "prompt_eval_s": 0.08,
+      "eval_tokens": 36,
+      "tok_per_s": 58.2,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "general.answer",
+        "slots": {},
+        "answer": "Boil an egg for about 4 to 5 minutes for a runny yolk."
+      },
+      "intent_ok": true,
+      "answer_sentences": 1,
+      "answer_words": 13
+    },
+    {
+      "set": "main",
+      "text": "what's 350 fahrenheit in celsius",
+      "intent": "general.answer",
+      "slots": {},
+      "fact": "about 177 C (175-180)",
+      "raw": "{\"intent\": \"general.answer\", \"slots\": {}, \"answer\": \"350 Fahrenheit is approximately 177 degrees Celsius.\"}",
+      "ttft_s": 0.084,
+      "total_s": 0.602,
+      "load_s": 0.001,
+      "prompt_tokens": 625,
+      "prompt_eval_s": 0.079,
+      "eval_tokens": 30,
+      "tok_per_s": 58.0,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "general.answer",
+        "slots": {},
+        "answer": "350 Fahrenheit is approximately 177 degrees Celsius."
+      },
+      "intent_ok": true,
+      "answer_sentences": 1,
+      "answer_words": 7
+    },
+    {
+      "set": "main",
+      "text": "what's seven times eight",
+      "intent": "general.answer",
+      "slots": {},
+      "fact": "56",
+      "raw": "{\"intent\": \"general.answer\", \"slots\": {}, \"answer\": \"Seven times eight is fifty-six.\"}",
+      "ttft_s": 0.056,
+      "total_s": 0.468,
+      "load_s": 0.001,
+      "prompt_tokens": 619,
+      "prompt_eval_s": 0.05,
+      "eval_tokens": 24,
+      "tok_per_s": 58.2,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "general.answer",
+        "slots": {},
+        "answer": "Seven times eight is fifty-six."
+      },
+      "intent_ok": true,
+      "answer_sentences": 1,
+      "answer_words": 5
+    },
+    {
+      "set": "main",
+      "text": "do penguins have knees",
+      "intent": "general.answer",
+      "slots": {},
+      "fact": "yes, hidden under feathers",
+      "raw": "{\"intent\": \"general.answer\", \"slots\": {}, \"answer\": \"Penguins have knees, but they are hidden under their feathers and not used for walking.\"}",
+      "ttft_s": 0.086,
+      "total_s": 0.693,
+      "load_s": 0.001,
+      "prompt_tokens": 619,
+      "prompt_eval_s": 0.081,
+      "eval_tokens": 35,
+      "tok_per_s": 57.7,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "general.answer",
+        "slots": {},
+        "answer": "Penguins have knees, but they are hidden under their feathers and not used for walking."
+      },
+      "intent_ok": true,
+      "answer_sentences": 1,
+      "answer_words": 15
+    },
+    {
+      "set": "main",
+      "text": "who was the first person on the moon",
+      "intent": "general.answer",
+      "slots": {},
+      "fact": "Neil Armstrong, 1969",
+      "raw": "{\"intent\": \"general.answer\", \"slots\": {}, \"answer\": \"The first person on the moon was Neil Armstrong. He landed there on July 20, 1969, as part of NASA's Apollo 11 mission.\"}",
+      "ttft_s": 0.085,
+      "total_s": 0.999,
+      "load_s": 0.001,
+      "prompt_tokens": 622,
+      "prompt_eval_s": 0.079,
+      "eval_tokens": 53,
+      "tok_per_s": 58.0,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "general.answer",
+        "slots": {},
+        "answer": "The first person on the moon was Neil Armstrong. He landed there on July 20, 1969, as part of NASA's Apollo 11 mission."
+      },
+      "intent_ok": true,
+      "answer_sentences": 2,
+      "answer_words": 23
+    },
+    {
+      "set": "main",
+      "text": "how many teaspoons in a tablespoon",
+      "intent": "general.answer",
+      "slots": {},
+      "fact": "three",
+      "raw": "{\"intent\": \"general.answer\", \"slots\": {}, \"answer\": \"There are three teaspoons in one tablespoon.\"}",
+      "ttft_s": 0.088,
+      "total_s": 0.512,
+      "load_s": 0.001,
+      "prompt_tokens": 620,
+      "prompt_eval_s": 0.083,
+      "eval_tokens": 25,
+      "tok_per_s": 59.0,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "general.answer",
+        "slots": {},
+        "answer": "There are three teaspoons in one tablespoon."
+      },
+      "intent_ok": true,
+      "answer_sentences": 1,
+      "answer_words": 7
+    },
+    {
+      "set": "main",
+      "text": "why do onions make you cry",
+      "intent": "general.answer",
+      "slots": {},
+      "fact": "a sulfur gas (syn-propanethial-S-oxide) irritates the eyes",
+      "raw": "{\"intent\": \"general.answer\", \"slots\": {}, \"answer\": \"Onions release a gas called syn-Propanethial-S-oxide when cut. This gas irritates the eyes, causing tears.\"}",
+      "ttft_s": 0.087,
+      "total_s": 0.855,
+      "load_s": 0.001,
+      "prompt_tokens": 620,
+      "prompt_eval_s": 0.081,
+      "eval_tokens": 44,
+      "tok_per_s": 57.3,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "general.answer",
+        "slots": {},
+        "answer": "Onions release a gas called syn-Propanethial-S-oxide when cut. This gas irritates the eyes, causing tears."
+      },
+      "intent_ok": true,
+      "answer_sentences": 2,
+      "answer_words": 15
+    },
+    {
+      "set": "main",
+      "text": "what's the capital of Australia",
+      "intent": "general.answer",
+      "slots": {},
+      "fact": "Canberra",
+      "raw": "{\"intent\": \"general.answer\", \"slots\": {}, \"answer\": \"The capital of Australia is Canberra.\"}",
+      "ttft_s": 0.087,
+      "total_s": 0.499,
+      "load_s": 0.001,
+      "prompt_tokens": 620,
+      "prompt_eval_s": 0.082,
+      "eval_tokens": 24,
+      "tok_per_s": 58.3,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "general.answer",
+        "slots": {},
+        "answer": "The capital of Australia is Canberra."
+      },
+      "intent_ok": true,
+      "answer_sentences": 1,
+      "answer_words": 6
+    },
+    {
+      "set": "main",
+      "text": "order more milk",
+      "intent": "none",
+      "slots": {},
+      "raw": "{\"intent\": \"none\", \"slots\": {}, \"answer\": null}",
+      "ttft_s": 0.056,
+      "total_s": 0.325,
+      "load_s": 0.001,
+      "prompt_tokens": 617,
+      "prompt_eval_s": 0.05,
+      "eval_tokens": 16,
+      "tok_per_s": 59.5,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "none",
+        "slots": {},
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {}
+    },
+    {
+      "set": "main",
+      "text": "call grandma",
+      "intent": "none",
+      "slots": {},
+      "raw": "{\"intent\": \"none\", \"slots\": {}, \"answer\": null}",
+      "ttft_s": 0.054,
+      "total_s": 0.323,
+      "load_s": 0.001,
+      "prompt_tokens": 616,
+      "prompt_eval_s": 0.049,
+      "eval_tokens": 16,
+      "tok_per_s": 59.6,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "none",
+        "slots": {},
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {}
+    },
+    {
+      "set": "main",
+      "text": "turn on the kitchen lights",
+      "intent": "none",
+      "slots": {},
+      "raw": "{\"intent\": \"none\", \"slots\": {}, \"answer\": null}",
+      "ttft_s": 0.086,
+      "total_s": 0.354,
+      "load_s": 0.001,
+      "prompt_tokens": 619,
+      "prompt_eval_s": 0.081,
+      "eval_tokens": 16,
+      "tok_per_s": 59.8,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "none",
+        "slots": {},
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {}
+    },
+    {
+      "set": "main",
+      "text": "text dad that dinner's ready",
+      "intent": "none",
+      "slots": {},
+      "raw": "{\"intent\": \"none\", \"slots\": {}, \"answer\": null}",
+      "ttft_s": 0.086,
+      "total_s": 0.355,
+      "load_s": 0.001,
+      "prompt_tokens": 620,
+      "prompt_eval_s": 0.081,
+      "eval_tokens": 16,
+      "tok_per_s": 59.5,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "none",
+        "slots": {},
+        "answer": null
+      },
+      "intent_ok": true,
+      "slots_ok": {}
+    },
+    {
+      "set": "main",
+      "text": "add eggs to the shopping list",
+      "intent": "none",
+      "slots": {},
+      "raw": "{\"intent\": \"none\", \"slots\": {}, \"answer\": \"I can't help with adding items to a shopping list.\"}",
+      "ttft_s": 0.087,
+      "total_s": 0.569,
+      "load_s": 0.001,
+      "prompt_tokens": 620,
+      "prompt_eval_s": 0.082,
+      "eval_tokens": 28,
+      "tok_per_s": 58.1,
+      "valid": true,
+      "error": null,
+      "repaired_ok": true,
+      "got": {
+        "intent": "none",
+        "slots": {},
+        "answer": "I can't help with adding items to a shopping list."
+      },
+      "intent_ok": true,
+      "slots_ok": {}
+    }
+  ],
+  "prompt": "v1"
+}

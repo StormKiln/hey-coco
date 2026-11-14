@@ -3,7 +3,7 @@
 import asyncio
 import contextlib
 from collections.abc import AsyncIterator, Callable
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, FastAPI
@@ -13,18 +13,26 @@ from coco_hub.auth import require_token
 from coco_hub.errors import install_error_handlers
 from coco_hub.intents import build_registry
 from coco_hub.intents.engine import RulesEngine, no_fallback
-from coco_hub.routes import utterance
+from coco_hub.routes import idle, utterance
 from coco_hub.settings import Settings, load_settings
 from coco_hub.sounds import SoundLibrary, media_router
 from coco_hub.timers import routes as timer_routes
 from coco_hub.timers.service import TimerService
+from coco_hub.weather.service import WeatherService
 
 
 def _utc_now() -> datetime:
     return datetime.now(UTC)
 
 
-def create_app(settings: Settings, *, clock: Callable[[], datetime] = _utc_now) -> FastAPI:
+def create_app(
+    settings: Settings,
+    *,
+    clock: Callable[[], datetime] = _utc_now,
+    weather: WeatherService | None = None,
+) -> FastAPI:
+    weather = weather or WeatherService(settings, clock=clock)
+
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.db = db.open_db(settings.data_dir)
@@ -39,12 +47,20 @@ def create_app(settings: Settings, *, clock: Callable[[], datetime] = _utc_now) 
         # The first tick also settles timers that ended while the Hub was down.
         timer_task = asyncio.create_task(timers.run(), name="timers")
         advertiser = None
+        weather_task = None
         try:
             if settings.discovery.enabled:
                 advertiser = discovery.Advertiser(settings)
                 await advertiser.start()
+            if weather.configured:
+                weather_task = asyncio.create_task(weather.run(), name="weather-refresh")
             yield
         finally:
+            if weather_task is not None:
+                weather_task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await weather_task
+            await weather.aclose()
             if advertiser is not None:
                 await advertiser.stop()
             timer_task.cancel()
@@ -61,7 +77,7 @@ def create_app(settings: Settings, *, clock: Callable[[], datetime] = _utc_now) 
     # handlers as `ctx.services`), and the Qwen fallback replaces `app.state.fallback`.
     app.state.intents = build_registry()
     app.state.engine = RulesEngine(app.state.intents)
-    app.state.services = {}
+    app.state.services = {"weather": weather}
     app.state.fallback = no_fallback
     app.state.sounds = SoundLibrary.load(settings.sounds_dir)
     app.state.services["sounds"] = app.state.sounds
@@ -83,6 +99,7 @@ def create_app(settings: Settings, *, clock: Callable[[], datetime] = _utc_now) 
     v1.include_router(utterance.router)
     v1.include_router(media_router)
     v1.include_router(timer_routes.router)
+    v1.include_router(idle.router)
     app.include_router(v1)
     # WebSocket routes authorize themselves (auth.authorize_websocket), so they live outside
     # the bearer-token dependency.

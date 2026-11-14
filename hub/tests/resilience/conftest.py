@@ -1,8 +1,10 @@
 """Run the real Hub (``python -m coco_hub``) as a subprocess for resilience checks.
 
 Each Hub gets a temp config: a random free port on loopback, temp data/log dirs, discovery
-off, a generated token, Qwen pointed at a dead localhost port (Ollama "down") and Open-Meteo
-pointed at a dead localhost port (internet "down"). Nothing here touches the network beyond
+off, a generated token, TLS on by default (clients trust only that Hub's own certificate,
+like the pinned iPad; ``make_hub(tls=False)`` for plain HTTP), Qwen pointed at a dead
+localhost port (Ollama "down") and Open-Meteo pointed at a dead localhost port (internet
+"down"). Nothing here touches the network beyond
 127.0.0.1, the host's firewall, launchd or a real Ollama.
 """
 
@@ -12,6 +14,7 @@ import secrets
 import signal
 import socket
 import sqlite3
+import ssl
 import subprocess
 import sys
 import time
@@ -25,6 +28,7 @@ import pytest
 from websockets.sync.client import ClientConnection, connect
 
 from coco_hub.db import DB_FILENAME
+from coco_hub.identity import CERT_FILENAME, TLS_DIRNAME
 
 STARTUP_TIMEOUT_S = 20.0
 
@@ -53,8 +57,9 @@ class BlackHole:
 class Hub:
     """One Hub instance: its config, data dir and (when running) its process."""
 
-    def __init__(self, root: Path, *, weather_url: str, ollama_url: str) -> None:
+    def __init__(self, root: Path, *, weather_url: str, ollama_url: str, tls: bool = True) -> None:
         self.root = root
+        self.tls = tls
         self.port = free_port()
         self.token = secrets.token_urlsafe(32)
         self.data_dir = root / "data"
@@ -84,12 +89,27 @@ timeout_s = 6.0
 
 [discovery]
 enabled = false
+
+[tls]
+enabled = {"true" if tls else "false"}
 """
         )
         self.proc: subprocess.Popen[bytes] | None = None
         self._out = None
-        self.base_url = f"http://127.0.0.1:{self.port}"
-        self.ws_url = f"ws://127.0.0.1:{self.port}/v1/events"
+        scheme = "https" if tls else "http"
+        self.base_url = f"{scheme}://127.0.0.1:{self.port}"
+        self.ws_url = f"{'wss' if tls else 'ws'}://127.0.0.1:{self.port}/v1/events"
+
+    @property
+    def cert_path(self) -> Path:
+        return self.data_dir / TLS_DIRNAME / CERT_FILENAME
+
+    @property
+    def verify(self) -> ssl.SSLContext | bool:
+        """Trust exactly this Hub's certificate (it names 127.0.0.1), nothing else."""
+        if not self.tls:
+            return True
+        return ssl.create_default_context(cafile=str(self.cert_path))
 
     @property
     def db_path(self) -> Path:
@@ -120,10 +140,11 @@ enabled = false
                     f"Hub exited at startup ({self.proc.returncode}):\n{self.output()}"
                 )
             try:
-                if httpx.get(f"{self.base_url}/healthz", timeout=0.5).status_code == 200:
+                response = httpx.get(f"{self.base_url}/healthz", timeout=0.5, verify=self.verify)
+                if response.status_code == 200:
                     return
-            except httpx.HTTPError:
-                pass
+            except (httpx.HTTPError, OSError, ssl.SSLError):
+                pass  # not listening yet, or the certificate isn't written yet
             time.sleep(0.1)
         self.kill()
         raise RuntimeError(f"Hub did not come up in {STARTUP_TIMEOUT_S}s:\n{self.output()}")
@@ -156,11 +177,17 @@ enabled = false
     # --- HTTP ----------------------------------------------------------------------------
 
     def get(self, path: str, timeout: float = 10.0) -> httpx.Response:
-        return httpx.get(f"{self.base_url}{path}", headers=self.headers, timeout=timeout)
+        return httpx.get(
+            f"{self.base_url}{path}", headers=self.headers, timeout=timeout, verify=self.verify
+        )
 
     def post(self, path: str, json: Any, timeout: float = 10.0) -> httpx.Response:
         return httpx.post(
-            f"{self.base_url}{path}", headers=self.headers, json=json, timeout=timeout
+            f"{self.base_url}{path}",
+            headers=self.headers,
+            json=json,
+            timeout=timeout,
+            verify=self.verify,
         )
 
     def say(self, text: str, timeout: float = 10.0) -> dict[str, Any]:
@@ -195,7 +222,11 @@ enabled = false
     @contextmanager
     def events(self, timeout: float = 5.0) -> Iterator[tuple[ClientConnection, dict[str, Any]]]:
         """Connect to ``WS /v1/events``; yields the socket and its ``hello`` event."""
-        with connect(self.ws_url, additional_headers=self.headers, open_timeout=timeout) as ws:
+        verify = self.verify
+        tls = verify if isinstance(verify, ssl.SSLContext) else None
+        with connect(
+            self.ws_url, additional_headers=self.headers, open_timeout=timeout, ssl=tls
+        ) as ws:
             hello = json.loads(ws.recv(timeout=timeout))
             assert hello["type"] == "hello"
             yield ws, hello
@@ -219,13 +250,16 @@ def make_hub(tmp_path: Path, dead_url: str) -> Iterator[Any]:
     """``make_hub(weather_url=..., ollama_url=...)``: an unstarted Hub; killed at teardown."""
     hubs: list[Hub] = []
 
-    def make(*, weather_url: str | None = None, ollama_url: str | None = None) -> Hub:
+    def make(
+        *, weather_url: str | None = None, ollama_url: str | None = None, tls: bool = True
+    ) -> Hub:
         root = tmp_path / f"hub{len(hubs)}"
         root.mkdir()
         hub = Hub(
             root,
             weather_url=weather_url or f"{dead_url}/v1/forecast",
             ollama_url=ollama_url or dead_url,
+            tls=tls,
         )
         hubs.append(hub)
         return hub

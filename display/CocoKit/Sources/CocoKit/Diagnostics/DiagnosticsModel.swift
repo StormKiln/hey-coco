@@ -38,6 +38,9 @@ public enum DiagnosticsFormat {
         case .connected: "Connected"
         case .unreachable(let reason): "Unreachable: \(reason)"
         case .unauthorized: "Token rejected"
+        case .needsPairing(let candidate):
+            "Waiting to pair with \(candidate.address.host) (\(candidate.pin.fingerprint))"
+        case .untrustedHub(let host): "Unknown Coco Hub at \(host) (not the paired Hub)"
         }
     }
 
@@ -47,6 +50,7 @@ public enum DiagnosticsFormat {
         case .unreachable(let reason): reason
         case .server(let code, let message): "\(code): \(message)"
         case .decoding(let detail): "Unexpected reply: \(detail)"
+        case .untrustedHub(let host): "Not the paired Coco Hub: \(host)"
         }
     }
 

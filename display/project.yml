@@ -36,8 +36,9 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSBonjourServices: [_coco._tcp]
-        NSAppTransportSecurity:
-          NSAllowsLocalNetworking: true
+        # No NSAppTransportSecurity exception (#54): the Hub serves HTTPS/WSS (TLS 1.2+, ECDHE,
+        # P-256/SHA-256 cert). Its certificate is self-signed, and CocoKit's
+        # PinningSessionDelegate does the trust evaluation (exact match with the paired pin).
     dependencies:
       - package: CocoKit
       - package: Porcupine

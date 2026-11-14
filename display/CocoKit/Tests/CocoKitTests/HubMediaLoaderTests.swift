@@ -7,7 +7,9 @@ import Testing
     var endpoint: HubEndpoint { HubEndpoint(host: host, port: 8765, token: "tok") }
 
     private func makeLoader(cache: MediaCache? = nil) -> HubMediaLoader {
-        HubMediaLoader(endpoint: endpoint, session: StubURLProtocol.session, cache: cache)
+        HubMediaLoader(
+            endpoint: endpoint, session: StubURLProtocol.session,
+            publicSession: StubURLProtocol.session, cache: cache)
     }
 
     private func tempCache(maxFiles: Int = 64) -> MediaCache {
@@ -21,7 +23,7 @@ import Testing
         let loader = makeLoader()
         #expect(
             loader.resolve("/v1/media/sounds/clips/cow.m4a")?.absoluteString
-                == "http://\(host):8765/v1/media/sounds/clips/cow.m4a")
+                == "https://\(host):8765/v1/media/sounds/clips/cow.m4a")
     }
 
     @Test func keepsAbsoluteURLsAndRejectsOtherSchemes() {

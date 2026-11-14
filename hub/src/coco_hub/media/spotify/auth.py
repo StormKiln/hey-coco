@@ -2,7 +2,7 @@
 
 The owner logs in once, in a browser on the Hub's own Mac::
 
-    open http://127.0.0.1:8765/spotify/login     # or: make spotify-login
+    open https://127.0.0.1:8765/spotify/login    # or: make spotify-login
 
 ``GET /spotify/login`` redirects to Spotify's consent page; Spotify redirects back to
 ``GET /spotify/callback`` (the app's registered redirect URI), which exchanges the code for an
@@ -331,7 +331,7 @@ def _require_loopback(request: Request) -> None:
             status.HTTP_403_FORBIDDEN,
             "forbidden",
             "Spotify login only works from the Hub's own Mac: open "
-            "http://127.0.0.1:<port>/spotify/login there.",
+            "https://127.0.0.1:<port>/spotify/login there.",
         )
 
 

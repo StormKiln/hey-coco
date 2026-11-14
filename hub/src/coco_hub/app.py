@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 import httpx
 from fastapi import APIRouter, Depends, FastAPI
 
-from coco_hub import db, diagnostics, discovery, events
+from coco_hub import db, diagnostics, discovery, events, identity
 from coco_hub.auth import require_token
 from coco_hub.errors import install_error_handlers
 from coco_hub.intents import build_registry
@@ -20,6 +20,7 @@ from coco_hub.media.spotify import auth as spotify_auth
 from coco_hub.media.spotify.service import SpotifyService
 from coco_hub.media.youtube import YoutubeService
 from coco_hub.pictures.commons import PictureService
+from coco_hub.protocol import Health
 from coco_hub.qwen.client import OllamaClient
 from coco_hub.qwen.fallback import QwenFallback
 from coco_hub.routes import idle, utterance
@@ -72,7 +73,7 @@ def create_app(
         qwen: QwenFallback | None = app.state.qwen
         try:
             if settings.discovery.enabled:
-                advertiser = discovery.Advertiser(settings)
+                advertiser = discovery.Advertiser(settings, app.state.identity)
                 await advertiser.start()
             if weather.configured:
                 weather_task = asyncio.create_task(weather.run(), name="weather-refresh")
@@ -131,9 +132,19 @@ def create_app(
     app.state.diagnostics = diagnostics.DiagnosticsService(settings, clock=clock)
     install_error_handlers(app)
 
+    # Created here too (not only in __main__), so healthz and the Bonjour TXT record always
+    # describe the certificate uvicorn serves: both read the same files in data_dir.
+    hub_identity = identity.load_or_create(settings.data_dir)
+    app.state.identity = hub_identity
+    health = Health(
+        status="ok",
+        hub_id=hub_identity.hub_id,
+        fingerprint=hub_identity.short_fingerprint if settings.tls.enabled else None,
+    )
+
     @app.get("/healthz")
-    def healthz() -> dict[str, str]:
-        return {"status": "ok"}
+    def healthz() -> Health:
+        return health
 
     # Every HTTP route under /v1 requires the bearer token. WebSocket routes must call
     # auth.authorize_websocket themselves (header dependencies don't apply to WS).

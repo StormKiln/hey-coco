@@ -36,17 +36,17 @@ final class FakeHubAPI: HubAPI {
 
 @MainActor
 private func makeModel(
-    settings: HubSettings = HubSettings(manualHost: "10.0.0.5", port: 8765, token: "t"),
+    settings: HubSettings = HubSettings(manualHost: "10.0.0.5", port: 8765, token: "t", pin: .test),
     discovery: any HubDiscovery = FakeDiscovery(results: []),
     api: FakeHubAPI = FakeHubAPI(),
     updates: [EventStreamUpdate] = []
 ) -> AppModel {
     let store = UserDefaultsHubConfigStore(
         defaults: UserDefaults(suiteName: "coco-tests-\(UUID().uuidString)")!,
-        tokens: InMemoryTokenStore())
+        tokens: InMemoryTokenStore(), pins: InMemoryTokenStore())
     try! store.save(settings)
     return AppModel(
-        config: store, discovery: discovery,
+        config: store, discovery: discovery, probe: FakeHubProbe(),
         makeClient: { _ in api },
         makeEvents: { _ in
             AsyncStream { continuation in
@@ -139,7 +139,7 @@ private func makeModel(
 
     @Test func discoveredHubIsUsedWithoutManualHost() async throws {
         let model = makeModel(
-            settings: HubSettings(manualHost: nil, port: 8765, token: "t"),
+            settings: HubSettings(manualHost: nil, port: 8765, token: "t", pin: .test),
             discovery: FakeDiscovery(results: [HubAddress(host: "mac.local", port: 8765)]),
             updates: [.connecting(attempt: 1), .connected])
         model.start()
@@ -166,7 +166,7 @@ private func makeModel(
             updates: [.connecting(attempt: 1), .connected])
         model.start()
         #expect(await eventually { model.connection == .unauthorized })
-        try model.saveSettings(HubSettings(manualHost: "10.0.0.6", port: 8765, token: "new"))
+        try model.saveSettings(HubSettings(manualHost: "10.0.0.6", port: 8765, token: "new", pin: .test))
         #expect(await eventually { model.connection == .connected })
         #expect(model.endpoint == HubEndpoint(host: "10.0.0.6", port: 8765, token: "new"))
         model.stop()

@@ -88,8 +88,8 @@ class Spotify(BaseModel):
     an existing config with one still loads."""
     redirect_uri: str | None = None
     """Must match the app's redirect URI on developer.spotify.com exactly. Default:
-    ``http://127.0.0.1:<port>/spotify/callback`` (Spotify only allows http for loopback IP
-    literals, not ``localhost``)."""
+    ``https://127.0.0.1:<port>/spotify/callback`` (``http://`` with ``tls.enabled = false``;
+    Spotify wants a loopback IP literal, not ``localhost``)."""
     device_name: str | None = None
     """The Spotify Connect device to play on, e.g. "Kitchen iPad" (as the Spotify app names
     it). Unset: the active device, or the only one."""
@@ -112,6 +112,15 @@ class Weather(BaseModel):
 class Discovery(BaseModel):
     enabled: bool = True
     name: str = "Coco Hub"
+
+
+class Tls(BaseModel):
+    """HTTPS/WSS on ``port`` with the Hub's self-signed certificate (``data_dir/tls``), which
+    the Display pins when it pairs (#54)."""
+
+    enabled: bool = True
+    """Off serves plain HTTP/WS: for tests and local development only. The Display refuses
+    to pair with, or send its token to, a Hub without TLS."""
 
 
 class Diagnostics(BaseModel):
@@ -163,6 +172,7 @@ class Settings(BaseSettings):
     youtube: YouTube = YouTube()
     spotify: Spotify = Spotify()
     discovery: Discovery = Discovery()
+    tls: Tls = Tls()
     timers: Timers = Timers()
     weather: Weather = Weather()
     diagnostics: Diagnostics = Diagnostics()

@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Coco Hub: the Mac-side brain of hey-coco"
 requires-python = ">=3.13"
 dependencies = [
+    "cryptography>=44",
     "fastapi>=0.115",
     "httpx>=0.28",
     "ifaddr>=0.2",

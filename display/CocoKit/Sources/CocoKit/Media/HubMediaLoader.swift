@@ -2,21 +2,29 @@ import CryptoKit
 import Foundation
 
 /// Fetches media the Hub refers to: Hub-relative paths (`/v1/media/sounds/clips/cow.m4a`) are
-/// resolved against the Hub's base URL and fetched with `Authorization: Bearer`; absolute public
-/// URLs (Wikimedia pictures) are fetched as they are. The token only ever goes to the Hub's own
-/// origin (scheme, host and port), never to another host.
+/// resolved against the Hub's base URL and fetched with `Authorization: Bearer` through
+/// `session` (the pinned Hub session); absolute public URLs (Wikimedia pictures) are fetched as
+/// they are through `publicSession`. The token only ever goes to the Hub's own origin (scheme,
+/// host and port), never to another host, and only over the pinned connection.
 ///
 /// Because the Hub's media needs the header, screens can't use `AsyncImage` or a plain
 /// `AVPlayer(url:)`; they load bytes through this and play/show them from memory.
 public struct HubMediaLoader: Sendable {
     public let endpoint: HubEndpoint
+    /// For the Hub's own URLs (pinned: `HubSession.urlSession`).
     public let session: URLSession
+    /// For everything else (public CA trust, no token).
+    public let publicSession: URLSession
     public let cache: MediaCache?
     public var timeout: TimeInterval = 20
 
-    public init(endpoint: HubEndpoint, session: URLSession = .shared, cache: MediaCache? = .standard) {
+    public init(
+        endpoint: HubEndpoint, session: URLSession, publicSession: URLSession = .shared,
+        cache: MediaCache? = .standard
+    ) {
         self.endpoint = endpoint
         self.session = session
+        self.publicSession = publicSession
         self.cache = cache
     }
 
@@ -35,7 +43,11 @@ public struct HubMediaLoader: Sendable {
         let base = endpoint.baseURL
         return url.scheme?.lowercased() == base.scheme
             && url.host?.lowercased() == base.host?.lowercased()
-            && (url.port ?? 80) == endpoint.port
+            && (url.port ?? Self.defaultPort(for: url)) == endpoint.port
+    }
+
+    private static func defaultPort(for url: URL) -> Int {
+        url.scheme?.lowercased() == "https" ? 443 : 80
     }
 
     public func request(for url: URL) -> URLRequest {
@@ -53,11 +65,13 @@ public struct HubMediaLoader: Sendable {
             throw .server(code: "bad_media_url", message: "Not a media URL: \(reference)")
         }
         if let cached = cache?.data(for: url) { return cached }
+        let hub = isHub(url)
         let data: Data
         let response: URLResponse
         do {
-            (data, response) = try await session.data(for: request(for: url))
+            (data, response) = try await (hub ? session : publicSession).data(for: request(for: url))
         } catch {
+            if hub, session.pinRejected(host: endpoint.host) { throw .untrustedHub(endpoint.host) }
             throw .unreachable(error.localizedDescription)
         }
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0

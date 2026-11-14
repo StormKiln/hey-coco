@@ -287,9 +287,9 @@ private func action(
     @Test func postUtteranceWithoutAHubIsUnreachable() async {
         let store = UserDefaultsHubConfigStore(
             defaults: UserDefaults(suiteName: "coco-tests-\(UUID().uuidString)")!,
-            tokens: InMemoryTokenStore())
+            tokens: InMemoryTokenStore(), pins: InMemoryTokenStore())
         let model = AppModel(
-            config: store, discovery: FakeDiscovery(results: []),
+            config: store, discovery: FakeDiscovery(results: []), probe: FakeHubProbe(),
             makeClient: { _ in FakeHubAPI() }, makeEvents: { _ in AsyncStream { _ in } })
         let request = UtteranceRequest(
             text: "hi", source: .voice,

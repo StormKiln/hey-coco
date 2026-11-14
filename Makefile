@@ -10,7 +10,7 @@ PLIST_DEST := $(HOME)/Library/LaunchAgents/$(SERVICE_LABEL).plist
 HUB_LOG_DIR := $(HOME)/Library/Logs/CocoHub
 LAUNCH_DOMAIN = gui/$$(id -u)
 
-.PHONY: help hub-sync hub-run hub-test hub-resilience hub-lint hub-eval hub-fmt hub-render-plist hub-install-service hub-uninstall-service hub-logs hub-logs-launchd hub-diag spotify-login sounds-build display-gen display-build display-build-mac display-run-mac display-test kit-test test lint
+.PHONY: help hub-sync hub-run hub-test hub-resilience hub-lint hub-fingerprint hub-eval hub-fmt hub-render-plist hub-install-service hub-uninstall-service hub-logs hub-logs-launchd hub-diag spotify-login sounds-build display-gen display-build display-build-mac display-run-mac display-test kit-test test lint
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-18s %s\n", $$1, $$2}'
@@ -63,8 +63,12 @@ HUB_PORT ?= 8765
 
 spotify-login: ## Print the URL to connect Spotify (open it in a browser on the Hub's Mac)
 	@echo "With the Hub running, open this on the Hub's Mac (loopback only):"
-	@echo "  open http://127.0.0.1:$(HUB_PORT)/spotify/login"
+	@echo "  open https://127.0.0.1:$(HUB_PORT)/spotify/login"
+	@echo "The browser warns about the Hub's self-signed certificate: continue to 127.0.0.1."
 	@echo "See docs/spotify.md for the one-time Spotify developer app setup."
+
+hub-fingerprint: hub-sync ## Print the Hub's TLS fingerprint (compare it with the iPad when pairing)
+	@cd hub && uv run --quiet python -m coco_hub --fingerprint
 
 hub-logs: ## Follow the Hub's JSON log (hub.jsonl), pretty-printed
 	@mkdir -p "$(HUB_LOG_DIR)"
@@ -74,10 +78,12 @@ hub-logs-launchd: ## Follow launchd's raw stdout/stderr capture (startup crashes
 	@mkdir -p "$(HUB_LOG_DIR)"
 	tail -n 100 -F "$(HUB_LOG_DIR)/hub.out.log" "$(HUB_LOG_DIR)/hub.err.log"
 
-# The token goes to curl on stdin (-H @-), never on a command line or the terminal.
+# The token goes to curl on stdin (-H @-), never on a command line or the terminal. curl
+# trusts only the Hub's own certificate (--cacert), which names 127.0.0.1.
 hub-diag: ## Show GET /v1/diagnostics from the local Hub (token from hub/config.local.toml / env)
 	@cd hub && uv run --quiet python -c 'from coco_hub.settings import load_settings; print("Authorization: Bearer " + load_settings().token.get_secret_value())' \
-		| curl -fsS -H @- "http://127.0.0.1:$(HUB_PORT)/v1/diagnostics" | python3 -m json.tool
+		| curl -fsS --cacert "$$(uv run --quiet python -c 'from coco_hub.settings import load_settings; from coco_hub.identity import load_or_create; print(load_or_create(load_settings().data_dir).cert_path)')" \
+			-H @- "https://127.0.0.1:$(HUB_PORT)/v1/diagnostics" | python3 -m json.tool
 
 sounds-build: ## Rebuild the sound library from assets/sounds/sources.toml (needs ffmpeg, sips; network)
 	uv run --with httpx python assets/sounds/tools/curate.py build $(ARGS)

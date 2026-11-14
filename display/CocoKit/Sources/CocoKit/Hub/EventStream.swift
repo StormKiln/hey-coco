@@ -47,6 +47,8 @@ public struct TaskSleeper: Sleeper {
 public enum EventTransportError: Error, Sendable, Equatable {
     /// The Hub rejected the token (HTTP 401/403 on the upgrade, or close code 4401/1008).
     case unauthorized
+    /// The server's certificate doesn't match the pin; the upgrade (and token) was never sent.
+    case untrustedHub
 }
 
 /// Opens one WebSocket connection and yields its messages; the stream ends (or throws) when the
@@ -76,6 +78,7 @@ public struct URLSessionEventTransport: EventTransport {
     public func connect(to url: URL, token: String) -> AsyncThrowingStream<Data, any Error> {
         let task = session.webSocketTask(with: Self.request(for: url, token: token))
         let pingInterval = pingInterval
+        let session = session
         return AsyncThrowingStream { continuation in
             task.resume()
             let reader = Task {
@@ -88,7 +91,7 @@ public struct URLSessionEventTransport: EventTransport {
                         }
                     }
                 } catch {
-                    continuation.finish(throwing: Self.map(error, task: task))
+                    continuation.finish(throwing: Self.map(error, task: task, session: session))
                 }
             }
             let pinger = Task {
@@ -108,7 +111,12 @@ public struct URLSessionEventTransport: EventTransport {
         }
     }
 
-    private static func map(_ error: any Error, task: URLSessionWebSocketTask) -> any Error {
+    private static func map(
+        _ error: any Error, task: URLSessionWebSocketTask, session: URLSession
+    ) -> any Error {
+        if session.pinRejected(host: task.originalRequest?.url?.host) {
+            return EventTransportError.untrustedHub
+        }
         if let http = task.response as? HTTPURLResponse, [401, 403].contains(http.statusCode) {
             return EventTransportError.unauthorized
         }
@@ -131,6 +139,9 @@ public enum EventStreamUpdate: Sendable, Equatable {
     case waiting(retryIn: Duration, reason: String)
     /// The token was rejected. Terminal: the stream finishes after this.
     case unauthorized
+    /// The server is not the paired Hub (certificate mismatch). Terminal, like `unauthorized`:
+    /// retrying can't help until the person re-pairs.
+    case untrustedHub(host: String)
 }
 
 /// Keeps a WebSocket to `/v1/events` open: decodes `Event`s, reconnects with backoff, and resets
@@ -187,6 +198,9 @@ public struct EventStream: Sendable {
                 }
             } catch EventTransportError.unauthorized {
                 continuation.yield(.unauthorized)
+                return
+            } catch EventTransportError.untrustedHub {
+                continuation.yield(.untrustedHub(host: url.host ?? ""))
                 return
             } catch {
                 if !connected { reason = HubClient.describe(error) }

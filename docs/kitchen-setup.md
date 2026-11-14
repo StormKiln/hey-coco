@@ -94,10 +94,12 @@ it if it crashes. It first runs `uv sync` and checks that `hub/config.local.toml
 Check that it works:
 
 ```sh
-curl localhost:8765/healthz
+curl -k https://localhost:8765/healthz
 ```
 
-You should see `{"status":"ok"}`. If you don't, follow the logs:
+You should see `{"status":"ok", "hub_id": ..., "fingerprint": ...}`. (`-k` because the Hub's
+certificate is self-signed: the iPad checks it by pairing instead.) If you don't, follow the
+logs:
 
 ```sh
 make hub-logs
@@ -133,8 +135,24 @@ cut and run with nobody at the keyboard.
    missed the prompt, open System Settings, then Network, then Firewall, then Options, and allow
    incoming connections for Python. If the firewall is off, there is nothing to do.
 
-Reboot once to prove it all works: after the Mac comes back up, `curl localhost:8765/healthz`
-should succeed without you touching anything.
+Reboot once to prove it all works: after the Mac comes back up,
+`curl -k https://localhost:8765/healthz` should succeed without you touching anything.
+
+**The Hub's fingerprint.** On first start the Hub makes its own security certificate
+(in `~/Library/Application Support/CocoHub/tls/`). Print its fingerprint; you compare it with
+the iPad when pairing:
+
+```sh
+make hub-fingerprint
+```
+
+```
+Coco Hub fingerprint: 3F2A-91C0-7B4E-D815-A6C2-0E9F
+Hub ID: 5d0c8a91f3b2e746
+```
+
+It stays the same across restarts and reboots. If you delete that folder or move the Hub to
+another Mac, it changes and the iPad must pair again (2.3).
 
 ### 1.6 Later: YouTube and Spotify keys
 
@@ -183,6 +201,14 @@ Display and switch the permission on.
    unless you changed it on the Hub.
 3. **Token:** paste the token from `hub/config.local.toml`.
 4. Tap **Save**.
+5. **Pair.** Coco finds the Hub and asks **"Pair with Coco Hub?"** with a fingerprint like
+   `3F2A-91C0-7B4E-D815-A6C2-0E9F`. On the Mac, run `make hub-fingerprint`. If the two match
+   exactly, tap **It matches. Pair**. If they don't, tap **Not now** and see Troubleshooting:
+   something else on your network is answering as Coco Hub. (Tapped Not now by mistake? Tap the
+   "Found Coco Hub. Tap to pair." pill at the top.)
+
+Coco only sends the token after you pair, and from then on only to that exact Hub, over an
+encrypted connection. The pairing survives Hub restarts and the Mac's IP address changing.
 
 The idle screen should show the clock and, once the Hub has fetched it, the forecast. Try tapping
 the mic and asking for "a pasta timer for 10 minutes". Saying "hey coco" without tapping is coming
@@ -277,7 +303,9 @@ settings for that. Guided Access does not apply.
 
 | What you see | Likely cause | What to do |
 |---|---|---|
-| **"Can't reach Coco Hub"** | The Mac is off, asleep or logged out, the Hub isn't running, the two devices are on different Wi-Fi, or the Mac's IP changed. | On the Mac run `curl localhost:8765/healthz` and `make hub-logs`; re-run `make hub-install-service` if it is down. Check both devices are on the same Wi-Fi. If you typed a host in Coco's Settings, confirm the IP, or clear it to use Bonjour. Check Local Network is allowed for Coco (iPad Settings, Coco Display) and that you clicked Allow on the Mac's firewall prompt. |
+| **"Can't reach Coco Hub"** | The Mac is off, asleep or logged out, the Hub isn't running, the two devices are on different Wi-Fi, or the Mac's IP changed. | On the Mac run `curl -k https://localhost:8765/healthz` and `make hub-logs`; re-run `make hub-install-service` if it is down. Check both devices are on the same Wi-Fi. If you typed a host in Coco's Settings, confirm the IP, or clear it to use Bonjour. Check Local Network is allowed for Coco (iPad Settings, Coco Display) and that you clicked Allow on the Mac's firewall prompt. |
+| **"Unknown Coco Hub at …"** | The iPad found a Coco Hub that isn't the one it paired with: the Hub's certificate changed (you deleted `~/Library/Application Support/CocoHub`, reinstalled, or moved the Hub to another Mac), or another device on the network claims to be Coco Hub. Coco ignores it and doesn't send the token. | If you know the Hub changed: on the iPad open Settings, tap **Forget Hub and Re-pair…**, enter the token again, Save, and pair after checking `make hub-fingerprint` on the Mac. If nothing changed on the Mac, don't re-pair: find the other device. |
+| **"Pair with Coco Hub?" fingerprint doesn't match `make hub-fingerprint`** | Something other than your Hub answered. | Tap **Not now**. Type the Mac's IP address as the Hub host in Settings so Coco asks that Mac directly, then pair. |
 | **"Coco Hub needs a valid token"** (unauthorized) | The token on the iPad doesn't match `token` in `hub/config.local.toml`. | Open Coco's Settings, enter the exact token, and Save. If you changed the token on the Mac, run `make hub-install-service` again to restart the Hub. |
 | **No forecast** ("Forecast unavailable") | The Hub has no home location, or can't reach the weather service. | Set `[location]` `lat` and `lon` in `hub/config.local.toml` and re-run `make hub-install-service`. "Forecast may be out of date" means the last fetch failed, so check the Mac's internet. |
 | **"Hey coco" does nothing** | The wake word isn't built yet, or its AccessKey and keyword aren't configured. | Use the mic button for now. Wake-word setup is coming in #21; see `docs/wake-word.md` once that lands. |

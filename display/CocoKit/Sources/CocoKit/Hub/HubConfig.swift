@@ -18,18 +18,19 @@ public struct HubEndpoint: Sendable, Equatable, Hashable {
         self.token = token
     }
 
-    /// `http://host:port` (IPv6 hosts are bracketed).
-    public var baseURL: URL { components(scheme: "http").url! }
+    /// `https://host:port` (IPv6 hosts are bracketed). The Hub serves TLS only; its
+    /// certificate is checked against the pin (`PinningSessionDelegate`), not a CA.
+    public var baseURL: URL { components(scheme: "https").url! }
 
     public func url(for path: String) -> URL {
-        var components = components(scheme: "http")
+        var components = components(scheme: "https")
         components.path = path
         return components.url!
     }
 
-    /// `ws://host:port/v1/events` (no token: that goes in the upgrade request's header).
+    /// `wss://host:port/v1/events` (no token: that goes in the upgrade request's header).
     public var eventsURL: URL {
-        var components = components(scheme: "ws")
+        var components = components(scheme: "wss")
         components.path = "/v1/events"
         return components.url!
     }
@@ -62,11 +63,17 @@ public struct HubSettings: Sendable, Equatable {
     /// Port for the manual host.
     public var port: Int
     public var token: String?
+    /// The Hub paired with (trust on first use). `nil`: not paired; the token goes nowhere.
+    public var pin: HubPin?
 
-    public init(manualHost: String?, port: Int = HubEndpoint.defaultPort, token: String?) {
+    public init(
+        manualHost: String?, port: Int = HubEndpoint.defaultPort, token: String?,
+        pin: HubPin? = nil
+    ) {
         self.manualHost = manualHost
         self.port = port
         self.token = token
+        self.pin = pin
     }
 }
 
@@ -80,10 +87,18 @@ extension HubSettings {
     /// Whether a token is saved. Settings shows only this, never the token itself.
     public var hasToken: Bool { token != nil }
 
+    /// "Forget Hub / Re-pair": drops the pin and the token, keeps the host and port. The next
+    /// connection asks to pair again, and the token must be entered again (it is never kept
+    /// for a Hub that is no longer trusted).
+    public func forgettingHub() -> HubSettings {
+        HubSettings(manualHost: manualHost, port: port, token: nil, pin: nil)
+    }
+
     /// Applies what the user entered in Settings. `host` blank means Bonjour discovery. An empty
     /// `newToken` keeps the saved token, but only if the host and port are unchanged; otherwise
     /// the token must be re-entered (`.tokenRequired`). With no saved token, an empty
-    /// `newToken` just leaves it unset.
+    /// `newToken` just leaves it unset. The pin is kept either way: it names the Hub, not its
+    /// address (a Hub whose IP changed is still the paired Hub).
     public func applyingEdit(
         host: String, port: Int, newToken: String
     ) -> Result<HubSettings, SettingsEditError> {
@@ -91,27 +106,13 @@ extension HubSettings {
         let newHost = trimmedHost.isEmpty ? nil : trimmedHost
         let trimmedToken = newToken.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmedToken.isEmpty {
-            return .success(HubSettings(manualHost: newHost, port: port, token: trimmedToken))
+            return .success(
+                HubSettings(manualHost: newHost, port: port, token: trimmedToken, pin: pin))
         }
         if token != nil && (newHost != manualHost || port != self.port) {
             return .failure(.tokenRequired)
         }
-        return .success(HubSettings(manualHost: newHost, port: port, token: token))
-    }
-}
-
-extension HubEndpoint {
-    /// Manual host wins; otherwise the first Hub `discovery` finds. `nil` if discovery ends empty.
-    /// A missing token resolves to `""` so the caller can still report "unauthorized" sensibly.
-    public static func resolve(settings: HubSettings, discovery: any HubDiscovery) async -> HubEndpoint? {
-        let token = settings.token ?? ""
-        if let host = settings.manualHost {
-            return HubEndpoint(host: host, port: settings.port, token: token)
-        }
-        for await address in discovery.browse() {
-            return HubEndpoint(host: address.host, port: address.port, token: token)
-        }
-        return nil
+        return .success(HubSettings(manualHost: newHost, port: port, token: token, pin: pin))
     }
 }
 
@@ -129,20 +130,27 @@ public protocol TokenStore: Sendable {
     func writeToken(_ token: String?) throws
 }
 
-/// Host and port in `UserDefaults`, token in a `TokenStore` (Keychain in the app).
+/// Host and port in `UserDefaults`; the token and the Hub pin in `TokenStore`s (two Keychain
+/// items in the app), so the pin can't be swapped by editing preferences.
 public final class UserDefaultsHubConfigStore: HubConfigStore, @unchecked Sendable {
     // UserDefaults is thread-safe; it is only not annotated Sendable on every SDK.
     private let defaults: UserDefaults
     private let tokens: any TokenStore
+    private let pins: any TokenStore
 
     private enum Key {
         static let host = "hub.manualHost"
         static let port = "hub.port"
     }
 
-    public init(defaults: UserDefaults = .standard, tokens: any TokenStore = KeychainTokenStore()) {
+    public init(
+        defaults: UserDefaults = .standard,
+        tokens: any TokenStore = KeychainTokenStore(),
+        pins: any TokenStore = KeychainTokenStore(account: KeychainTokenStore.pinAccount)
+    ) {
         self.defaults = defaults
         self.tokens = tokens
+        self.pins = pins
     }
 
     public func load() -> HubSettings {
@@ -150,7 +158,8 @@ public final class UserDefaultsHubConfigStore: HubConfigStore, @unchecked Sendab
         return HubSettings(
             manualHost: defaults.string(forKey: Key.host).flatMap(Self.nonBlank),
             port: port,
-            token: (try? tokens.readToken()).flatMap { $0 }.flatMap(Self.nonBlank))
+            token: (try? tokens.readToken()).flatMap { $0 }.flatMap(Self.nonBlank),
+            pin: (try? pins.readToken()).flatMap { $0 }.flatMap(Self.decodePin))
     }
 
     public func save(_ settings: HubSettings) throws {
@@ -161,6 +170,16 @@ public final class UserDefaultsHubConfigStore: HubConfigStore, @unchecked Sendab
         }
         defaults.set(settings.port, forKey: Key.port)
         try tokens.writeToken(settings.token.flatMap(Self.nonBlank))
+        try pins.writeToken(try settings.pin.map(Self.encodePin))
+    }
+
+    private static func encodePin(_ pin: HubPin) throws -> String {
+        String(decoding: try JSONEncoder().encode(pin), as: UTF8.self)
+    }
+
+    /// An unreadable pin counts as "not paired" (the person pairs again).
+    private static func decodePin(_ json: String) -> HubPin? {
+        try? JSONDecoder().decode(HubPin.self, from: Data(json.utf8))
     }
 
     private static func nonBlank(_ value: String) -> String? {
@@ -183,8 +202,11 @@ public struct KeychainError: Error, Sendable, Equatable {
     public var status: Int32
 }
 
-/// Stores the token as a generic password in the Keychain.
+/// Stores the token (or, with `account: pinAccount`, the Hub pin as JSON) as a generic
+/// password in the Keychain.
 public struct KeychainTokenStore: TokenStore {
+    public static let pinAccount = "hub-pin"
+
     public var service: String
     public var account: String
 

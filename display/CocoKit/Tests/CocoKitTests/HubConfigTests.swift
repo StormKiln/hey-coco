@@ -3,21 +3,21 @@ import Testing
 @testable import CocoKit
 
 @Suite struct HubEndpointTests {
-    @Test func baseURLUsesHTTPHostAndPort() {
+    @Test func baseURLUsesHTTPSHostAndPort() {
         let endpoint = HubEndpoint(host: "192.168.1.20", port: 8765, token: "secret")
-        #expect(endpoint.baseURL.absoluteString == "http://192.168.1.20:8765")
-        #expect(endpoint.url(for: "/v1/idle").absoluteString == "http://192.168.1.20:8765/v1/idle")
+        #expect(endpoint.baseURL.absoluteString == "https://192.168.1.20:8765")
+        #expect(endpoint.url(for: "/v1/idle").absoluteString == "https://192.168.1.20:8765/v1/idle")
     }
 
     @Test func eventsURLIsWebSocketWithoutToken() {
         let endpoint = HubEndpoint(host: "coco.local", port: 8765, token: "a b&c")
-        #expect(endpoint.eventsURL.absoluteString == "ws://coco.local:8765/v1/events")
+        #expect(endpoint.eventsURL.absoluteString == "wss://coco.local:8765/v1/events")
         #expect(endpoint.eventsURL.query == nil)
     }
 
     @Test func ipv6HostsAreBracketed() {
         let endpoint = HubEndpoint(host: "fe80::1", port: 8765, token: "t")
-        #expect(endpoint.baseURL.absoluteString == "http://[fe80::1]:8765")
+        #expect(endpoint.baseURL.absoluteString == "https://[fe80::1]:8765")
     }
 }
 
@@ -69,7 +69,9 @@ import Testing
     private func makeStore() -> (UserDefaultsHubConfigStore, InMemoryTokenStore, UserDefaults) {
         let defaults = UserDefaults(suiteName: "coco-tests-\(UUID().uuidString)")!
         let tokens = InMemoryTokenStore()
-        return (UserDefaultsHubConfigStore(defaults: defaults, tokens: tokens), tokens, defaults)
+        return (
+            UserDefaultsHubConfigStore(defaults: defaults, tokens: tokens, pins: InMemoryTokenStore()),
+            tokens, defaults)
     }
 
     @Test func emptyStoreHasNoOverrideAndDefaultPort() {
@@ -96,33 +98,55 @@ import Testing
     }
 }
 
-@Suite struct EndpointResolutionTests {
-    @Test func manualHostWinsOverDiscovery() async {
-        let discovery = FakeDiscovery(results: [HubAddress(host: "discovered.local", port: 1111)])
-        let settings = HubSettings(manualHost: "10.0.0.5", port: 9000, token: "t")
-        let endpoint = await HubEndpoint.resolve(settings: settings, discovery: discovery)
-        #expect(endpoint == HubEndpoint(host: "10.0.0.5", port: 9000, token: "t"))
-        #expect(await discovery.browseCount == 0)
+@Suite struct HubPinSettingsTests {
+    let paired = HubSettings(manualHost: "10.0.0.5", port: 8765, token: "old", pin: .test)
+
+    @Test func editsKeepThePin() throws {
+        #expect(try paired.applyingEdit(host: "10.0.0.5", port: 8765, newToken: "").get().pin == .test)
+        #expect(try paired.applyingEdit(host: "10.0.0.5", port: 8765, newToken: "new").get().pin == .test)
+        // The pin names the Hub, not its address: a new IP is still the paired Hub.
+        #expect(try paired.applyingEdit(host: "10.0.0.9", port: 8765, newToken: "new").get().pin == .test)
     }
 
-    @Test func discoveryIsUsedWithoutManualHost() async {
-        let discovery = FakeDiscovery(results: [HubAddress(host: "mac.local", port: 8765)])
-        let settings = HubSettings(manualHost: nil, port: 9000, token: "t")
-        let endpoint = await HubEndpoint.resolve(settings: settings, discovery: discovery)
-        #expect(endpoint == HubEndpoint(host: "mac.local", port: 8765, token: "t"))
+    @Test func changingTheHostStillRequiresTheToken() {
+        #expect(paired.applyingEdit(host: "10.0.0.9", port: 8765, newToken: "") == .failure(.tokenRequired))
     }
 
-    @Test func missingTokenResolvesWithEmptyToken() async {
-        let discovery = FakeDiscovery(results: [])
-        let settings = HubSettings(manualHost: "h", port: 1, token: nil)
-        let endpoint = await HubEndpoint.resolve(settings: settings, discovery: discovery)
-        #expect(endpoint?.token == "")
+    @Test func forgettingTheHubDropsPinAndTokenButKeepsTheAddress() {
+        let forgotten = paired.forgettingHub()
+        #expect(forgotten == HubSettings(manualHost: "10.0.0.5", port: 8765, token: nil, pin: nil))
+        #expect(!forgotten.hasToken)
     }
 
-    @Test func discoveryEndingWithoutResultResolvesNil() async {
-        let discovery = FakeDiscovery(results: [])
-        let settings = HubSettings(manualHost: nil, port: 8765, token: "t")
-        #expect(await HubEndpoint.resolve(settings: settings, discovery: discovery) == nil)
+    @Test func afterForgettingAnEmptyTokenLeavesItUnset() {
+        let forgotten = paired.forgettingHub()
+        #expect(forgotten.applyingEdit(host: "10.0.0.5", port: 8765, newToken: "") == .success(forgotten))
+        #expect(
+            forgotten.applyingEdit(host: "10.0.0.5", port: 8765, newToken: "t2")
+                == .success(HubSettings(manualHost: "10.0.0.5", port: 8765, token: "t2", pin: nil)))
+    }
+
+    @Test func pinRoundTripsThroughItsOwnStoreAndStaysOutOfUserDefaults() throws {
+        let defaults = UserDefaults(suiteName: "coco-tests-\(UUID().uuidString)")!
+        let pins = InMemoryTokenStore()
+        let store = UserDefaultsHubConfigStore(defaults: defaults, tokens: InMemoryTokenStore(), pins: pins)
+        try store.save(paired)
+        #expect(store.load() == paired)
+        #expect(try pins.readToken() != nil)
+        let hex = HubPin.test.certSHA256.base64EncodedString()
+        let everything = defaults.dictionaryRepresentation().values.map { "\($0)" }
+        #expect(!everything.contains { $0.contains(hex) || $0.contains(HubPin.test.hubID) })
+        try store.save(paired.forgettingHub())
+        #expect(try pins.readToken() == nil)
+        #expect(store.load().pin == nil)
+    }
+
+    @Test func unreadablePinMeansNotPaired() throws {
+        let pins = InMemoryTokenStore(token: "{not json")
+        let store = UserDefaultsHubConfigStore(
+            defaults: UserDefaults(suiteName: "coco-tests-\(UUID().uuidString)")!,
+            tokens: InMemoryTokenStore(), pins: pins)
+        #expect(store.load().pin == nil)
     }
 }
 

@@ -7,15 +7,30 @@
 - ``media.pause`` / ``media.resume`` / ``media.next`` / ``media.stop`` target whatever the
   Display says is playing (``request.context.media_playing``), so they serve YouTube now and
   Spotify / sounds later. ``media.next`` on YouTube plays the next search result.
-- ``volume.set`` / ``volume.change`` are plain Display commands.
+- ``volume.set`` / ``volume.change`` are Display commands.
+- When music is playing (``media_playing == "music"``) and Spotify is ready, the transport and
+  volume intents also drive Spotify (``ctx.services["spotify"]``) on the Hub, and still send
+  the Display command so its media state stays in sync. Spotify failures are logged, not
+  spoken, except where the household can act on them (resume with the iPad missing, Premium
+  required, a device that refuses remote volume). Music play / "what's playing" are in
+  ``intents/music.py``.
 
 The transport intents step aside while an alarm rings (``alarm.stop`` owns "stop" then).
 Patterns match normalised text (``normalize.py``): lowercase, digits, ``%`` → ``percent``,
 ``can't`` → ``cannot``.
 """
 
+import logging
+from collections.abc import Awaitable, Callable
+from typing import TYPE_CHECKING
+
 from coco_hub.intents.engine import Intent, IntentContext, IntentRegistry, Match, Reply
 from coco_hub.media.policy import MediaDecision, MediaRequest, policy_from
+from coco_hub.media.spotify.errors import (
+    SpotifyError,
+    SpotifyPremiumRequired,
+    SpotifyVolumeUnsupported,
+)
 from coco_hub.media.youtube import (
     LastResults,
     Video,
@@ -31,6 +46,11 @@ from coco_hub.protocol import (
     VolumeSet,
     YoutubeView,
 )
+
+if TYPE_CHECKING:
+    from coco_hub.media.spotify.service import SpotifyService
+
+log = logging.getLogger(__name__)
 
 NOTHING_PLAYING = "Nothing's playing."
 NO_RESULTS = "I couldn't find that on YouTube."
@@ -92,12 +112,52 @@ async def youtube_play(match: Match, request: UtteranceRequest, ctx: IntentConte
     return found if isinstance(found, Reply) else Reply(say=found.say)
 
 
+SpotifyCall = Callable[["SpotifyService"], Awaitable[None]]
+_ALWAYS_SPOKEN = (SpotifyPremiumRequired, SpotifyVolumeUnsupported)
+
+
+async def _drive_spotify(
+    request: UtteranceRequest, ctx: IntentContext, call: SpotifyCall, *, speak: bool = False
+) -> str | None:
+    """Run ``call`` against Spotify when music is playing and Spotify is ready.
+
+    Returns a sentence to say on failure (when ``speak`` or the household can fix it), else
+    None. Without Spotify (unconfigured / not connected) it does nothing.
+    """
+    if request.context.media_playing != "music":
+        return None
+    spotify = ctx.services.get("spotify")
+    if spotify is None or not spotify.ready:
+        return None
+    try:
+        await call(spotify)
+    except SpotifyError as exc:
+        if speak or isinstance(exc, _ALWAYS_SPOKEN):
+            return exc.say
+        log.warning("Spotify control failed: %s", exc)
+    return None
+
+
+_SPOTIFY_CONTROLS: dict[str, Callable[["SpotifyService"], SpotifyCall]] = {
+    "media.pause": lambda s: s.pause,
+    "media.resume": lambda s: s.resume,
+    "media.next": lambda s: s.skip,
+    "media.stop": lambda s: s.stop,
+}
+
+
 def _control(command: str):
-    def handler(match: Match, request: UtteranceRequest, ctx: IntentContext) -> Reply:
+    async def handler(match: Match, request: UtteranceRequest, ctx: IntentContext) -> Reply:
         target = request.context.media_playing
         if target is None:
             return Reply(say=NOTHING_PLAYING)
-        return Reply(say=None, commands=(MediaCommand(type=command, target=target),))
+        say = await _drive_spotify(
+            request,
+            ctx,
+            lambda s: _SPOTIFY_CONTROLS[command](s)(),
+            speak=command == "media.resume",
+        )
+        return Reply(say=say, commands=(MediaCommand(type=command, target=target),))
 
     return handler
 
@@ -108,9 +168,9 @@ media_stop = _control("media.stop")
 _media_next_command = _control("media.next")
 
 
-def media_next(match: Match, request: UtteranceRequest, ctx: IntentContext) -> Reply:
+async def media_next(match: Match, request: UtteranceRequest, ctx: IntentContext) -> Reply:
     if request.context.media_playing != "youtube":
-        return _media_next_command(match, request, ctx)
+        return await _media_next_command(match, request, ctx)
     last = _youtube(ctx).last
     if last is None:
         return Reply(say=NO_MORE)
@@ -118,7 +178,7 @@ def media_next(match: Match, request: UtteranceRequest, ctx: IntentContext) -> R
     return found if isinstance(found, Reply) else Reply(say=NO_MORE)
 
 
-def volume_set(match: Match, request: UtteranceRequest, ctx: IntentContext) -> Reply:
+async def volume_set(match: Match, request: UtteranceRequest, ctx: IntentContext) -> Reply:
     slots = match.slots
     if "max" in slots:
         level = 100.0
@@ -130,12 +190,15 @@ def volume_set(match: Match, request: UtteranceRequest, ctx: IntentContext) -> R
         level = value if "percent" in slots or value > 10 else value * 10
     if not 0 <= level <= 100:
         return Reply(say=VOLUME_RANGE)
-    return Reply(say=None, commands=(VolumeSet(level=round(level)),))
+    percent = round(level)
+    say = await _drive_spotify(request, ctx, lambda s: s.set_volume(percent))
+    return Reply(say=say, commands=(VolumeSet(level=percent),))
 
 
-def volume_change(match: Match, request: UtteranceRequest, ctx: IntentContext) -> Reply:
+async def volume_change(match: Match, request: UtteranceRequest, ctx: IntentContext) -> Reply:
     delta = VOLUME_STEP if "up" in match.slots else -VOLUME_STEP
-    return Reply(say=None, commands=(VolumeChange(delta=delta),))
+    say = await _drive_spotify(request, ctx, lambda s: s.change_volume(delta))
+    return Reply(say=say, commands=(VolumeChange(delta=delta),))
 
 
 # --- registration ------------------------------------------------------------------------

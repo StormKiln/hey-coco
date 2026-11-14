@@ -117,7 +117,9 @@ router = APIRouter()
 def build_hello(state: Any) -> HelloEvent:
     clock: Callable[[], datetime] = state.clock
     timers = state.services["timers"].list_active()
-    return HelloEvent(server_time=clock(), timers=timers, now_playing=None)
+    spotify = state.services.get("spotify")
+    now_playing = spotify.now_playing if spotify is not None else None
+    return HelloEvent(server_time=clock(), timers=timers, now_playing=now_playing)
 
 
 async def _wait_for_disconnect(websocket: WebSocket) -> None:

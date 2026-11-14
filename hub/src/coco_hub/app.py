@@ -15,6 +15,8 @@ from coco_hub.errors import install_error_handlers
 from coco_hub.intents import build_registry
 from coco_hub.intents.engine import RulesEngine, no_fallback
 from coco_hub.media.policy import AllowAllPolicy
+from coco_hub.media.spotify import auth as spotify_auth
+from coco_hub.media.spotify.service import SpotifyService
 from coco_hub.media.youtube import YoutubeService
 from coco_hub.pictures.commons import PictureService
 from coco_hub.qwen.client import OllamaClient
@@ -37,6 +39,7 @@ def create_app(
     clock: Callable[[], datetime] = _utc_now,
     weather: WeatherService | None = None,
     ollama_transport: httpx.AsyncBaseTransport | None = None,
+    spotify_transport: httpx.AsyncBaseTransport | None = None,
 ) -> FastAPI:
     weather = weather or WeatherService(settings, clock=clock)
 
@@ -53,6 +56,14 @@ def create_app(
         app.state.services["timers"] = timers
         youtube = YoutubeService.from_settings(app.state.db, settings, clock=clock)
         app.state.services["youtube"] = youtube
+        # Always registered; inert (no network, no poller) without spotify.client_id.
+        spotify = SpotifyService.from_settings(
+            app.state.db, settings, clock=clock, bus=app.state.events, transport=spotify_transport
+        )
+        app.state.services["spotify"] = spotify
+        spotify_task = None
+        if spotify.configured:
+            spotify_task = asyncio.create_task(spotify.run(), name="spotify-now-playing")
         # The first tick also settles timers that ended while the Hub was down.
         timer_task = asyncio.create_task(timers.run(), name="timers")
         advertiser = None
@@ -81,6 +92,12 @@ def create_app(
             with contextlib.suppress(asyncio.CancelledError):
                 await timer_task
             app.state.services.pop("timers", None)
+            if spotify_task is not None:
+                spotify_task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await spotify_task
+            await spotify.aclose()
+            app.state.services.pop("spotify", None)
             await youtube.aclose()
             app.state.services.pop("youtube", None)
             app.state.db.close()
@@ -131,6 +148,9 @@ def create_app(
     # WebSocket routes authorize themselves (auth.authorize_websocket), so they live outside
     # the bearer-token dependency.
     app.include_router(events.router, prefix="/v1")
+    # Spotify login: a browser on the Hub's Mac can't send the bearer header, so these
+    # routes sit outside /v1 and only answer loopback clients (see media/spotify/auth.py).
+    app.include_router(spotify_auth.router)
     return app
 
 

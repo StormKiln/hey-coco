@@ -79,9 +79,19 @@ class YouTube(BaseModel):
 
 
 class Spotify(BaseModel):
+    """Spotify Web API (see docs/spotify.md). Without ``client_id`` Spotify stays off."""
+
     client_id: str | None = None
     client_secret: SecretStr | None = None
+    """Unused: the Hub logs in with Authorization Code + PKCE, which needs no secret. Kept so
+    an existing config with one still loads."""
     redirect_uri: str | None = None
+    """Must match the app's redirect URI on developer.spotify.com exactly. Default:
+    ``http://127.0.0.1:<port>/spotify/callback`` (Spotify only allows http for loopback IP
+    literals, not ``localhost``)."""
+    device_name: str | None = None
+    """The Spotify Connect device to play on, e.g. "Kitchen iPad" (as the Spotify app names
+    it). Unset: the active device, or the only one."""
 
 
 class Timers(BaseModel):

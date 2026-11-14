@@ -1,0 +1,42 @@
+{
+  "albums": {
+    "href": "https://api.spotify.com/v1/search?query=frozen+soundtrack&type=album&offset=0&limit=5",
+    "limit": 5,
+    "offset": 0,
+    "total": 2,
+    "items": [
+      {
+        "type": "album",
+        "album_type": "compilation",
+        "id": "1FrozenLullabiesAlbum0a",
+        "uri": "spotify:album:1FrozenLullabiesAlbum0a",
+        "name": "Frozen Lullabies",
+        "artists": [
+          {
+            "type": "artist",
+            "id": "0LullabyBabyId0000000a",
+            "name": "Lullaby Baby",
+            "uri": "spotify:artist:0LullabyBabyId0000000a"
+          }
+        ],
+        "images": []
+      },
+      {
+        "type": "album",
+        "album_type": "compilation",
+        "id": "2FrozenOSTAlbumId0000a",
+        "uri": "spotify:album:2FrozenOSTAlbumId0000a",
+        "name": "Frozen (Original Motion Picture Soundtrack)",
+        "artists": [
+          {
+            "type": "artist",
+            "id": "3VariousArtists000000a",
+            "name": "Various Artists",
+            "uri": "spotify:artist:3VariousArtists000000a"
+          }
+        ],
+        "images": []
+      }
+    ]
+  }
+}

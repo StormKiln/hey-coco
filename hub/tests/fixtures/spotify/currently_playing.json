@@ -1,0 +1,55 @@
+{
+  "timestamp": 1794682800000,
+  "context": {
+    "type": "artist",
+    "uri": "spotify:artist:4RaffiArtistId0000000a",
+    "href": "https://api.spotify.com/v1/artists/4RaffiArtistId0000000a"
+  },
+  "progress_ms": 42000,
+  "is_playing": true,
+  "currently_playing_type": "track",
+  "item": {
+    "type": "track",
+    "id": "3BananaPhoneTrackId000a",
+    "uri": "spotify:track:3BananaPhoneTrackId000a",
+    "name": "Bananaphone",
+    "duration_ms": 189000,
+    "popularity": 55,
+    "artists": [
+      {
+        "type": "artist",
+        "id": "4RaffiArtistId0000000a",
+        "name": "Raffi",
+        "uri": "spotify:artist:4RaffiArtistId0000000a"
+      }
+    ],
+    "album": {
+      "type": "album",
+      "album_type": "album",
+      "id": "5BananaphoneAlbumId000a",
+      "name": "Bananaphone",
+      "uri": "spotify:album:5BananaphoneAlbumId000a",
+      "images": [
+        {
+          "url": "https://i.scdn.co/image/ab67616d0000b273bananaphone640",
+          "height": 640,
+          "width": 640
+        },
+        {
+          "url": "https://i.scdn.co/image/ab67616d00001e02bananaphone300",
+          "height": 300,
+          "width": 300
+        }
+      ],
+      "artists": [
+        {
+          "type": "artist",
+          "id": "4RaffiArtistId0000000a",
+          "name": "Raffi",
+          "uri": "spotify:artist:4RaffiArtistId0000000a"
+        }
+      ]
+    }
+  },
+  "actions": {"disallows": {"resuming": true}}
+}

@@ -108,6 +108,7 @@ _NAME = (
     r"lower|raise|volume)\b)(?P<name>[a-z][a-z0-9 ]*?)"
 )
 _NOISE = r"(?:sound|noise|sounds|noises)"
+_HEAR = r"(?:let me|let us|can i|can we|could i|could we|i want to) hear"
 _WORD = "|".join(re.escape(w) for w in sorted(SOUND_WORDS, key=len, reverse=True))
 
 _PLAY_PATTERNS = [
@@ -118,7 +119,9 @@ _PLAY_PATTERNS = [
     rf"what is the {_NOISE} (?:of|from) {_ART}{_NAME}",
     rf"(?:play|make|do)(?: me| us)? {_ART}{_NAME} {_NOISE}",
     rf"(?:play|make|do)(?: me| us)? the {_NOISE} (?:of|from) {_ART}{_NAME}",
-    rf"(?:let me|let us|can i|can we|could i|could we|i want to) hear {_ART}{_NAME}(?: {_NOISE})?",
+    # "hear" needs "a/an" or a trailing "sound/noise", so "I want to hear Let It Go" stays music.
+    rf"{_HEAR} (?:a|an) {_NAME}(?: {_NOISE})?",
+    rf"{_HEAR} {_ART}{_NAME} {_NOISE}",
     rf"{_ART}{_NAME} {_NOISE}",
     rf"(?P<name>(?:{_WORD})(?: (?:{_WORD}))*)",
 ]

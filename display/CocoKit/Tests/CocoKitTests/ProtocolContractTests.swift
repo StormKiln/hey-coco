@@ -47,6 +47,7 @@ private func checkRoundTrip(_ name: String) throws -> Bool {
         ("timer_", { try roundTrip(TimerInfo.self) }),
         ("event_", { try roundTrip(Event.self) }),
         ("error", { try roundTrip(ErrorResponse.self) }),
+        ("diagnostics", { try roundTrip(HubDiagnostics.self) }),
     ]
     guard let match = table.filter({ name.hasPrefix($0.0) }).max(by: { $0.0.count < $1.0.count })
     else { return false }
@@ -148,4 +149,19 @@ func everyFixtureDecodesWithItsModel(name: String) throws {
 @Test func errorDecodes() throws {
     let error = try Fixtures.decode(ErrorResponse.self, "error")
     #expect(error.error.code == "timer_not_found")
+}
+
+@Test func diagnosticsDecodes() throws {
+    let diag = try Fixtures.decode(HubDiagnostics.self, "diagnostics")
+    #expect(diag.gitSha == "3e190cd")
+    #expect(diag.settings.qwen.model == "qwen3:8b")
+    #expect(diag.health.spotify.status == .error)
+    #expect(diag.health.weather.fetchedAt != nil)
+    #expect(diag.utterances.count == 4)
+    #expect(diag.utterances[0].matchedBy == .qwen)
+    #expect(diag.utterances[2].intent == nil)
+    #expect(diag.utterances[2].error == "SpotifyError: HTTP 502")
+
+    let unknown = try CocoJSON.decoder.decode([CheckStatus].self, from: Data(#"["ok", "melting"]"#.utf8))
+    #expect(unknown == [.ok, .unknown])
 }

@@ -25,6 +25,7 @@ HUB_DIR = Path(__file__).resolve().parents[2]
 DEFAULT_CONFIG_PATH = HUB_DIR / "config.local.toml"
 DEFAULT_DATA_DIR = Path.home() / "Library" / "Application Support" / "CocoHub"
 DEFAULT_SOUNDS_DIR = HUB_DIR.parent / "assets" / "sounds"
+DEFAULT_LOG_DIR = Path.home() / "Library" / "Logs" / "CocoHub"
 
 _HHMM = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 
@@ -107,6 +108,13 @@ class Discovery(BaseModel):
     name: str = "Coco Hub"
 
 
+class Diagnostics(BaseModel):
+    log_transcripts: bool = True
+    """Write what Coco heard (``text``) and said (``say``) to the log file. Off: utterance
+    log lines keep only intent, timing and errors. The in-memory diagnostics buffer (last
+    100 utterances, never persisted) keeps them either way."""
+
+
 MIN_TOKEN_LENGTH = 24
 _PLACEHOLDER_TOKENS = {"changeme", "password", "token", "secret", "test"}
 
@@ -138,6 +146,8 @@ class Settings(BaseSettings):
     port: Annotated[int, Field(ge=1, le=65535)] = 8765
     data_dir: Path = DEFAULT_DATA_DIR
     sounds_dir: Path = DEFAULT_SOUNDS_DIR
+    log_dir: Path = DEFAULT_LOG_DIR
+    """JSON-lines log (``hub.jsonl``, rotated at 5 MB, 5 kept)."""
     location: Location = Location()
     timezone: str = "UTC"
     units: Literal["metric", "imperial"] = "metric"
@@ -148,8 +158,9 @@ class Settings(BaseSettings):
     spotify: Spotify = Spotify()
     discovery: Discovery = Discovery()
     timers: Timers = Timers()
+    diagnostics: Diagnostics = Diagnostics()
 
-    @field_validator("data_dir", "sounds_dir")
+    @field_validator("data_dir", "sounds_dir", "log_dir")
     @classmethod
     def _expand_paths(cls, value: Path) -> Path:
         return value.expanduser()

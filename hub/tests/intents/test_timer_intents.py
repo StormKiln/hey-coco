@@ -267,8 +267,14 @@ async def test_cancel_unnamed_ambiguous(say, service):
 async def test_cancel_all(say, service):
     service.create("pasta", 10 * M)
     service.create("eggs", 7 * M)
-    assert (await say("cancel all timers")).say == "All 2 timers cancelled."
+    assert (await say("cancel all timers")).say == "Both timers cancelled."
     assert service.list_active() == []
+
+
+async def test_cancel_all_three(say, service):
+    for name in ("pasta", "eggs", "rice"):
+        service.create(name, 10 * M)
+    assert (await say("cancel all timers")).say == "All 3 timers cancelled."
 
 
 async def qwen_cancel(registry, service, settings, clock, text: str, llm_slots: dict) -> Action:
@@ -306,7 +312,7 @@ async def test_qwen_cancel_all_when_said(registry, service, settings, clock, tex
     service.create("pasta", 10 * M)
     service.create("eggs", 7 * M)
     action = await qwen_cancel(registry, service, settings, clock, text, {"all": True})
-    assert action.say == "All 2 timers cancelled."
+    assert action.say == "Both timers cancelled."
 
 
 async def test_cancel_unknown(say, service):

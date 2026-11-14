@@ -198,6 +198,8 @@ def cancel(match: Match, request: UtteranceRequest, ctx: IntentContext) -> Reply
             return _say("You don't have any timers.")
         if len(cancelled) == 1:
             return _say(f"{_cap(label(cancelled[0].name))} cancelled.", AlarmStop())
+        if len(cancelled) == 2:
+            return _say("Both timers cancelled.", AlarmStop())
         return _say(f"All {len(cancelled)} timers cancelled.", AlarmStop())
     found = _resolve(service, match.slots.get("name"), prefer_ringing=True)
     if isinstance(found, Reply):

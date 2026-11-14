@@ -12,14 +12,18 @@ extension AppModel: ConversationHost {
     /// Hub lets a bare "stop" dismiss it.
     public var alarmRinging: Bool { timerStore.isAlarmRinging || timerStore.player.isRinging }
 
-    /// Display-side commands. Media, volume and screen commands arrive with the features that
-    /// own them.
+    /// What Coco is playing, sent as `context.media_playing`.
+    public var mediaPlaying: MediaTarget? { media.mediaPlaying }
+
+    /// Display-side commands. Screen commands arrive with the feature that owns them.
     public func perform(_ command: Command) {
         switch command {
         case .alarmStop:
             // Silence now; the Hub has already dismissed its timers.
             timerStore.player.stop()
             Task { await timerStore.stopAlarms() }
+        case .mediaPause, .mediaResume, .mediaNext, .mediaStop, .volumeSet, .volumeChange:
+            media.perform(command)
         default:
             break
         }

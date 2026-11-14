@@ -36,6 +36,8 @@ public final class AppModel {
     public let timerStore: TimerStore
     /// Periodic `/v1/idle` refresh (#16).
     public let idleModel: IdleModel
+    /// What's playing, media and volume commands (#33, #35, #39).
+    public let media: MediaCenter
 
     @ObservationIgnored private let config: any HubConfigStore
     @ObservationIgnored private let discovery: any HubDiscovery
@@ -51,7 +53,8 @@ public final class AppModel {
         makeClient: @escaping @Sendable (HubEndpoint) -> any HubAPI,
         makeEvents: @escaping @Sendable (HubEndpoint) -> AsyncStream<EventStreamUpdate>,
         timerStore: TimerStore? = nil,
-        idleModel: IdleModel? = nil
+        idleModel: IdleModel? = nil,
+        media: MediaCenter? = nil
     ) {
         self.config = config
         self.discovery = discovery
@@ -60,7 +63,9 @@ public final class AppModel {
         self.settings = config.load()
         self.timerStore = timerStore ?? TimerStore()
         self.idleModel = idleModel ?? IdleModel()
+        self.media = media ?? MediaCenter()
         self.timerStore.onTimersChanged = { [weak self] in self?.timersChanged() }
+        self.media.onFinished = { [weak self] kind in self?.mediaFinished(kind) }
     }
 
     // MARK: - Router
@@ -68,6 +73,8 @@ public final class AppModel {
     /// Applies an Action's `view`: replaces the screen, `nil` keeps it, unknown types are ignored.
     public func apply(_ action: Action) {
         lastSay = action.say
+        // Every sound view plays, even an identical resend ("play it again").
+        if case .sound? = action.view { media.soundRequested() }
         switch action.view {
         case nil, .unknown?: break
         case let view?: currentView = view
@@ -149,6 +156,7 @@ public final class AppModel {
         case .event(let event):
             lastEvent = event
             timerStore.apply(event)
+            mediaEventReceived(event)
         case .waiting(_, let reason):
             connection = .unreachable(reason: reason)
             timerStore.hubDisconnected()
@@ -167,7 +175,8 @@ public final class AppModel {
         let request = UtteranceRequest(
             text: text, source: source,
             context: UtteranceContext(
-                view: currentView.viewType ?? .idle, alarmRinging: alarmRinging, mediaPlaying: nil))
+                view: currentView.viewType ?? .idle, alarmRinging: alarmRinging,
+                mediaPlaying: mediaPlaying))
         do throws(HubError) {
             apply(try await client.postUtterance(request))
             lastError = nil
@@ -188,6 +197,7 @@ extension AppModel {
     /// The timers screen goes back to idle once no timers remain.
     func timersChanged() {
         if currentView == .timers, timerStore.timers.isEmpty { currentView = .idle }
+        media.alarmChanged(ringing: timerStore.isAlarmRinging)
     }
 
     /// Touch "+1 min". Local-only timers change here; Hub timers change through the Hub. The

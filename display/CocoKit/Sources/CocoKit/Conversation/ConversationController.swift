@@ -28,6 +28,8 @@ public enum ConversationState: Sendable, Equatable {
 @MainActor
 public protocol ConversationHost: AnyObject {
     var currentView: ViewSpec { get }
+    /// Whether an alarm is ringing right now (sent as `context.alarm_ringing`).
+    var alarmRinging: Bool { get }
     func postUtterance(_ request: UtteranceRequest) async throws(HubError) -> Action
     /// Runs one of `Action.commands`.
     func perform(_ command: Command)
@@ -167,7 +169,8 @@ public final class ConversationController {
         let request = UtteranceRequest(
             text: transcript, source: .voice,
             context: UtteranceContext(
-                view: host.currentView.viewType ?? .idle, alarmRinging: false, mediaPlaying: nil))
+                view: host.currentView.viewType ?? .idle, alarmRinging: host.alarmRinging,
+                mediaPlaying: nil))
         let action: Action
         do throws(HubError) {
             action = try await host.postUtterance(request)

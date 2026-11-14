@@ -74,6 +74,16 @@ private func action(
             ])
     }
 
+    @Test func requestReportsRingingAlarmFromHost() async {
+        let h = Harness()
+        h.host.alarmRinging = true
+        h.host.result = .success(action(say: nil, view: nil, commands: [.alarmStop]))
+        await h.startListening()
+        h.recognizer.hear(.final("stop"))
+        await h.controller.waitUntilFinished()
+        #expect(h.host.requests.first?.context.alarmRinging == true)
+    }
+
     @Test func commandsRunBeforeTheViewAndTheViewBeforeSpeech() async {
         let h = Harness()
         h.host.result = .success(

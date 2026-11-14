@@ -167,7 +167,7 @@ public final class AppModel {
         let request = UtteranceRequest(
             text: text, source: source,
             context: UtteranceContext(
-                view: currentView.viewType ?? .idle, alarmRinging: false, mediaPlaying: nil))
+                view: currentView.viewType ?? .idle, alarmRinging: alarmRinging, mediaPlaying: nil))
         do throws(HubError) {
             apply(try await client.postUtterance(request))
             lastError = nil

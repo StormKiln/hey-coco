@@ -8,6 +8,20 @@ extension AppModel: ConversationHost {
         return try await client.postUtterance(request)
     }
 
-    /// Display-side commands (alarm, media, volume, screen) arrive with the features that own them.
-    public func perform(_ command: Command) {}
+    /// True while any timer rings or the alarm sound plays; sent as `context.alarm_ringing` so the
+    /// Hub lets a bare "stop" dismiss it.
+    public var alarmRinging: Bool { timerStore.isAlarmRinging || timerStore.player.isRinging }
+
+    /// Display-side commands. Media, volume and screen commands arrive with the features that
+    /// own them.
+    public func perform(_ command: Command) {
+        switch command {
+        case .alarmStop:
+            // Silence now; the Hub has already dismissed its timers.
+            timerStore.player.stop()
+            Task { await timerStore.stopAlarms() }
+        default:
+            break
+        }
+    }
 }

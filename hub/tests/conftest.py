@@ -5,7 +5,7 @@ import pytest
 
 from coco_hub.settings import Settings
 
-TEST_TOKEN = "test-token-0123456789"
+TEST_TOKEN = "test-token-0123456789abcdef"
 
 
 @pytest.fixture(autouse=True)

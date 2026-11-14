@@ -75,6 +75,10 @@ class Discovery(BaseModel):
     name: str = "Coco Hub"
 
 
+MIN_TOKEN_LENGTH = 24
+_PLACEHOLDER_TOKENS = {"changeme", "password", "token", "secret", "test"}
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="COCO_",
@@ -83,6 +87,21 @@ class Settings(BaseSettings):
     )
 
     token: Annotated[SecretStr, Field(min_length=1)]
+
+    @field_validator("token")
+    @classmethod
+    def _strong_token(cls, v: SecretStr) -> SecretStr:
+        raw = v.get_secret_value()
+        if raw.lower().replace("-", "").replace("_", "") in _PLACEHOLDER_TOKENS or "changeme" in (
+            raw.lower().replace("-", "")
+        ):
+            raise ValueError(
+                "token is a placeholder; generate a real one (see config.example.toml)"
+            )
+        if len(raw) < MIN_TOKEN_LENGTH:
+            raise ValueError(f"token must be at least {MIN_TOKEN_LENGTH} characters")
+        return v
+
     host: str = "0.0.0.0"
     port: Annotated[int, Field(ge=1, le=65535)] = 8765
     data_dir: Path = DEFAULT_DATA_DIR

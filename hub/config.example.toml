@@ -4,7 +4,8 @@
 
 # Shared LAN token: the Display sends it as "Authorization: Bearer <token>".
 # Generate one with: python3 -c 'import secrets; print(secrets.token_urlsafe(32))'
-token = "change-me"
+# Required, at least 24 characters. The Hub refuses to start without a real one.
+token = ""
 
 host = "0.0.0.0"
 port = 8765

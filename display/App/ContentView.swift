@@ -37,6 +37,14 @@ struct ContentView: View {
             }
         }
         .conversationLayer(model: model)
+        // Topmost: a ringing timer covers every screen state (#18).
+        .overlay { AlarmOverlay().animation(.default, value: model.timerStore.isAlarmRinging) }
+        .onChange(of: model.timerStore.isAlarmRinging) { _, ringing in
+            if ringing { showingSettings = false }
+        }
+        .environment(model)
+        .environment(model.timerStore)
+        .environment(model.idleModel)
     }
 }
 
@@ -48,7 +56,9 @@ struct ScreenView: View {
     var body: some View {
         switch view {
         case .idle:
-            IdleView(idleInfo: idleInfo)
+            IdleScreen()
+        case .timers:
+            TimersScreen()
         case .answer(let text):
             AnswerScreen(text: text)
         default:
@@ -56,28 +66,6 @@ struct ScreenView: View {
                 .font(.system(size: 48, weight: .semibold, design: .rounded))
                 .foregroundStyle(.secondary)
         }
-    }
-}
-
-struct IdleView: View {
-    let idleInfo: IdleInfo?
-
-    var body: some View {
-        VStack(spacing: 16) {
-            TimelineView(.everyMinute) { context in
-                Text(context.date, format: .dateTime.hour().minute())
-                    .font(.system(size: 160, weight: .light, design: .rounded))
-                    .monospacedDigit()
-            }
-            Text(subtitle)
-                .font(.system(size: 40, design: .rounded))
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    private var subtitle: String {
-        guard let now = idleInfo?.weather?.current else { return "hey coco" }
-        return "\(Int(now.temp.rounded()))°\(now.unit.rawValue) · \(now.description)"
     }
 }
 

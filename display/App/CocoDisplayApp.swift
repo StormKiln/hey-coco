@@ -10,11 +10,17 @@ struct CocoDisplayApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView(model: model)
-                .task { model.start() }
+                .task {
+                    // The alarm tone lives in Library/Sounds so the notification backup can use it.
+                    _ = try? AlarmTone.installNotificationSound()
+                    model.start()
+                }
         }
         .onChange(of: scenePhase, initial: true) { _, phase in
             // Kitchen display: keep the screen on whenever Coco is in front.
             UIApplication.shared.isIdleTimerDisabled = phase == .active
+            // Ring anything that came due while the app was suspended.
+            if phase == .active { model.timerStore.fireDueAlarms() }
         }
     }
 }

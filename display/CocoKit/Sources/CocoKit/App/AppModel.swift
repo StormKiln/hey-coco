@@ -24,12 +24,18 @@ public final class AppModel {
     public private(set) var lastSay: String?
     public private(set) var connection: ConnectionState = .searching
     public private(set) var endpoint: HubEndpoint?
-    public private(set) var idleInfo: IdleInfo?
+    /// The idle screen's forecast, kept fresh by `idleModel`.
+    public var idleInfo: IdleInfo? { idleModel.info }
     /// The latest event from the Hub; later features (timers, now playing) consume these.
     public private(set) var lastEvent: Event?
     public private(set) var settings: HubSettings
     /// The most recent failed request, for showing a hint; cleared by the next success.
     public private(set) var lastError: HubError?
+
+    /// Timers mirrored from the Hub, rung locally (#18).
+    public let timerStore: TimerStore
+    /// Periodic `/v1/idle` refresh (#16).
+    public let idleModel: IdleModel
 
     @ObservationIgnored private let config: any HubConfigStore
     @ObservationIgnored private let discovery: any HubDiscovery
@@ -43,13 +49,18 @@ public final class AppModel {
         config: any HubConfigStore,
         discovery: any HubDiscovery,
         makeClient: @escaping @Sendable (HubEndpoint) -> any HubAPI,
-        makeEvents: @escaping @Sendable (HubEndpoint) -> AsyncStream<EventStreamUpdate>
+        makeEvents: @escaping @Sendable (HubEndpoint) -> AsyncStream<EventStreamUpdate>,
+        timerStore: TimerStore? = nil,
+        idleModel: IdleModel? = nil
     ) {
         self.config = config
         self.discovery = discovery
         self.makeClient = makeClient
         self.makeEvents = makeEvents
         self.settings = config.load()
+        self.timerStore = timerStore ?? TimerStore()
+        self.idleModel = idleModel ?? IdleModel()
+        self.timerStore.onTimersChanged = { [weak self] in self?.timersChanged() }
     }
 
     // MARK: - Router
@@ -80,6 +91,8 @@ public final class AppModel {
     public func stop() {
         runTask?.cancel()
         runTask = nil
+        timerStore.hubDisconnected()
+        idleModel.disconnect()
     }
 
     /// Saves Settings and reconnects with them.
@@ -92,6 +105,7 @@ public final class AppModel {
     private func run() async {
         client = nil
         endpoint = nil
+        timerStore.hubDisconnected()
         let settings = config.load()
         self.settings = settings
         connection = settings.manualHost == nil ? .searching : .connecting
@@ -113,9 +127,7 @@ public final class AppModel {
         connection = .connecting
 
         // Idle info is best-effort; the event stream decides the connection state.
-        Task { [weak self] in
-            if let idle = try? await client.idle() { self?.idleInfo = idle }
-        }
+        idleModel.connect(client)
 
         for await update in makeEvents(endpoint) {
             if Task.isCancelled { return }
@@ -129,12 +141,20 @@ public final class AppModel {
             if attempt == 1 { connection = .connecting }
         case .connected:
             connection = .connected
+            // Queued touch-timer work is sent after the `hello` that follows.
+            if let client {
+                timerStore.hubConnected(client)
+                idleModel.reconnected(client)
+            }
         case .event(let event):
             lastEvent = event
+            timerStore.apply(event)
         case .waiting(_, let reason):
             connection = .unreachable(reason: reason)
+            timerStore.hubDisconnected()
         case .unauthorized:
             connection = .unauthorized
+            timerStore.hubDisconnected()
         }
     }
 
@@ -162,6 +182,33 @@ public final class AppModel {
     }
 }
 
+// MARK: - Timers (#18)
+
+extension AppModel {
+    /// The timers screen goes back to idle once no timers remain.
+    func timersChanged() {
+        if currentView == .timers, timerStore.timers.isEmpty { currentView = .idle }
+    }
+
+    /// Touch "+1 min". Local-only timers change here; Hub timers change through the Hub. The
+    /// protocol has no add-time endpoint, so this sends the equivalent touch utterance.
+    public func addTime(to timer: DisplayTimer, seconds: Int) async {
+        if timer.isLocalOnly {
+            timerStore.addTimeLocally(id: timer.id, seconds: seconds)
+        } else {
+            await submit(text: Self.addTimePhrase(for: timer, seconds: seconds), source: .touch)
+        }
+    }
+
+    /// e.g. "add 1 minute to the pasta timer".
+    public static func addTimePhrase(for timer: DisplayTimer, seconds: Int) -> String {
+        let minutes = max(1, seconds / 60)
+        let amount = minutes == 1 ? "1 minute" : "\(minutes) minutes"
+        let target = timer.name.map { "the \($0) timer" } ?? "the timer"
+        return "add \(amount) to \(target)"
+    }
+}
+
 extension AppModel {
     /// The app's real wiring: Keychain + UserDefaults, Bonjour, URLSession.
     public static func live() -> AppModel {
@@ -169,7 +216,11 @@ extension AppModel {
             config: UserDefaultsHubConfigStore(),
             discovery: BonjourHubDiscovery(),
             makeClient: { HubClient(endpoint: $0) },
-            makeEvents: { EventStream(url: $0.eventsURL, token: $0.token).updates() })
+            makeEvents: { EventStream(url: $0.eventsURL, token: $0.token).updates() },
+            timerStore: TimerStore(
+                persistence: FileTimerPersistence.standard(),
+                scheduler: LocalAlarmScheduler.live(),
+                player: AudioAlarmPlayer()))
     }
 }
 

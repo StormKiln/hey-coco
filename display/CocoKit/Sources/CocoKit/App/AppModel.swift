@@ -169,14 +169,17 @@ public final class AppModel {
     // MARK: - Talking to the Hub
 
     /// Sends what was heard (or tapped) and applies the reply. Errors set `lastError`, and
-    /// auth/reachability errors also update `connection`.
-    public func submit(text: String, source: UtteranceRequest.Source) async {
+    /// auth/reachability errors also update `connection`. `mediaPlaying` overrides
+    /// `context.media_playing` (the Now Playing controls always target music).
+    public func submit(
+        text: String, source: UtteranceRequest.Source, mediaPlaying override: MediaTarget? = nil
+    ) async {
         guard let client else { return }
         let request = UtteranceRequest(
             text: text, source: source,
             context: UtteranceContext(
                 view: currentView.viewType ?? .idle, alarmRinging: alarmRinging,
-                mediaPlaying: mediaPlaying))
+                mediaPlaying: override ?? mediaPlaying))
         do throws(HubError) {
             apply(try await client.postUtterance(request))
             lastError = nil

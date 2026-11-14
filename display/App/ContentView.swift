@@ -6,6 +6,7 @@ import SwiftUI
 struct ContentView: View {
     let model: AppModel
     @State private var showingSettings = false
+    @State private var showingDiagnostics = false
 
     var body: some View {
         ZStack {
@@ -36,11 +37,16 @@ struct ContentView: View {
                 try model.saveSettings(settings)
             }
         }
+        .sheet(isPresented: $showingDiagnostics) { DiagnosticsSheet() }
+        .environment(\.openDiagnostics, OpenDiagnosticsAction { showingDiagnostics = true })
         .conversationLayer(model: model)
         // Topmost: a ringing timer covers every screen state (#18).
         .overlay { AlarmOverlay().animation(.default, value: model.timerStore.isAlarmRinging) }
         .onChange(of: model.timerStore.isAlarmRinging) { _, ringing in
-            if ringing { showingSettings = false }
+            if ringing {
+                showingSettings = false
+                showingDiagnostics = false
+            }
         }
         .environment(model)
         .environment(model.timerStore)
@@ -67,6 +73,8 @@ struct ScreenView: View {
             SoundScreen(payload: payload)
         case .youtube(let videoID, let title):
             YouTubeScreen(videoID: videoID, title: title)
+        case .nowPlaying:
+            NowPlayingScreen()
         default:
             Text(view.type)
                 .font(.system(size: 48, weight: .semibold, design: .rounded))
@@ -171,6 +179,9 @@ struct SettingsView: View {
                 }
                 if let error {
                     Section { Text(error).foregroundStyle(.red) }
+                }
+                Section {
+                    NavigationLink("Diagnostics…") { DiagnosticsScreen() }
                 }
             }
             .navigationTitle("Coco Hub")

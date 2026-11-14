@@ -21,6 +21,15 @@ public protocol HubAPI: Sendable {
     func createTimer(_ request: TimerCreateRequest) async throws(HubError) -> TimerInfo
     func dismissTimer(id: String) async throws(HubError) -> TimerInfo
     func cancelTimer(id: String) async throws(HubError) -> TimerInfo
+    /// `GET /v1/diagnostics`, for the hidden diagnostics screen (#45).
+    func diagnostics() async throws(HubError) -> HubDiagnostics
+}
+
+extension HubAPI {
+    /// Fakes that never open the diagnostics screen need not implement it.
+    public func diagnostics() async throws(HubError) -> HubDiagnostics {
+        throw .server(code: "unsupported", message: "Diagnostics are not available.")
+    }
 }
 
 /// `HubAPI` over `URLSession`.
@@ -58,6 +67,10 @@ public struct HubClient: HubAPI {
 
     public func cancelTimer(id: String) async throws(HubError) -> TimerInfo {
         try await send("DELETE", "/v1/timers/\(id)")
+    }
+
+    public func diagnostics() async throws(HubError) -> HubDiagnostics {
+        try await send("GET", "/v1/diagnostics")
     }
 
     // MARK: - Plumbing

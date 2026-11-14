@@ -56,8 +56,11 @@ public final class MediaCenter {
     /// Bumped for every `sound` view the Hub sends, including an identical resend
     /// ("play it again"); the Sound screen replays on each bump.
     public private(set) var soundRequestCount = 0
+    /// The Hub's latest `now_playing` (from `hello` and `now_playing` events): music on its
+    /// speakers (Spotify / Apple Music). `nil` when nothing is loaded.
+    public private(set) var hubNowPlaying: NowPlaying?
     /// Whether the Hub reports music playing on its speakers.
-    public private(set) var hubMusicPlaying = false
+    public var hubMusicPlaying: Bool { hubNowPlaying?.isPlaying ?? false }
 
     /// Called when a player reports it reached its end (or was stopped by a command).
     @ObservationIgnored public var onFinished: (@MainActor (MediaTarget) -> Void)?
@@ -191,7 +194,7 @@ public final class MediaCenter {
 
     /// The Hub's `now_playing` (from `hello` and `now_playing` events).
     public func nowPlayingChanged(_ nowPlaying: NowPlaying?) {
-        hubMusicPlaying = nowPlaying?.isPlaying ?? false
+        hubNowPlaying = nowPlaying
     }
 
     /// Feed `TimerStore.isAlarmRinging` on every change.

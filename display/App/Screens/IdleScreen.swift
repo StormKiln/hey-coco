@@ -8,6 +8,7 @@ struct IdleScreen: View {
     @Environment(AppModel.self) private var model
     @Environment(TimerStore.self) private var timers
     @Environment(IdleModel.self) private var idle
+    @Environment(\.openDiagnostics) private var openDiagnostics
 
     var body: some View {
         ZStack {
@@ -20,6 +21,8 @@ struct IdleScreen: View {
                         .monospacedDigit()
                         .minimumScaleFactor(0.5)
                         .lineLimit(1)
+                        // Hidden: 5 taps on the clock open diagnostics (#45).
+                        .onTapGesture(count: 5) { openDiagnostics() }
                     Text(context.date, format: .dateTime.weekday(.wide).month(.wide).day())
                         .font(.system(size: 44, weight: .regular, design: .rounded))
                         .foregroundStyle(.secondary)
@@ -27,6 +30,10 @@ struct IdleScreen: View {
                     ForecastView(idle: idle, now: context.date, connection: model.connection)
                     if !timers.timers.isEmpty {
                         ActiveTimersStrip(timers: timers) { model.show(.timers) }
+                            .padding(.top, 28)
+                    }
+                    if let nowPlaying = model.nowPlaying, NowPlayingRules.showsIdleStrip(nowPlaying) {
+                        NowPlayingStrip(nowPlaying: nowPlaying) { model.show(.nowPlaying) }
                             .padding(.top, 28)
                     }
                     Spacer(minLength: 24)

@@ -57,8 +57,13 @@ class Night(BaseModel):
 
 
 class Qwen(BaseModel):
+    """Local LLM fallback via Ollama (see docs/spikes/qwen.md)."""
+
     enabled: bool = False
     model: str = "qwen3:8b"
+    base_url: str = "http://localhost:11434"
+    timeout_s: Annotated[float, Field(gt=0, le=60)] = 6.0
+    """Hard limit on the whole fallback (model calls and one repair)."""
 
 
 class Keys(BaseModel):

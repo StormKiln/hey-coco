@@ -2,6 +2,10 @@
 
 Each feature module exposes ``register(registry: IntentRegistry) -> None`` and is listed in
 ``INTENT_MODULES``; ``build_registry()`` runs them all at app startup.
+
+To let the Qwen fallback pick an intent, give it a ``description`` (one line for the prompt)
+and, if its patterns capture slots, ``llm_slots`` (see ``engine.LlmSlot``;
+``durations.llm_duration_slot()`` for durations).
 """
 
 from collections.abc import Callable

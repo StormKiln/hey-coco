@@ -1,0 +1,147 @@
+{"text": "can you give me ten minutes for the eggs", "intent": "timer.create", "slots": {"name": "eggs", "duration_s": 600}}
+{"text": "start a twenty minute countdown", "intent": "timer.create", "slots": {"duration_s": 1200}}
+{"text": "remind me in an hour and a half to take the bread out", "intent": "timer.create", "slots": {"name": "bread", "duration_s": 5400}}
+{"text": "pasta needs eleven minutes", "intent": "timer.create", "slots": {"name": "pasta", "duration_s": 660}}
+{"text": "set one for 45 seconds", "intent": "timer.create", "slots": {"duration_s": 45}}
+{"text": "how much longer on the rice", "intent": "timer.query", "slots": {"name": "rice"}}
+{"text": "is the cookie timer almost done", "intent": "timer.query", "slots": {"name": "cookie"}}
+{"text": "kill the timer", "intent": "timer.cancel", "slots": {}}
+{"text": "never mind the potato timer", "intent": "timer.cancel", "slots": {"name": "potato"}}
+{"text": "get rid of all of them timers", "intent": "timer.cancel", "slots": {"all": true}}
+{"text": "chuck another five minutes on the chicken", "intent": "timer.add_time", "slots": {"name": "chicken", "duration_s": 300}}
+{"text": "give it two more minutes", "intent": "timer.add_time", "slots": {"duration_s": 120}}
+{"text": "what timers have I got going", "intent": "timer.list", "slots": {}}
+{"text": "how many timers are there", "intent": "timer.list", "slots": {}}
+{"text": "can I get a quarter of an hour on the lasagna", "intent": "timer.create", "slots": {"name": "lasagna", "duration_s": 900}}
+{"text": "buzz me in three minutes", "intent": "timer.create", "slots": {"duration_s": 180}}
+{"text": "how are the muffins doing", "intent": "timer.query", "slots": {"name": "muffin"}}
+{"text": "scrap the broccoli one", "intent": "timer.cancel", "slots": {"name": "broccoli"}}
+{"text": "bump the soup up by ten minutes", "intent": "timer.add_time", "slots": {"name": "soup", "duration_s": 600}}
+{"text": "how's it looking outside", "intent": "weather.current", "slots": {}}
+{"text": "is it cold out right now", "intent": "weather.current", "slots": {}}
+{"text": "what's it gonna be like tomorrow", "intent": "weather.forecast", "slots": {"when": "tomorrow"}}
+{"text": "will it be nice this weekend", "intent": "weather.forecast", "slots": {"when": "this_weekend"}}
+{"text": "do I need a jacket today", "intent": "weather.forecast", "slots": {"when": "today"}, "alt": ["weather.current"]}
+{"text": "do the kids need umbrellas this afternoon", "intent": "weather.rain", "slots": {"when": "this_afternoon"}}
+{"text": "is it gonna pour tonight", "intent": "weather.rain", "slots": {"when": "tonight"}}
+{"text": "I wanna see a picture of a narwhal", "intent": "picture.show", "slots": {"query": "narwhal"}}
+{"text": "what does a komodo dragon look like", "intent": "picture.show", "slots": {"query": "komodo dragon"}}
+{"text": "show us a photo of a red panda", "intent": "picture.show", "slots": {"query": "red panda"}}
+{"text": "what's the doggo noise", "intent": "sound.play", "slots": {"name": "dog"}}
+{"text": "what does a cow say", "intent": "sound.play", "slots": {"name": "cow"}}
+{"text": "make a fire truck sound", "intent": "sound.play", "slots": {"name": "fire truck"}}
+{"text": "what noise does a tractor make", "intent": "sound.play", "slots": {"name": "tractor"}}
+{"text": "find the baby shark video on youtube", "intent": "youtube.play", "slots": {"query": "baby shark"}}
+{"text": "put on some Raffi", "intent": "music.play", "slots": {"query": "Raffi", "kind": "artist"}}
+{"text": "play the Frozen soundtrack", "intent": "music.play", "slots": {"query": "Frozen", "kind": "album"}}
+{"text": "chuck on some dinner party jazz", "intent": "music.play", "slots": {"query": "dinner party jazz", "kind": "playlist"}}
+{"text": "let's hear some Taylor Swift", "intent": "music.play", "slots": {"query": "Taylor Swift", "kind": "artist"}}
+{"text": "hold on, pause that", "intent": "media.pause", "slots": {}}
+{"text": "ok keep going with the music", "intent": "media.resume", "slots": {}}
+{"text": "skip this one", "intent": "media.next", "slots": {}}
+{"text": "next song please", "intent": "media.next", "slots": {}}
+{"text": "turn the music off", "intent": "media.stop", "slots": {}}
+{"text": "make it louder", "intent": "volume.change", "slots": {"delta": "+"}}
+{"text": "too loud, bring it down a bit", "intent": "volume.change", "slots": {"delta": "-"}}
+{"text": "I can't hear it", "intent": "volume.change", "slots": {"delta": "+"}}
+{"text": "volume to half", "intent": "volume.set", "slots": {"level": 50}}
+{"text": "shut that beeping up", "intent": "alarm.stop", "slots": {}, "context": {"alarm_ringing": true}}
+{"text": "okay okay I heard you, turn the alarm off", "intent": "alarm.stop", "slots": {}, "context": {"alarm_ringing": true}}
+{"text": "what time is it right now", "intent": "time.now", "slots": {}}
+{"text": "got the time", "intent": "time.now", "slots": {}}
+{"text": "how late is it", "intent": "time.now", "slots": {}}
+{"text": "what does the clock say", "intent": "time.now", "slots": {}}
+{"text": "do you have the time", "intent": "time.now", "slots": {}}
+{"text": "is it five o'clock yet", "intent": "time.now", "slots": {}}
+{"text": "what hour is it", "intent": "time.now", "slots": {}}
+{"text": "Coco, what's the time", "intent": "time.now", "slots": {}}
+{"text": "tell me the time please", "intent": "time.now", "slots": {}}
+{"text": "how long till midnight", "intent": "time.now", "slots": {}, "alt": ["general.answer"]}
+{"text": "what's the date today", "intent": "date.today", "slots": {}}
+{"text": "what day of the week is it", "intent": "date.today", "slots": {}}
+{"text": "is today Tuesday", "intent": "date.today", "slots": {}}
+{"text": "what month is it", "intent": "date.today", "slots": {}}
+{"text": "which day is it today", "intent": "date.today", "slots": {}}
+{"text": "is it Friday yet", "intent": "date.today", "slots": {}}
+{"text": "what's today's date", "intent": "date.today", "slots": {}}
+{"text": "what day is it", "intent": "date.today", "slots": {}}
+{"text": "how do you spell necessary", "intent": "spell.word", "slots": {"word": "necessary"}}
+{"text": "how do you spell rhythm", "intent": "spell.word", "slots": {"word": "rhythm"}}
+{"text": "spell banana", "intent": "spell.word", "slots": {"word": "banana"}}
+{"text": "how is giraffe spelled", "intent": "spell.word", "slots": {"word": "giraffe"}}
+{"text": "can you spell elephant for me", "intent": "spell.word", "slots": {"word": "elephant"}}
+{"text": "what's the spelling of separate", "intent": "spell.word", "slots": {"word": "separate"}}
+{"text": "how do I write the word because", "intent": "spell.word", "slots": {"word": "because"}}
+{"text": "spell out Wednesday", "intent": "spell.word", "slots": {"word": "Wednesday"}}
+{"text": "how do you spell receive", "intent": "spell.word", "slots": {"word": "receive"}}
+{"text": "what letters are in the word dinosaur", "intent": "spell.word", "slots": {"word": "dinosaur"}}
+{"text": "what are the letters in hippopotamus", "intent": "spell.word", "slots": {"word": "hippopotamus"}}
+{"text": "how would I spell beautiful", "intent": "spell.word", "slots": {"word": "beautiful"}}
+{"text": "how far away is the moon", "intent": "general.answer", "slots": {}, "fact": "about 384,000 km / 239,000 miles"}
+{"text": "how many cups in a litre", "intent": "general.answer", "slots": {}, "fact": "about 4 (4.2 US cups; 4 metric cups)"}
+{"text": "why is the sky blue", "intent": "general.answer", "slots": {}, "fact": "Rayleigh scattering of short wavelengths"}
+{"text": "how many legs does a spider have", "intent": "general.answer", "slots": {}, "fact": "eight"}
+{"text": "what's the biggest animal in the world", "intent": "general.answer", "slots": {}, "fact": "blue whale"}
+{"text": "what can I use instead of buttermilk", "intent": "general.answer", "slots": {}, "fact": "milk + 1 tbsp lemon juice or vinegar per cup"}
+{"text": "how long do I boil an egg for a runny yolk", "intent": "general.answer", "slots": {}, "fact": "about 6 minutes from boiling"}
+{"text": "what's 350 fahrenheit in celsius", "intent": "general.answer", "slots": {}, "fact": "about 177 C (175-180)"}
+{"text": "what's seven times eight", "intent": "general.answer", "slots": {}, "fact": "56"}
+{"text": "do penguins have knees", "intent": "general.answer", "slots": {}, "fact": "yes, hidden under feathers"}
+{"text": "who was the first person on the moon", "intent": "general.answer", "slots": {}, "fact": "Neil Armstrong, 1969"}
+{"text": "how many teaspoons in a tablespoon", "intent": "general.answer", "slots": {}, "fact": "three"}
+{"text": "why do onions make you cry", "intent": "general.answer", "slots": {}, "fact": "a sulfur gas (syn-propanethial-S-oxide) irritates the eyes"}
+{"text": "what's the capital of Australia", "intent": "general.answer", "slots": {}, "fact": "Canberra"}
+{"text": "how many grams in an ounce", "intent": "general.answer", "slots": {}, "fact": "about 28 grams"}
+{"text": "why do cats purr", "intent": "general.answer", "slots": {}, "fact": "contentment/communication; also when stressed or healing"}
+{"text": "how many planets are there", "intent": "general.answer", "slots": {}, "fact": "eight"}
+{"text": "what do pandas eat", "intent": "general.answer", "slots": {}, "fact": "bamboo"}
+{"text": "how hot is the sun", "intent": "general.answer", "slots": {}, "fact": "about 5,500 C at the surface"}
+{"text": "what's twelve divided by four", "intent": "general.answer", "slots": {}, "fact": "3"}
+{"text": "how many days are in a leap year", "intent": "general.answer", "slots": {}, "fact": "366"}
+{"text": "why do leaves change colour in the fall", "intent": "general.answer", "slots": {}, "fact": "chlorophyll breaks down, revealing other pigments"}
+{"text": "what is the tallest mountain in the world", "intent": "general.answer", "slots": {}, "fact": "Mount Everest"}
+{"text": "how many millilitres in a cup", "intent": "general.answer", "slots": {}, "fact": "about 240 (250 metric)"}
+{"text": "what temperature should chicken be cooked to", "intent": "general.answer", "slots": {}, "fact": "74 C / 165 F"}
+{"text": "can dogs eat grapes", "intent": "general.answer", "slots": {}, "fact": "no, toxic to dogs"}
+{"text": "how fast can a cheetah run", "intent": "general.answer", "slots": {}, "fact": "about 100-120 km/h"}
+{"text": "what's the opposite of ancient", "intent": "general.answer", "slots": {}, "fact": "modern / new"}
+{"text": "how do bees make honey", "intent": "general.answer", "slots": {}, "fact": "nectar, enzymes, evaporation in the hive"}
+{"text": "what's the biggest ocean", "intent": "general.answer", "slots": {}, "fact": "Pacific"}
+{"text": "how many sides does a hexagon have", "intent": "general.answer", "slots": {}, "fact": "six"}
+{"text": "what makes popcorn pop", "intent": "general.answer", "slots": {}, "fact": "water in the kernel turns to steam"}
+{"text": "who wrote Charlotte's Web", "intent": "general.answer", "slots": {}, "fact": "E. B. White"}
+{"text": "what is a baby kangaroo called", "intent": "general.answer", "slots": {}, "fact": "a joey"}
+{"text": "how do I make my bread rise faster", "intent": "general.answer", "slots": {}, "fact": "warm spot, more yeast, sugar"}
+{"text": "what's half of three quarters of a cup", "intent": "general.answer", "slots": {}, "fact": "3/8 cup (6 tbsp)"}
+{"text": "do fish sleep", "intent": "general.answer", "slots": {}, "fact": "yes, they rest"}
+{"text": "how many bones are in the human body", "intent": "general.answer", "slots": {}, "fact": "206"}
+{"text": "why does bread go stale", "intent": "general.answer", "slots": {}, "fact": "starch retrogradation / moisture loss"}
+{"text": "what's a group of crows called", "intent": "general.answer", "slots": {}, "fact": "a murder"}
+{"text": "is a tomato a fruit", "intent": "general.answer", "slots": {}, "fact": "yes, botanically"}
+{"text": "how many hours are in a week", "intent": "general.answer", "slots": {}, "fact": "168"}
+{"text": "what does a caterpillar turn into", "intent": "general.answer", "slots": {}, "fact": "a butterfly or moth"}
+{"text": "order more milk", "intent": "none", "slots": {}}
+{"text": "call grandma", "intent": "none", "slots": {}}
+{"text": "turn on the kitchen lights", "intent": "none", "slots": {}}
+{"text": "text dad that dinner's ready", "intent": "none", "slots": {}}
+{"text": "add eggs to the shopping list", "intent": "none", "slots": {}}
+{"text": "book a table for friday", "intent": "none", "slots": {}}
+{"text": "buy me a new phone", "intent": "none", "slots": {}}
+{"text": "email my teacher", "intent": "none", "slots": {}}
+{"text": "lock the front door", "intent": "none", "slots": {}}
+{"text": "turn the oven on to 400", "intent": "none", "slots": {}}
+{"text": "send a message to mom", "intent": "none", "slots": {}}
+{"text": "put pizza on the grocery list", "intent": "none", "slots": {}}
+{"text": "order a pizza from dominos", "intent": "none", "slots": {}}
+{"text": "dim the lights in the living room", "intent": "none", "slots": {}}
+{"text": "book a dentist appointment", "intent": "none", "slots": {}}
+{"text": "start the dishwasher", "intent": "none", "slots": {}}
+{"text": "how do I make a bomb", "intent": "none", "slots": {}}
+{"text": "pay the hydro bill", "intent": "none", "slots": {}}
+{"text": "wake me up at seven tomorrow", "intent": "none", "slots": {}}
+{"text": "remind me to buy milk when I get to the store", "intent": "none", "slots": {}}
+{"text": "blorp fizzle wump", "intent": "none", "slots": {}}
+{"text": "uh", "intent": "none", "slots": {}}
+{"text": "the", "intent": "none", "slots": {}}
+{"text": "FaceTime auntie", "intent": "none", "slots": {}}
+{"text": "unlock the car", "intent": "none", "slots": {}}

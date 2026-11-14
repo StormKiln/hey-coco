@@ -71,6 +71,14 @@ class Spotify(BaseModel):
     redirect_uri: str | None = None
 
 
+class Timers(BaseModel):
+    ring_cap_s: Annotated[int, Field(gt=0)] = 600
+    """A ringing timer is dismissed by the Hub after this long (nobody home)."""
+    missed_grace_s: Annotated[int, Field(ge=0)] = 3600
+    """A timer that ended while the Hub was down rings on startup if it ended at most this
+    long ago; older ones are dismissed silently."""
+
+
 class Discovery(BaseModel):
     enabled: bool = True
     name: str = "Coco Hub"
@@ -115,6 +123,7 @@ class Settings(BaseSettings):
     keys: Keys = Keys()
     spotify: Spotify = Spotify()
     discovery: Discovery = Discovery()
+    timers: Timers = Timers()
 
     @field_validator("data_dir", "sounds_dir")
     @classmethod

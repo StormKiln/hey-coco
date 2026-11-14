@@ -119,6 +119,15 @@ and an old value is shown.
 `name` is nullable (unnamed timer). `state`: `running` | `ringing` | `dismissed` | `cancelled`. The Display schedules a local alarm
 for every `running` timer's `ends_at` so it rings even if the Hub is unreachable.
 
+Hub behaviour (not a shape change): the Hub normalises names (`"The Pasta timer"` → `pasta`)
+and gives unnamed timers a default name (`timer`, then `timer 2`, … — the lowest free among
+active timers), so timers it sends normally have a name; `null` stays valid. `duration_s` is
+always `ends_at − created_at` (adding time grows it). A timer rings for at most
+`timers.ring_cap_s` (default 600) before the Hub dismisses it. Timer endpoints return 404
+`not_found` for an unknown id and 409 `conflict` for an invalid transition (dismissing a
+running timer, cancelling a dismissed one); dismissing a dismissed or cancelling a cancelled
+timer is a no-op that returns it.
+
 ## Events (WebSocket)
 
 Every event has `type` and `server_time`.

@@ -6,11 +6,12 @@ Each feature module exposes ``register(registry: IntentRegistry) -> None`` and i
 
 from collections.abc import Callable
 
-from coco_hub.intents import builtin
+from coco_hub.intents import builtin, timers
 from coco_hub.intents.engine import IntentRegistry
 
 INTENT_MODULES: list[Callable[[IntentRegistry], None]] = [
     builtin.register,
+    timers.register,
 ]
 
 

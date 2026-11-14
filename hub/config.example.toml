@@ -29,6 +29,10 @@ dark_after_idle_s = 300
 enabled = false
 model = "qwen3:8b"
 
+[timers]
+ring_cap_s = 600          # a ringing timer is auto-dismissed after this long
+missed_grace_s = 3600     # timers that ended while the Hub was down ring if this recent
+
 [discovery]
 enabled = true            # Bonjour _coco._tcp
 name = "Coco Hub"

@@ -30,6 +30,23 @@ MIGRATIONS: list[Migration] = [
         );
         """,
     ),
+    Migration(
+        2,
+        "create timers",
+        """
+        CREATE TABLE timers (
+            id TEXT PRIMARY KEY,
+            name TEXT,
+            duration_s INTEGER NOT NULL CHECK (duration_s > 0),
+            created_at TEXT NOT NULL,
+            ends_at TEXT NOT NULL,
+            state TEXT NOT NULL
+                CHECK (state IN ('running', 'ringing', 'dismissed', 'cancelled')),
+            updated_at TEXT NOT NULL
+        );
+        CREATE INDEX timers_state_ends_at ON timers (state, ends_at);
+        """,
+    ),
 ]
 
 _SCHEMA_MIGRATIONS = """

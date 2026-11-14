@@ -7,6 +7,7 @@ __pycache__/
 
 # Xcode / Swift
 display/CocoDisplay.xcodeproj/
+display/Info.plist
 display/CocoKit/.build/
 display/CocoKit/.swiftpm/
 DerivedData/

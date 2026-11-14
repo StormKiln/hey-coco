@@ -51,6 +51,15 @@ class TimerStateError(ValueError):
     """The timer is in a state that doesn't allow the operation."""
 
 
+MAX_TIMER_S = 24 * 3600
+"""Longest a timer may run (from now). Enforced here so every entry point shares it."""
+MAX_TIMER_NAME_LEN = 40
+
+
+class TimerLimitError(ValueError):
+    """The request exceeds a timer limit (duration or name length)."""
+
+
 def normalize_timer_name(raw: str | None) -> str | None:
     """``"The Pasta timer"`` → ``"pasta"``; ``"the timer"``/empty → ``None``."""
     if raw is None:
@@ -196,6 +205,10 @@ class TimerService:
     def create(self, name: str | None, duration_s: int) -> Timer:
         if duration_s <= 0:
             raise ValueError("duration_s must be positive")
+        if duration_s > MAX_TIMER_S:
+            raise TimerLimitError("Timers can be up to 24 hours.")
+        if name is not None and len(name) > MAX_TIMER_NAME_LEN:
+            raise TimerLimitError(f"Timer names can be up to {MAX_TIMER_NAME_LEN} characters.")
         now = self._now()
         created = now.replace(microsecond=0)
         timer = Timer(
@@ -228,6 +241,8 @@ class TimerService:
         """Extend a running timer, or restart a ringing one ``seconds`` from now."""
         if seconds <= 0:
             raise ValueError("seconds must be positive")
+        if seconds > MAX_TIMER_S:
+            raise TimerLimitError("Timers can be up to 24 hours.")
         timer = self._require(timer_id)
         now = self._now()
         if timer.state == "running":
@@ -236,6 +251,8 @@ class TimerService:
             ends = now.replace(microsecond=0) + timedelta(seconds=seconds)
         else:
             raise TimerStateError(f"timer {timer_id} is {timer.state}")
+        if ends - now > timedelta(seconds=MAX_TIMER_S):
+            raise TimerLimitError("Timers can be up to 24 hours.")
         updated = self._set(timer, now, state="running", ends_at=ends)
         self._publish("timer.updated", updated, now)
         self.wake()

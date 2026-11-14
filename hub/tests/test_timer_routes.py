@@ -157,3 +157,17 @@ def test_timer_intents_end_to_end(client):
     assert action["intent"] == "timer.query"
     assert action["view"] == {"type": "timers"}
     assert action["say"] == "15 minutes left on the timer."
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"name": "x", "duration_s": 24 * 3600 + 1},
+        {"name": "x", "duration_s": 10**15},
+        {"name": "x" * 200, "duration_s": 60},
+    ],
+)
+def test_create_enforces_limits(client, body):
+    response = client.post("/v1/timers", json=body, headers=AUTH)
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "invalid_timer"

@@ -14,9 +14,12 @@ from datetime import datetime
 from coco_hub.intents.durations import DURATION, parse_duration
 from coco_hub.intents.engine import Intent, IntentContext, IntentRegistry, Match, Reply
 from coco_hub.protocol import AlarmStop, Timer, TimersView, UtteranceRequest
-from coco_hub.timers.service import TimerService, normalize_timer_name
-
-MAX_TIMER_S = 24 * 3600
+from coco_hub.timers.service import (
+    MAX_TIMER_S,
+    TimerLimitError,
+    TimerService,
+    normalize_timer_name,
+)
 
 _D = DURATION
 _NUM = r"\d+(?:\.\d+)?"
@@ -136,7 +139,10 @@ def create(match: Match, request: UtteranceRequest, ctx: IntentContext) -> Reply
         return _say("How long should the timer be?")
     if seconds > MAX_TIMER_S:
         return _say("Timers can be up to 24 hours.")
-    timer = _service(ctx).create(match.slots.get("name"), seconds)
+    try:
+        timer = _service(ctx).create(match.slots.get("name"), seconds)
+    except TimerLimitError as exc:
+        return _say(str(exc))
     return _say(f"{_cap(label(timer.name))} set for {spoken_duration(timer.duration_s)}.")
 
 
@@ -191,7 +197,10 @@ def add_time(match: Match, request: UtteranceRequest, ctx: IntentContext) -> Rep
     if isinstance(found, Reply):
         return found
     was_ringing = found.state == "ringing"
-    updated = service.add_time(found.id, seconds)
+    try:
+        updated = service.add_time(found.id, seconds)
+    except TimerLimitError as exc:
+        return _say(str(exc))
     commands = _stop_alarm_if_quiet(service) if was_ringing else ()
     remaining = spoken_remaining(updated, ctx.clock())
     return _say(

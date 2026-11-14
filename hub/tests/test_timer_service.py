@@ -7,6 +7,9 @@ from coco_hub import db
 from coco_hub.events import EventBus
 from coco_hub.protocol import TimerEvent
 from coco_hub.timers.service import (
+    MAX_TIMER_NAME_LEN,
+    MAX_TIMER_S,
+    TimerLimitError,
     TimerNotFound,
     TimerService,
     TimerStateError,
@@ -369,3 +372,27 @@ async def test_runner_sleeps_until_due(conn, bus):
         finally:
             task.cancel()
     assert (event.type, event.timer.id) == ("timer.fired", timer.id)
+
+
+def test_create_rejects_over_max_duration(service):
+    with pytest.raises(TimerLimitError):
+        service.create("long", MAX_TIMER_S + 1)
+    assert service.create("day", MAX_TIMER_S).duration_s == MAX_TIMER_S
+
+
+def test_create_rejects_overlong_name(service):
+    with pytest.raises(TimerLimitError):
+        service.create("x" * (MAX_TIMER_NAME_LEN + 1), 60)
+
+
+def test_add_time_cannot_push_past_max(service):
+    timer = service.create("pasta", MAX_TIMER_S - 60)
+    with pytest.raises(TimerLimitError):
+        service.add_time(timer.id, 120)
+    assert service.get(timer.id).duration_s == MAX_TIMER_S - 60
+
+
+def test_add_time_rejects_absurd_seconds(service):
+    timer = service.create("pasta", 60)
+    with pytest.raises(TimerLimitError):
+        service.add_time(timer.id, 10**15)

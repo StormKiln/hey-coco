@@ -169,7 +169,7 @@ extension AppModel {
             config: UserDefaultsHubConfigStore(),
             discovery: BonjourHubDiscovery(),
             makeClient: { HubClient(endpoint: $0) },
-            makeEvents: { EventStream(url: $0.eventsURL).updates() })
+            makeEvents: { EventStream(url: $0.eventsURL, token: $0.token).updates() })
     }
 }
 

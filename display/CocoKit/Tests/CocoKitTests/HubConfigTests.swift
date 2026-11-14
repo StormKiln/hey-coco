@@ -9,14 +9,59 @@ import Testing
         #expect(endpoint.url(for: "/v1/idle").absoluteString == "http://192.168.1.20:8765/v1/idle")
     }
 
-    @Test func eventsURLIsWebSocketWithEncodedToken() {
+    @Test func eventsURLIsWebSocketWithoutToken() {
         let endpoint = HubEndpoint(host: "coco.local", port: 8765, token: "a b&c")
-        #expect(endpoint.eventsURL.absoluteString == "ws://coco.local:8765/v1/events?token=a%20b%26c")
+        #expect(endpoint.eventsURL.absoluteString == "ws://coco.local:8765/v1/events")
+        #expect(endpoint.eventsURL.query == nil)
     }
 
     @Test func ipv6HostsAreBracketed() {
         let endpoint = HubEndpoint(host: "fe80::1", port: 8765, token: "t")
         #expect(endpoint.baseURL.absoluteString == "http://[fe80::1]:8765")
+    }
+}
+
+@Suite struct HubSettingsEditTests {
+    let saved = HubSettings(manualHost: "10.0.0.5", port: 8765, token: "old")
+
+    @Test func emptyTokenWithSameHostAndPortKeepsSavedToken() {
+        #expect(saved.applyingEdit(host: "10.0.0.5", port: 8765, newToken: "") == .success(saved))
+        #expect(saved.applyingEdit(host: " 10.0.0.5 ", port: 8765, newToken: "  ") == .success(saved))
+    }
+
+    @Test func newTokenReplacesSavedToken() {
+        let expected = HubSettings(manualHost: "10.0.0.5", port: 8765, token: "new")
+        #expect(saved.applyingEdit(host: "10.0.0.5", port: 8765, newToken: " new ") == .success(expected))
+    }
+
+    @Test func changedHostWithEmptyTokenRequiresToken() {
+        #expect(saved.applyingEdit(host: "10.0.0.6", port: 8765, newToken: "") == .failure(.tokenRequired))
+        #expect(saved.applyingEdit(host: "", port: 8765, newToken: "") == .failure(.tokenRequired))
+    }
+
+    @Test func changedPortWithEmptyTokenRequiresToken() {
+        #expect(saved.applyingEdit(host: "10.0.0.5", port: 9000, newToken: "") == .failure(.tokenRequired))
+    }
+
+    @Test func changedHostWithNewTokenSucceeds() {
+        let expected = HubSettings(manualHost: "10.0.0.6", port: 9000, token: "new")
+        #expect(saved.applyingEdit(host: "10.0.0.6", port: 9000, newToken: "new") == .success(expected))
+    }
+
+    @Test func blankHostMeansDiscovery() {
+        let expected = HubSettings(manualHost: nil, port: 8765, token: "new")
+        #expect(saved.applyingEdit(host: "   ", port: 8765, newToken: "new") == .success(expected))
+    }
+
+    @Test func noSavedTokenAndEmptyTokenStaysWithoutToken() {
+        let unset = HubSettings(manualHost: nil, port: 8765, token: nil)
+        let expected = HubSettings(manualHost: "10.0.0.5", port: 8765, token: nil)
+        #expect(unset.applyingEdit(host: "10.0.0.5", port: 8765, newToken: "") == .success(expected))
+    }
+
+    @Test func savedTokenIsReported() {
+        #expect(saved.hasToken)
+        #expect(!HubSettings(manualHost: nil, token: nil).hasToken)
     }
 }
 

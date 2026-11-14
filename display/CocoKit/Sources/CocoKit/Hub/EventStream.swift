@@ -50,9 +50,10 @@ public enum EventTransportError: Error, Sendable, Equatable {
 }
 
 /// Opens one WebSocket connection and yields its messages; the stream ends (or throws) when the
-/// connection drops. Cancelling the consumer closes the connection.
+/// connection drops. Cancelling the consumer closes the connection. `token` goes in the upgrade
+/// request's `Authorization: Bearer` header, never in the URL.
 public protocol EventTransport: Sendable {
-    func connect(to url: URL) -> AsyncThrowingStream<Data, any Error>
+    func connect(to url: URL, token: String) -> AsyncThrowingStream<Data, any Error>
 }
 
 /// `EventTransport` over `URLSessionWebSocketTask`, with a ping every `pingInterval` so a
@@ -65,8 +66,15 @@ public struct URLSessionEventTransport: EventTransport {
         self.session = session
     }
 
-    public func connect(to url: URL) -> AsyncThrowingStream<Data, any Error> {
-        let task = session.webSocketTask(with: url)
+    /// The upgrade request: `url` as-is plus `Authorization: Bearer <token>`.
+    public static func request(for url: URL, token: String) -> URLRequest {
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        return request
+    }
+
+    public func connect(to url: URL, token: String) -> AsyncThrowingStream<Data, any Error> {
+        let task = session.webSocketTask(with: Self.request(for: url, token: token))
         let pingInterval = pingInterval
         return AsyncThrowingStream { continuation in
             task.resume()
@@ -130,15 +138,18 @@ public enum EventStreamUpdate: Sendable, Equatable {
 /// Messages that do not decode are skipped.
 public struct EventStream: Sendable {
     public let url: URL
+    /// Shared LAN token, sent as `Authorization: Bearer` on every connection attempt.
+    public let token: String
     public let transport: any EventTransport
     public let sleeper: any Sleeper
     public let backoff: Backoff
 
     public init(
-        url: URL, transport: any EventTransport = URLSessionEventTransport(),
+        url: URL, token: String, transport: any EventTransport = URLSessionEventTransport(),
         sleeper: any Sleeper = TaskSleeper(), backoff: Backoff = Backoff()
     ) {
         self.url = url
+        self.token = token
         self.transport = transport
         self.sleeper = sleeper
         self.backoff = backoff
@@ -164,7 +175,7 @@ public struct EventStream: Sendable {
             var connected = false
             var reason = "Lost connection to Coco Hub."
             do {
-                for try await data in transport.connect(to: url) {
+                for try await data in transport.connect(to: url, token: token) {
                     if !connected {
                         connected = true
                         backoff.reset()

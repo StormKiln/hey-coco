@@ -49,12 +49,15 @@ final class ScriptedTransport: EventTransport {
 
     private let script: Mutex<[Step]>
     private let urls = Mutex<[URL]>([])
+    private let tokens = Mutex<[String]>([])
     var connectedURLs: [URL] { urls.withLock { $0 } }
+    var connectedTokens: [String] { tokens.withLock { $0 } }
 
     init(_ script: [Step]) { self.script = Mutex(script) }
 
-    func connect(to url: URL) -> AsyncThrowingStream<Data, any Error> {
+    func connect(to url: URL, token: String) -> AsyncThrowingStream<Data, any Error> {
         urls.withLock { $0.append(url) }
+        tokens.withLock { $0.append(token) }
         let step = script.withLock { $0.isEmpty ? nil : $0.removeFirst() }
         return AsyncThrowingStream { continuation in
             switch step {
@@ -72,13 +75,13 @@ final class ScriptedTransport: EventTransport {
 private let helloJSON = #"{"type": "hello", "server_time": "2026-11-14T15:04:05Z", "timers": [], "now_playing": null}"#
 
 @Suite struct EventStreamTests {
-    let url = URL(string: "ws://hub.test:8765/v1/events?token=t")!
+    let url = URL(string: "ws://hub.test:8765/v1/events")!
 
     private func collect(
         _ transport: ScriptedTransport, sleeper: RecordingSleeper, count: Int
     ) async -> [EventStreamUpdate] {
         let stream = EventStream(
-            url: url, transport: transport, sleeper: sleeper,
+            url: url, token: "t", transport: transport, sleeper: sleeper,
             backoff: Backoff(base: .seconds(1), cap: .seconds(30), jitter: 0.2, random: { 0 }))
         var updates: [EventStreamUpdate] = []
         for await update in stream.updates() {
@@ -94,6 +97,7 @@ private let helloJSON = #"{"type": "hello", "server_time": "2026-11-14T15:04:05Z
         let hello = try CocoJSON.decoder.decode(Event.self, from: Data(helloJSON.utf8))
         #expect(updates == [.connecting(attempt: 1), .connected, .event(hello)])
         #expect(transport.connectedURLs.first == url)  // it may already be reconnecting
+        #expect(transport.connectedTokens.first == "t")
     }
 
     @Test func undecodableMessagesAreSkipped() async throws {
@@ -124,12 +128,22 @@ private let helloJSON = #"{"type": "hello", "server_time": "2026-11-14T15:04:05Z
         let transport = ScriptedTransport([.fail, .unauthorized, .fail])
         let sleeper = RecordingSleeper()
         let stream = EventStream(
-            url: url, transport: transport, sleeper: sleeper,
+            url: url, token: "t", transport: transport, sleeper: sleeper,
             backoff: Backoff(base: .seconds(1), cap: .seconds(30), jitter: 0, random: { 0 }))
         var updates: [EventStreamUpdate] = []
         for await update in stream.updates() { updates.append(update) }  // finishes on its own
         #expect(updates.last == .unauthorized)
         #expect(transport.connectedURLs.count == 2)
         #expect(sleeper.delays == [.seconds(1)])
+    }
+}
+
+@Suite struct URLSessionEventTransportTests {
+    @Test func upgradeRequestCarriesBearerHeaderNotQueryToken() {
+        let url = URL(string: "ws://hub.test:8765/v1/events")!
+        let request = URLSessionEventTransport.request(for: url, token: "s3cret")
+        #expect(request.url == url)
+        #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer s3cret")
+        #expect(request.url?.query == nil)
     }
 }

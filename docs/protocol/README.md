@@ -23,7 +23,9 @@ in the same PR. Fixtures are mapped to models by filename prefix (`action_*` →
 
 - Base URL: `http://<hub-host>:8765`. The Hub advertises Bonjour service `_coco._tcp` on that port.
 - Every endpoint except `GET /healthz` requires `Authorization: Bearer <token>` (shared LAN token
-  from Hub settings). The WebSocket takes `?token=<token>` instead.
+  from Hub settings). The WebSocket takes the same header on its upgrade request; a token in the
+  URL (`?token=`) is not accepted, because query strings end up in access logs. A missing or
+  wrong token closes the WebSocket with code 1008 before it is accepted.
 - Errors: non-2xx with body `{"error": {"code": "<snake_case>", "message": "<human text>"}}`
   (`fixtures/error.json`).
 

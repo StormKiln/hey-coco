@@ -114,19 +114,36 @@ struct ConnectionBanner: View {
     }
 }
 
+/// Never shows the saved token (anyone at the kitchen counter can open Settings): the field
+/// starts empty, empty keeps the saved token, and changing the host or port requires re-entering
+/// it so the saved token is never sent to a different Hub.
 struct SettingsView: View {
+    let saved: HubSettings
     let save: (HubSettings) throws -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var host: String
     @State private var port: String
-    @State private var token: String
+    @State private var newToken = ""
     @State private var error: String?
 
     init(settings: HubSettings, save: @escaping (HubSettings) throws -> Void) {
+        self.saved = settings
         self.save = save
         _host = State(initialValue: settings.manualHost ?? "")
         _port = State(initialValue: String(settings.port))
-        _token = State(initialValue: settings.token ?? "")
+    }
+
+    private var portNumber: Int? {
+        Int(port).flatMap { (1...65535).contains($0) ? $0 : nil }
+    }
+
+    /// `nil` while the port is invalid.
+    private var edit: Result<HubSettings, SettingsEditError>? {
+        portNumber.map { saved.applyingEdit(host: host, port: $0, newToken: newToken) }
+    }
+
+    private var tokenRequired: Bool {
+        if case .failure(.tokenRequired)? = edit { true } else { false }
     }
 
     var body: some View {
@@ -144,10 +161,22 @@ struct SettingsView: View {
                 } footer: {
                     Text("Leave the host empty to find Coco Hub with Bonjour. The port is used with a manual host.")
                 }
-                Section("Token") {
-                    SecureField("Shared token from Hub settings", text: $token)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                Section {
+                    SecureField(
+                        saved.hasToken ? "Enter a new token to replace it" : "Shared token from Hub settings",
+                        text: $newToken
+                    )
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                } header: {
+                    Text("Token")
+                } footer: {
+                    if tokenRequired {
+                        Text("You changed the Hub, so enter its token again.")
+                            .foregroundStyle(.red)
+                    } else if saved.hasToken {
+                        Label("Token saved. Leave empty to keep it.", systemImage: "checkmark.seal")
+                    }
                 }
                 if let error {
                     Section { Text(error).foregroundStyle(.red) }
@@ -160,18 +189,23 @@ struct SettingsView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", action: submit)
+                        .disabled(tokenRequired)
                 }
             }
         }
     }
 
     private func submit() {
-        guard let portNumber = Int(port), (1...65535).contains(portNumber) else {
+        guard let edit else {
             error = "Port must be a number from 1 to 65535."
             return
         }
+        guard case .success(let settings) = edit else {
+            error = "Enter the token for the new Hub."
+            return
+        }
         do {
-            try save(HubSettings(manualHost: host, port: portNumber, token: token))
+            try save(settings)
             dismiss()
         } catch {
             self.error = "Couldn't save settings: \(error.localizedDescription)"

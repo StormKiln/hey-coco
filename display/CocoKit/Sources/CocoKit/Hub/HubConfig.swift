@@ -8,7 +8,8 @@ public struct HubEndpoint: Sendable, Equatable, Hashable {
 
     public var host: String
     public var port: Int
-    /// Shared LAN token; sent as `Authorization: Bearer` (REST) or `?token=` (WebSocket).
+    /// Shared LAN token; sent as `Authorization: Bearer` on REST requests and the WebSocket
+    /// upgrade. Never put in a URL.
     public var token: String
 
     public init(host: String, port: Int, token: String) {
@@ -26,12 +27,10 @@ public struct HubEndpoint: Sendable, Equatable, Hashable {
         return components.url!
     }
 
-    /// `ws://host:port/v1/events?token=…`.
+    /// `ws://host:port/v1/events` (no token: that goes in the upgrade request's header).
     public var eventsURL: URL {
         var components = components(scheme: "ws")
         components.path = "/v1/events"
-        components.percentEncodedQuery =
-            "token=" + (token.addingPercentEncoding(withAllowedCharacters: .urlQueryValueAllowed) ?? "")
         return components.url!
     }
 
@@ -43,12 +42,6 @@ public struct HubEndpoint: Sendable, Equatable, Hashable {
         components.port = port
         return components
     }
-}
-
-extension CharacterSet {
-    /// Unreserved characters (RFC 3986): everything else in a query value is percent-encoded.
-    static let urlQueryValueAllowed = CharacterSet(
-        charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
 }
 
 /// A Hub found on the network (or typed in by hand).
@@ -74,6 +67,36 @@ public struct HubSettings: Sendable, Equatable {
         self.manualHost = manualHost
         self.port = port
         self.token = token
+    }
+}
+
+public enum SettingsEditError: Error, Sendable, Equatable {
+    /// The host or port changed but no new token was entered: the saved token is never sent to a
+    /// different Hub without the user typing it again.
+    case tokenRequired
+}
+
+extension HubSettings {
+    /// Whether a token is saved. Settings shows only this, never the token itself.
+    public var hasToken: Bool { token != nil }
+
+    /// Applies what the user entered in Settings. `host` blank means Bonjour discovery. An empty
+    /// `newToken` keeps the saved token, but only if the host and port are unchanged; otherwise
+    /// the token must be re-entered (`.tokenRequired`). With no saved token, an empty
+    /// `newToken` just leaves it unset.
+    public func applyingEdit(
+        host: String, port: Int, newToken: String
+    ) -> Result<HubSettings, SettingsEditError> {
+        let trimmedHost = host.trimmingCharacters(in: .whitespacesAndNewlines)
+        let newHost = trimmedHost.isEmpty ? nil : trimmedHost
+        let trimmedToken = newToken.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedToken.isEmpty {
+            return .success(HubSettings(manualHost: newHost, port: port, token: trimmedToken))
+        }
+        if token != nil && (newHost != manualHost || port != self.port) {
+            return .failure(.tokenRequired)
+        }
+        return .success(HubSettings(manualHost: newHost, port: port, token: token))
     }
 }
 

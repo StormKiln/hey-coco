@@ -76,17 +76,35 @@ def ws_app(settings):
     return app
 
 
-def test_ws_accepts_query_token(settings):
+def test_ws_accepts_bearer_header(settings):
     with TestClient(ws_app(settings)) as c:
-        with c.websocket_connect(f"/test-ws?token={TEST_TOKEN}") as ws:
+        with c.websocket_connect("/test-ws", headers=AUTH) as ws:
             assert ws.receive_json() == {"hello": True}
 
 
-@pytest.mark.parametrize("query", ["", "?token=wrong", "?token="])
-def test_ws_rejects_bad_token(settings, query):
+@pytest.mark.parametrize(
+    "headers",
+    [
+        {},
+        {"Authorization": "Bearer wrong"},
+        {"Authorization": "Bearer "},
+        {"Authorization": TEST_TOKEN},
+        {"Authorization": f"Basic {TEST_TOKEN}"},
+    ],
+)
+def test_ws_rejects_missing_or_bad_header(settings, headers):
     with TestClient(ws_app(settings)) as c:
         with pytest.raises(WebSocketDisconnect) as exc:
-            with c.websocket_connect(f"/test-ws{query}"):
+            with c.websocket_connect("/test-ws", headers=headers):
+                pass
+        assert exc.value.code == 1008
+
+
+def test_ws_rejects_query_token_without_header(settings):
+    """The token must never travel in the URL (it ends up in access logs)."""
+    with TestClient(ws_app(settings)) as c:
+        with pytest.raises(WebSocketDisconnect) as exc:
+            with c.websocket_connect(f"/test-ws?token={TEST_TOKEN}"):
                 pass
         assert exc.value.code == 1008
 

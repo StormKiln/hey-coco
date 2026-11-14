@@ -1,12 +1,14 @@
 """Shared LAN token auth.
 
-HTTP: ``Authorization: Bearer <token>`` on everything except ``GET /healthz``.
-WebSocket: ``?token=<token>`` query parameter.
+``Authorization: Bearer <token>`` on everything except ``GET /healthz``, including the
+WebSocket upgrade request. The token is never accepted in the URL (query strings end up in
+access logs).
 """
 
 import hmac
 
 from fastapi import Request, WebSocket, status
+from starlette.datastructures import Headers
 
 from coco_hub.errors import HubError
 from coco_hub.settings import Settings
@@ -30,21 +32,24 @@ def _unauthorized() -> HubError:
     )
 
 
+def bearer_matches(settings: Settings, headers: Headers) -> bool:
+    """True if ``headers`` carry ``Authorization: Bearer <token>`` with the shared token."""
+    scheme, _, credentials = headers.get("authorization", "").partition(" ")
+    return scheme.lower() == "bearer" and token_matches(settings, credentials.strip())
+
+
 async def require_token(request: Request) -> None:
     """FastAPI dependency: reject the request unless it carries the bearer token."""
-    scheme, _, credentials = request.headers.get("authorization", "").partition(" ")
-    if scheme.lower() != "bearer" or not token_matches(
-        request.app.state.settings, credentials.strip()
-    ):
+    if not bearer_matches(request.app.state.settings, request.headers):
         raise _unauthorized()
 
 
 async def authorize_websocket(websocket: WebSocket) -> bool:
-    """Check ``?token=``; on failure close with 1008 and return False.
+    """Check the upgrade request's bearer header; on failure close with 1008 and return False.
 
     Call before ``websocket.accept()``.
     """
-    if token_matches(websocket.app.state.settings, websocket.query_params.get("token")):
+    if bearer_matches(websocket.app.state.settings, websocket.headers):
         return True
     await websocket.close(code=WS_POLICY_VIOLATION, reason="unauthorized")
     return False

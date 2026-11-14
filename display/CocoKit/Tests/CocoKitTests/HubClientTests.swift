@@ -130,6 +130,17 @@ extension Data {
         #expect(lastRequest?.url?.path == "/v1/timers/t_7f3a/dismiss")
     }
 
+    @Test func diagnosticsDecodesFixtureAndSendsBearer() async throws {
+        serve("diagnostics")
+        let diagnostics = try await client.diagnostics()
+        #expect(diagnostics == (try Fixtures.decode(HubDiagnostics.self, "diagnostics")))
+        #expect(diagnostics.utterances.count == 4)
+        let sent = try #require(lastRequest)
+        #expect(sent.httpMethod == "GET")
+        #expect(sent.url?.path == "/v1/diagnostics")
+        #expect(sent.value(forHTTPHeaderField: "Authorization") == "Bearer tok")
+    }
+
     @Test func cancelTimerDeletes() async throws {
         serve("timer_cancelled")
         let timer = try await client.cancelTimer(id: "t_7f3a")

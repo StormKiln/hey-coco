@@ -24,6 +24,10 @@ extension AppModel: ConversationHost {
             Task { await timerStore.stopAlarms() }
         case .mediaPause, .mediaResume, .mediaNext, .mediaStop, .volumeSet, .volumeChange:
             media.perform(command)
+        case .screenWake:
+            night.wake()
+        case .screenSleep:
+            night.sleepNow()
         default:
             break
         }

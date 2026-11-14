@@ -48,6 +48,9 @@ public final class ConversationController {
     static let unauthorizedMessage = "Coco Hub needs a valid token. Check Settings."
     static let hubFailedMessage = "Sorry, something went wrong at the Coco Hub."
     static let didNotHearMessage = "Sorry, I couldn't hear that."
+    /// Spoken once if the Hub hasn't answered `oneMomentDelay` after the transcript was sent.
+    public static let oneMomentMessage = "One moment."
+    public static let oneMomentDelay: Duration = .milliseconds(1500)
 
     public private(set) var state: ConversationState = .idle
 
@@ -60,6 +63,10 @@ public final class ConversationController {
     @ObservationIgnored private var run: Task<Void, Never>?
     /// Bumped on every start/cancel; a run only touches state while its id is current.
     @ObservationIgnored private var runID = 0
+    /// The pending "One moment." while the Hub is thinking.
+    @ObservationIgnored private var oneMoment: Task<Void, Never>?
+    /// True once "One moment." has started: the reply waits for it instead of cutting it off.
+    @ObservationIgnored private var oneMomentSpeaking = false
 
     /// - Parameter messageHold: how long an error stays on screen before returning to idle.
     public init(
@@ -126,6 +133,8 @@ public final class ConversationController {
     private func stopRun() {
         runID += 1
         run?.cancel()
+        oneMoment?.cancel()
+        oneMoment = nil
         recognizer.cancel()
         synthesizer.stop()
     }
@@ -173,10 +182,13 @@ public final class ConversationController {
             context: UtteranceContext(
                 view: host.currentView.viewType ?? .idle, alarmRinging: host.alarmRinging,
                 mediaPlaying: host.mediaPlaying))
+        startOneMoment(id)
         let action: Action
         do throws(HubError) {
             action = try await host.postUtterance(request)
+            await endOneMoment(id)
         } catch {
+            await endOneMoment(id)
             guard isCurrent(id) else { return }
             await fail(id, message: Self.message(for: error), speak: true)
             return
@@ -192,6 +204,30 @@ public final class ConversationController {
             guard isCurrent(id) else { return }
         }
         finish(id)
+    }
+
+    /// Says "One moment." once if the Hub is still thinking after `oneMomentDelay`. The request
+    /// keeps going; the HTTP timeout still decides when to give up.
+    private func startOneMoment(_ id: Int) {
+        oneMomentSpeaking = false
+        oneMoment = Task { [weak self, sleep] in
+            do { try await sleep(Self.oneMomentDelay) } catch { return }
+            guard let self, self.isCurrent(id), case .thinking = self.state else { return }
+            self.oneMomentSpeaking = true
+            await self.synthesizer.speak(Self.oneMomentMessage)
+        }
+    }
+
+    /// The Hub answered: drop a pending "One moment.", or let one already being said finish.
+    private func endOneMoment(_ id: Int) async {
+        guard isCurrent(id), let task = oneMoment else { return }
+        oneMoment = nil
+        if oneMomentSpeaking {
+            await task.value
+        } else {
+            task.cancel()
+        }
+        oneMomentSpeaking = false
     }
 
     private func fail(_ id: Int, message: String, speak: Bool) async {

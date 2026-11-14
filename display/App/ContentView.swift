@@ -40,6 +40,8 @@ struct ContentView: View {
         .sheet(isPresented: $showingDiagnostics) { DiagnosticsSheet() }
         .environment(\.openDiagnostics, OpenDiagnosticsAction { showingDiagnostics = true })
         .conversationLayer(model: model)
+        // Below the alarm: a ringing timer shows (and wakes the screen) even at night (#24).
+        .nightMode(model: model)
         // Topmost: a ringing timer covers every screen state (#18).
         .overlay { AlarmOverlay().animation(.default, value: model.timerStore.isAlarmRinging) }
         .onChange(of: model.timerStore.isAlarmRinging) { _, ringing in

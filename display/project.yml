@@ -45,6 +45,9 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.stormkiln.heycoco.display
         TARGETED_DEVICE_FAMILY: "2"
+        # Runs on Apple silicon Macs as "Designed for iPad" (#25); not Mac Catalyst.
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: YES
+        SUPPORTS_MACCATALYST: NO
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"

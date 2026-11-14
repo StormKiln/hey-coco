@@ -22,6 +22,8 @@ public final class IdleModel {
     public private(set) var lastUpdated: Date?
     public private(set) var lastFetchFailed = false
     @ObservationIgnored private var attempted = false
+    /// Called with every successful fetch (night mode follows the schedule and timezone).
+    @ObservationIgnored public var onUpdate: (@MainActor (IdleInfo) -> Void)?
 
     @ObservationIgnored private let refreshInterval: Duration
     @ObservationIgnored private let retryInterval: Duration
@@ -82,6 +84,7 @@ public final class IdleModel {
             info = fresh
             lastUpdated = now()
             lastFetchFailed = false
+            onUpdate?(fresh)
         } catch {
             lastFetchFailed = true
         }

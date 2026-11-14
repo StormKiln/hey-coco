@@ -38,6 +38,8 @@ public final class AppModel {
     public let idleModel: IdleModel
     /// What's playing, media and volume commands (#33, #35, #39).
     public let media: MediaCenter
+    /// Dim / dark on the Hub's night schedule (#24).
+    public let night: NightModeController
 
     @ObservationIgnored private let config: any HubConfigStore
     @ObservationIgnored private let discovery: any HubDiscovery
@@ -54,7 +56,8 @@ public final class AppModel {
         makeEvents: @escaping @Sendable (HubEndpoint) -> AsyncStream<EventStreamUpdate>,
         timerStore: TimerStore? = nil,
         idleModel: IdleModel? = nil,
-        media: MediaCenter? = nil
+        media: MediaCenter? = nil,
+        night: NightModeController? = nil
     ) {
         self.config = config
         self.discovery = discovery
@@ -64,6 +67,8 @@ public final class AppModel {
         self.timerStore = timerStore ?? TimerStore()
         self.idleModel = idleModel ?? IdleModel()
         self.media = media ?? MediaCenter()
+        self.night = night ?? NightModeController(brightness: FakeScreenBrightness())
+        self.idleModel.onUpdate = { [weak self] info in self?.night.apply(info) }
         self.timerStore.onTimersChanged = { [weak self] in self?.timersChanged() }
         self.media.onFinished = { [weak self] kind in self?.mediaFinished(kind) }
     }
@@ -157,6 +162,7 @@ public final class AppModel {
             lastEvent = event
             timerStore.apply(event)
             mediaEventReceived(event)
+            if case .settingsChanged(let schedule) = event.kind { night.update(night: schedule) }
         case .waiting(_, let reason):
             connection = .unreachable(reason: reason)
             timerStore.hubDisconnected()
@@ -233,7 +239,16 @@ extension AppModel {
             timerStore: TimerStore(
                 persistence: FileTimerPersistence.standard(),
                 scheduler: LocalAlarmScheduler.live(),
-                player: AudioAlarmPlayer()))
+                player: AudioAlarmPlayer()),
+            night: NightModeController(brightness: liveScreenBrightness()))
+    }
+
+    private static func liveScreenBrightness() -> any ScreenBrightness {
+        #if os(iOS)
+            UIKitScreenBrightness()
+        #else
+            FakeScreenBrightness()
+        #endif
     }
 }
 

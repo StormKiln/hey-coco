@@ -90,3 +90,13 @@ def test_lifespan_refreshes_weather_in_background(home, clock, fake_open_meteo):
 def test_app_registers_weather_service(settings):
     app = create_app(settings)
     assert isinstance(app.state.services["weather"], WeatherService)
+
+
+def test_idle_answers_fast_when_the_weather_upstream_hangs(home, clock, fake_open_meteo):
+    fake_open_meteo.hang = True  # internet "down" as a black hole: requests never return
+    service = WeatherService(home, transport=fake_open_meteo.transport, clock=clock)
+    with TestClient(create_app(home, clock=clock, weather=service)) as client:
+        started = time.monotonic()
+        info = idle(client)
+        assert time.monotonic() - started < 1.0
+    assert info.weather is None

@@ -14,7 +14,7 @@ Kitchen assistant replacing a Google Home. Read the design first:
 - `assets/` — sound library and other media.
 
 ## Commands
-Always use the Makefile (`make help`). CI runs `make hub-lint`, `make hub-test`,
+Always use the Makefile (`make help`). CI runs `make hub-lint`, `make hub-test`, `make hub-resilience`,
 `make kit-test`, `make display-build`.
 
 ## Rules

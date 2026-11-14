@@ -29,6 +29,9 @@ packages = ["src/coco_hub"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Resilience checks run the real Hub as a subprocess and take ~a minute: `make hub-resilience`.
+addopts = "-m 'not resilience'"
+markers = ["resilience: runs the real Hub as a subprocess (slow; make hub-resilience)"]
 
 [tool.ruff]
 line-length = 100

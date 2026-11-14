@@ -17,6 +17,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
       - run: make hub-lint
       - run: make hub-test
+      - run: make hub-resilience
 
   display:
     runs-on: macos-latest

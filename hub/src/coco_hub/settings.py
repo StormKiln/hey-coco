@@ -103,6 +103,12 @@ class Timers(BaseModel):
     long ago; older ones are dismissed silently."""
 
 
+class Weather(BaseModel):
+    forecast_url: str = "https://api.open-meteo.com/v1/forecast"
+    """Open-Meteo forecast endpoint. Only changed by tests (pointed at a dead port to simulate
+    the internet being down)."""
+
+
 class Discovery(BaseModel):
     enabled: bool = True
     name: str = "Coco Hub"
@@ -158,6 +164,7 @@ class Settings(BaseSettings):
     spotify: Spotify = Spotify()
     discovery: Discovery = Discovery()
     timers: Timers = Timers()
+    weather: Weather = Weather()
     diagnostics: Diagnostics = Diagnostics()
 
     @field_validator("data_dir", "sounds_dir", "log_dir")

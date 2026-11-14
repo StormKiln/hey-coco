@@ -7,6 +7,7 @@ Fixtures in ``tests/fixtures/open_meteo/``:
 - ``subzero.json``: the metric recording 10 degrees colder, with snow 12:00-16:00 on 11-15.
 """
 
+import asyncio
 import json
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
@@ -33,11 +34,19 @@ class FakeOpenMeteo:
         self.name = name
         self.fail: bool | int = False
         """False, True (connection error) or an HTTP status code to return."""
+        self.hang = False
+        """True: requests wait until ``release()`` (a black-holed upstream)."""
+        self._released = asyncio.Event()
         self.requests: list[httpx.Request] = []
         self.transport = httpx.MockTransport(self._handle)
 
-    def _handle(self, request: httpx.Request) -> httpx.Response:
+    def release(self) -> None:
+        self._released.set()
+
+    async def _handle(self, request: httpx.Request) -> httpx.Response:
         self.requests.append(request)
+        if self.hang:
+            await self._released.wait()
         if self.fail is True:
             raise httpx.ConnectError("offline", request=request)
         if self.fail:

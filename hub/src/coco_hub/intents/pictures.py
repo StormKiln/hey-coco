@@ -4,7 +4,14 @@ Handlers use the ``PictureService`` in ``ctx.services["pictures"]``, which also 
 last result for "next" (one Display at a time).
 """
 
-from coco_hub.intents.engine import Intent, IntentContext, IntentRegistry, Match, Reply
+from coco_hub.intents.engine import (
+    Intent,
+    IntentContext,
+    IntentRegistry,
+    LlmSlot,
+    Match,
+    Reply,
+)
 from coco_hub.pictures.commons import PictureFetchError, PictureResult, PictureService
 from coco_hub.protocol import PictureView, UtteranceRequest
 
@@ -94,11 +101,16 @@ def register(registry: IntentRegistry) -> None:
             "picture.show",
             patterns=_SHOW_PATTERNS,
             handler=picture_show,
-            description=(
-                "Show pictures (photos) of a thing the user names (an animal, vehicle, place, "
-                "food, object), e.g. 'show me a fire truck', 'what does an axolotl look like'. "
-                "Slot query: the thing to show, without articles, e.g. 'red panda'."
-            ),
+            description=('show a photo or picture of a thing; also "what does an X look like"'),
+            llm_slots={
+                "query": LlmSlot(
+                    required=True,
+                    hint=(
+                        'picture query is just the thing to show, without "a" or "the": '
+                        '"pull up a photo of the eiffel tower" -> "eiffel tower".'
+                    ),
+                )
+            },
         )
     )
     registry.register(
@@ -109,6 +121,7 @@ def register(registry: IntentRegistry) -> None:
             # Beats other "next" intents (e.g. media) while pictures are on screen.
             priority=1,
             applies=lambda c: c.view == "picture",
-            description="Show the next picture of the ones on screen ('next one', 'another').",
+            # Offered to Qwen; the fallback refuses it unless pictures are on screen.
+            description="another or the next picture, only while pictures are on screen",
         )
     )

@@ -101,8 +101,9 @@ def test_descriptions_and_slots_for_the_fallback(registry):
     play, again = registry.get("sound.play"), registry.get("sound.again")
     assert play is not None and again is not None
     assert play.slot_names == ("name",)
-    assert "sound" in play.description.lower() and "name" in play.description
-    assert again.description
+    assert "noise" in play.description.lower()
+    assert play.offered_to_llm and play.llm_slots["name"].required
+    assert again.description and again.offered_to_llm
 
 
 def test_every_sound_word_alias_is_a_known_alias(library):

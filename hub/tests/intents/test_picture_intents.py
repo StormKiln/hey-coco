@@ -95,8 +95,9 @@ def test_descriptions_and_slots_for_the_fallback(registry):
     show, nxt = registry.get("picture.show"), registry.get("picture.next")
     assert show is not None and nxt is not None
     assert show.slot_names == ("query",)
-    assert "picture" in show.description.lower() and "query" in show.description
-    assert nxt.description
+    assert "picture" in show.description.lower()
+    assert show.offered_to_llm and show.llm_slots["query"].required
+    assert nxt.description and nxt.offered_to_llm
 
 
 @pytest.mark.parametrize(

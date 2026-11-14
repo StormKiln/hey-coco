@@ -329,3 +329,27 @@ def test_looks_like_question(text, question):
 
 def test_schema_sent_to_ollama_is_json():
     json.dumps(fallback(FakeOllama()).catalog.schema)
+
+
+async def test_slots_converted_to_empty_are_dropped(ctx):
+    seen = {}
+
+    def handler(match, req, c):
+        seen.update(match.slots)
+        return Reply(say="ok")
+
+    fb = fallback(FakeOllama(reply("thing.do", {"label": "junk", "n": 2})))
+    fb.engine.registry.register(
+        Intent(
+            "thing.do",
+            patterns=[r"do (?P<label>\w+) (?P<n>\d+)"],
+            handler=handler,
+            description="do a thing",
+            llm_slots={
+                "label": LlmSlot(to_slot=lambda v: "" if v == "junk" else v),
+                "n": LlmSlot(type="integer"),
+            },
+        )
+    )
+    await run(fb, "please do the thing twice", ctx)
+    assert seen == {"n": "2"}

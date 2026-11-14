@@ -9,10 +9,18 @@ cancel / add time), else the only active timer; with two or more, Coco asks whic
 """
 
 import math
+import re
 from datetime import datetime
 
-from coco_hub.intents.durations import DURATION, parse_duration
-from coco_hub.intents.engine import Intent, IntentContext, IntentRegistry, Match, Reply
+from coco_hub.intents.durations import DURATION, llm_duration_slot, parse_duration
+from coco_hub.intents.engine import (
+    Intent,
+    IntentContext,
+    IntentRegistry,
+    LlmSlot,
+    Match,
+    Reply,
+)
 from coco_hub.protocol import AlarmStop, Timer, TimersView, UtteranceRequest
 from coco_hub.timers.service import (
     MAX_TIMER_S,
@@ -170,9 +178,21 @@ def list_timers(match: Match, request: UtteranceRequest, ctx: IntentContext) -> 
     return _say(f"You have {_plural(len(active), 'timer')}: {listed}.")
 
 
+_ALL_WORDS = re.compile(r"\b(?:all|every|everything|both)\b")
+
+
+def _cancel_all(match: Match) -> bool:
+    """Rules capture the word ("all", "every", "timers"); Qwen sends "true"/"false", and its
+    "true" only counts if the person actually said all/every/both."""
+    value = match.slots.get("all", "false")
+    if value == "true":
+        return bool(_ALL_WORDS.search(match.text))
+    return value != "false"
+
+
 def cancel(match: Match, request: UtteranceRequest, ctx: IntentContext) -> Reply:
     service = _service(ctx)
-    if "all" in match.slots:
+    if _cancel_all(match):
         cancelled = service.cancel_all()
         if not cancelled:
             return _say("You don't have any timers.")
@@ -216,6 +236,27 @@ def alarm_stop(match: Match, request: UtteranceRequest, ctx: IntentContext) -> R
 
 # --- registration ------------------------------------------------------------------------
 
+# For the Qwen fallback. The name hint comes from the spike: qwen3:8b made up names like
+# "countdown" or "one" without it, and still sometimes does, so such names are dropped here.
+_NOT_A_NAME = frozenset({"1", "it", "this", "that", "countdown", "count down", "alarm"})
+
+
+def _qwen_timer_name(name: str) -> str:
+    """Qwen's timer name, or "" (dropped) if it is filler or just the duration."""
+    normalized = normalize_timer_name(name)
+    if normalized is None or normalized in _NOT_A_NAME or parse_duration(normalized):
+        return ""
+    return name
+
+
+_LLM_NAME = LlmSlot(
+    to_slot=_qwen_timer_name,
+    hint=(
+        'timer name is the food or thing being timed ("eggs", "bread"). Never use words like '
+        '"timer", "countdown", "one" or "it" as a name; leave name out.'
+    ),
+)
+
 _CANCEL = r"(?:cancel|stop|delete|remove|clear|kill|end|turn off|switch off|get rid of|scrap)"
 _DROP = r"(?:cancel|delete|scrap|get rid of)"
 _THANKS = r"(?: (?:thanks|thank you|coco|i got it|got it))*"
@@ -239,7 +280,8 @@ def register(registry: IntentRegistry) -> None:
                 rf"(?P<duration>{_D}) (?:on|for) {_THE}(?P<name>{_NAME})",
             ],
             handler=create,
-            description="Start a countdown timer, optionally named",
+            description='start a countdown for a length of time, including "remind me in X to Y"',
+            llm_slots={"name": _LLM_NAME, "duration_s": llm_duration_slot()},
         )
     )
     registry.register(
@@ -259,7 +301,8 @@ def register(registry: IntentRegistry) -> None:
                 rf"how is {_THE}(?P<name>{_NAME}) timer (?:doing|going)",
             ],
             handler=query,
-            description="Say how long is left on a timer",
+            description="how long is left on a timer, or whether the food being timed is done",
+            llm_slots={"name": _LLM_NAME},
         )
     )
     registry.register(
@@ -274,7 +317,7 @@ def register(registry: IntentRegistry) -> None:
                 r"(?:my |the |all )?timers",
             ],
             handler=list_timers,
-            description="List the running timers",
+            description="which timers are running, or how many",
         )
     )
     registry.register(
@@ -288,7 +331,13 @@ def register(registry: IntentRegistry) -> None:
                 rf"{_CANCEL} {_THE}(?P<all>timers)",
             ],
             handler=cancel,
-            description="Cancel a timer by name, or all timers",
+            description=(
+                "stop or delete a running timer; all=true only when they say all/every timer"
+            ),
+            llm_slots={
+                "name": _LLM_NAME,
+                "all": LlmSlot(type="boolean"),
+            },
         )
     )
     registry.register(
@@ -308,7 +357,8 @@ def register(registry: IntentRegistry) -> None:
                 rf"(?:extend|increase) {_THE}(?:(?P<name>{_NAME}) )?timer by (?P<duration>{_D})",
             ],
             handler=add_time,
-            description="Add time to a running or ringing timer",
+            description="add more time to an existing timer",
+            llm_slots={"name": _LLM_NAME, "duration_s": llm_duration_slot()},
         )
     )
     registry.register(
@@ -328,6 +378,8 @@ def register(registry: IntentRegistry) -> None:
             handler=alarm_stop,
             priority=10,
             applies=lambda c: c.alarm_ringing,
-            description="Stop the ringing alarm (only while one is ringing)",
+            # Offered to Qwen ("please make it stop" while ringing); the fallback refuses it
+            # when nothing is ringing.
+            description="silence a ringing timer alarm or beeping",
         )
     )

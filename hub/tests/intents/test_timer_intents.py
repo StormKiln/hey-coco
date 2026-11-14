@@ -5,7 +5,7 @@ import pytest
 from coco_hub import db
 from coco_hub.events import EventBus
 from coco_hub.intents import builtin, timers
-from coco_hub.intents.engine import IntentContext, IntentRegistry, RulesEngine
+from coco_hub.intents.engine import IntentContext, IntentRegistry, Match, RulesEngine
 from coco_hub.intents.normalize import normalize
 from coco_hub.protocol import Action, UtteranceContext, UtteranceRequest
 from coco_hub.timers.service import TimerService
@@ -269,6 +269,44 @@ async def test_cancel_all(say, service):
     service.create("eggs", 7 * M)
     assert (await say("cancel all timers")).say == "All 2 timers cancelled."
     assert service.list_active() == []
+
+
+async def qwen_cancel(registry, service, settings, clock, text: str, llm_slots: dict) -> Action:
+    intent = registry.get("timer.cancel")
+    slots = dict(intent.llm_slots[k].handler_slot(k, v) for k, v in llm_slots.items())
+    ctx = IntentContext(settings=settings, clock=clock, services={"timers": service})
+    request = UtteranceRequest(text=text, source="voice", context=QUIET)
+    match = Match("timer.cancel", slots, normalize(text))
+    return await RulesEngine(registry).dispatch(match, request, ctx, matched_by="qwen")
+
+
+@pytest.mark.parametrize(
+    ("text", "llm_slots"),
+    [
+        # Qwen fills a typed `all` slot; False must not be read as "cancel everything".
+        ("forget the pasta", {"name": "pasta", "all": False}),
+        # ...and True only counts if the person said so (qwen3:8b did this in the eval).
+        ("forget about the pasta timer", {"name": "pasta", "all": True}),
+    ],
+)
+async def test_qwen_cancel_cancels_only_the_named_timer(
+    registry, service, settings, clock, text, llm_slots
+):
+    service.create("pasta", 10 * M)
+    service.create("eggs", 7 * M)
+    action = await qwen_cancel(registry, service, settings, clock, text, llm_slots)
+    assert action.say == "Pasta timer cancelled."
+    assert [t.name for t in service.list_active()] == ["eggs"]
+
+
+@pytest.mark.parametrize(
+    "text", ["clear out every single timer", "get rid of all of them", "bin both timers"]
+)
+async def test_qwen_cancel_all_when_said(registry, service, settings, clock, text):
+    service.create("pasta", 10 * M)
+    service.create("eggs", 7 * M)
+    action = await qwen_cancel(registry, service, settings, clock, text, {"all": True})
+    assert action.say == "All 2 timers cancelled."
 
 
 async def test_cancel_unknown(say, service):

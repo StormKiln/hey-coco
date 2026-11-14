@@ -61,6 +61,12 @@ struct ScreenView: View {
             TimersScreen()
         case .answer(let text):
             AnswerScreen(text: text)
+        case .picture(let payload):
+            PictureScreen(payload: payload)
+        case .sound(let payload):
+            SoundScreen(payload: payload)
+        case .youtube(let videoID, let title):
+            YouTubeScreen(videoID: videoID, title: title)
         default:
             Text(view.type)
                 .font(.system(size: 48, weight: .semibold, design: .rounded))

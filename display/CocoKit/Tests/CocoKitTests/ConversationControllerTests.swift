@@ -84,6 +84,16 @@ private func action(
         #expect(h.host.requests.first?.context.alarmRinging == true)
     }
 
+    @Test func requestReportsPlayingMediaFromHost() async {
+        let h = Harness()
+        h.host.mediaPlaying = .youtube
+        h.host.result = .success(action(say: nil, view: nil, commands: [.mediaPause(target: .youtube)]))
+        await h.startListening()
+        h.recognizer.hear(.final("pause"))
+        await h.controller.waitUntilFinished()
+        #expect(h.host.requests.first?.context.mediaPlaying == .youtube)
+    }
+
     @Test func commandsRunBeforeTheViewAndTheViewBeforeSpeech() async {
         let h = Harness()
         h.host.result = .success(

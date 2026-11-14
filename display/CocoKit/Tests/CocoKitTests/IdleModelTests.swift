@@ -121,7 +121,9 @@ private struct ParkedSleeper: Sleeper {
         let hub = FakeIdleHub(.failure(.unreachable("down")))
         let model = IdleModel(now: TestClock(fixtureNow).function, sleeper: ParkedSleeper())
         model.connect(hub)
-        #expect(await eventually { hub.callCount == 1 })
+        // Wait for the failure to be recorded, not just for the call: `reconnected` only
+        // refetches once `lastFetchFailed` is set.
+        #expect(await eventually { model.lastFetchFailed })
         hub.set(.success(idle))
         model.reconnected(hub)
         #expect(await eventually { model.info == idle })

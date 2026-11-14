@@ -8,6 +8,9 @@ from coco_hub.weather.service import WeatherService
 router = APIRouter()
 
 IDLE_HOURS = 12
+WEATHER_WAIT_S = 0.5
+"""The idle screen never waits on the internet longer than this; it shows the cached
+forecast (or none) and picks up the new one on its next poll."""
 
 
 @router.get("/idle", response_model=IdleInfo)
@@ -16,7 +19,7 @@ async def idle(request: Request) -> IdleInfo:
     settings = state.settings
     now = state.clock()
     weather: WeatherService | None = state.services.get("weather")
-    snapshot = await weather.get() if weather is not None else None
+    snapshot = await weather.get(max_wait=WEATHER_WAIT_S) if weather is not None else None
     return IdleInfo(
         server_time=now,
         timezone=settings.timezone,

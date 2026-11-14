@@ -10,7 +10,7 @@ PLIST_DEST := $(HOME)/Library/LaunchAgents/$(SERVICE_LABEL).plist
 HUB_LOG_DIR := $(HOME)/Library/Logs/CocoHub
 LAUNCH_DOMAIN = gui/$$(id -u)
 
-.PHONY: help hub-sync hub-run hub-test hub-lint hub-eval hub-fmt hub-render-plist hub-install-service hub-uninstall-service hub-logs hub-logs-launchd hub-diag spotify-login sounds-build display-gen display-build display-build-mac display-run-mac display-test kit-test test lint
+.PHONY: help hub-sync hub-run hub-test hub-resilience hub-lint hub-eval hub-fmt hub-render-plist hub-install-service hub-uninstall-service hub-logs hub-logs-launchd hub-diag spotify-login sounds-build display-gen display-build display-build-mac display-run-mac display-test kit-test test lint
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-18s %s\n", $$1, $$2}'
@@ -23,6 +23,9 @@ hub-run: hub-sync ## Run the Hub locally with reload (hub/config.local.toml + CO
 
 hub-test: hub-sync ## Run Hub tests
 	cd hub && uv run pytest -q
+
+hub-resilience: hub-sync ## Run the real Hub as a subprocess: kills, restarts, internet/Ollama down (~1 min)
+	cd hub && uv run pytest -q -m resilience tests/resilience
 
 hub-lint: hub-sync ## Lint and format-check the Hub
 	cd hub && uv run ruff check . && uv run ruff format --check .

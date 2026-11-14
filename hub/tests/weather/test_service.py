@@ -100,3 +100,47 @@ async def test_imperial_settings_request_fahrenheit(home, make_service):
     assert snapshot.forecast.unit == "F"
     assert fake.requests[0].url.params["temperature_unit"] == "fahrenheit"
     await service.aclose()
+
+
+async def test_forecast_url_comes_from_settings(home, clock, fake_open_meteo):
+    from coco_hub.weather.service import WeatherService
+
+    custom = home.model_copy(
+        update={"weather": home.weather.model_copy(update={"forecast_url": "http://wx.test/f"})}
+    )
+    service = WeatherService(custom, transport=fake_open_meteo.transport, clock=clock)
+    await service.get()
+    assert str(fake_open_meteo.requests[0].url).startswith("http://wx.test/f?")
+    await service.aclose()
+
+
+async def test_get_does_not_wait_long_for_a_hanging_fetch(make_service, fake_open_meteo):
+    fake_open_meteo.hang = True
+    service = make_service()
+    started = asyncio.get_running_loop().time()
+    assert await service.get(max_wait=0.05) is None
+    assert asyncio.get_running_loop().time() - started < 0.5
+    # The fetch carries on in the background and fills the cache once it answers.
+    fake_open_meteo.release()
+    snapshot = await service.refresh()
+    assert snapshot is not None and not snapshot.stale
+    assert len(fake_open_meteo.requests) == 1  # refresh joined the in-flight fetch
+    await service.aclose()
+
+
+async def test_get_returns_the_old_forecast_while_a_slow_refresh_runs(
+    make_service, fake_open_meteo, clock
+):
+    service = make_service()
+    good = await service.get()
+    clock.advance(minutes=11)
+    fake_open_meteo.hang = True
+    assert await service.get(max_wait=0.05) is good
+    await service.aclose()
+
+
+async def test_aclose_cancels_a_hanging_fetch(make_service, fake_open_meteo):
+    fake_open_meteo.hang = True
+    service = make_service()
+    await service.get(max_wait=0.01)
+    await asyncio.wait_for(service.aclose(), timeout=1)

@@ -159,3 +159,15 @@ def test_example_config_alone_refuses_to_start(monkeypatch):
     monkeypatch.delenv("COCO_TOKEN", raising=False)
     with pytest.raises(ValidationError, match="token"):
         load_settings()
+
+
+def test_weather_forecast_url_defaults_to_open_meteo():
+    from coco_hub.weather.client import FORECAST_URL
+
+    assert Settings(token=TEST_TOKEN).weather.forecast_url == FORECAST_URL
+
+
+def test_weather_forecast_url_can_be_overridden_by_env(monkeypatch):
+    monkeypatch.setenv("COCO_TOKEN", TEST_TOKEN)
+    monkeypatch.setenv("COCO_WEATHER__FORECAST_URL", "http://127.0.0.1:9/v1/forecast")
+    assert load_settings().weather.forecast_url == "http://127.0.0.1:9/v1/forecast"

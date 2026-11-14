@@ -1,0 +1,9 @@
+{
+  "say": null,
+  "view": {
+    "type": "idle"
+  },
+  "commands": [],
+  "intent": "screen.home",
+  "matched_by": "rules"
+}

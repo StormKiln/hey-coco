@@ -1,0 +1,9 @@
+{
+  "text": "set a pasta timer for 10 minutes",
+  "source": "voice",
+  "context": {
+    "view": "idle",
+    "alarm_ringing": false,
+    "media_playing": null
+  }
+}

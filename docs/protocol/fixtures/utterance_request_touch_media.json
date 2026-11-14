@@ -1,0 +1,9 @@
+{
+  "text": "pause",
+  "source": "touch",
+  "context": {
+    "view": "youtube",
+    "alarm_ringing": false,
+    "media_playing": "youtube"
+  }
+}

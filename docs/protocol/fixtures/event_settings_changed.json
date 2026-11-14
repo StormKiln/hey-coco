@@ -1,0 +1,9 @@
+{
+  "type": "settings.changed",
+  "server_time": "2026-11-14T15:04:05Z",
+  "night": {
+    "start": "22:00",
+    "end": "06:00",
+    "dark_after_idle_s": 600
+  }
+}

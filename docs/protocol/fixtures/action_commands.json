@@ -1,0 +1,29 @@
+{
+  "say": null,
+  "view": null,
+  "commands": [
+    {
+      "type": "alarm.stop"
+    },
+    {
+      "type": "media.pause",
+      "target": "music"
+    },
+    {
+      "type": "volume.set",
+      "level": 40
+    },
+    {
+      "type": "volume.change",
+      "delta": -10
+    },
+    {
+      "type": "screen.wake"
+    },
+    {
+      "type": "screen.sleep"
+    }
+  ],
+  "intent": "media.pause",
+  "matched_by": "rules"
+}

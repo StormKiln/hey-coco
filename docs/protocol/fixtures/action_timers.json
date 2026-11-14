@@ -1,0 +1,9 @@
+{
+  "say": "Pasta timer set for 10 minutes.",
+  "view": {
+    "type": "timers"
+  },
+  "commands": [],
+  "intent": "timer.create",
+  "matched_by": "rules"
+}

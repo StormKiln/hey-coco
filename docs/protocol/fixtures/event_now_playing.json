@@ -1,0 +1,12 @@
+{
+  "type": "now_playing",
+  "server_time": "2026-11-14T15:04:05Z",
+  "now_playing": {
+    "source": "spotify",
+    "title": "Here Comes the Sun",
+    "artist": "The Beatles",
+    "album": "Abbey Road",
+    "artwork_url": "https://i.scdn.co/image/ab67616d0000b273dc30583ba717007b00cceb25",
+    "is_playing": true
+  }
+}

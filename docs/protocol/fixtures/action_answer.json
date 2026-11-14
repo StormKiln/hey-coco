@@ -1,0 +1,10 @@
+{
+  "say": "A group of flamingos is called a flamboyance.",
+  "view": {
+    "type": "answer",
+    "text": "A group of flamingos is called a flamboyance."
+  },
+  "commands": [],
+  "intent": "general.answer",
+  "matched_by": "qwen"
+}

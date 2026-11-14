@@ -1,0 +1,9 @@
+{
+  "say": "Playing Abbey Road on Spotify.",
+  "view": {
+    "type": "now_playing"
+  },
+  "commands": [],
+  "intent": "music.play",
+  "matched_by": "rules"
+}

@@ -12,3 +12,5 @@ forecast; at night it goes dark and waits for the wake phrase.
 
 See the [design](docs/superpowers/specs/2026-11-14-hey-coco-design.md) and the
 [roadmap](docs/superpowers/plans/2026-11-14-hey-coco-roadmap.md). Run `make help` for commands.
+
+New to the setup? Follow the [kitchen kiosk setup guide](docs/kitchen-setup.md) (Mac Hub, then iPad).

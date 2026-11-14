@@ -1,7 +1,16 @@
 .DEFAULT_GOAL := help
 SIM_DEST ?= generic/platform=iOS Simulator
 
-.PHONY: help hub-sync hub-run hub-test hub-lint hub-fmt display-gen display-build display-test kit-test test lint
+# launchd agent for the Hub
+SERVICE_LABEL := com.stormkiln.coco-hub
+HUB_DIR := $(CURDIR)/hub
+UV_BIN ?= $(shell command -v uv)
+PLIST_TEMPLATE := hub/deploy/$(SERVICE_LABEL).plist.template
+PLIST_DEST := $(HOME)/Library/LaunchAgents/$(SERVICE_LABEL).plist
+HUB_LOG_DIR := $(HOME)/Library/Logs/CocoHub
+LAUNCH_DOMAIN = gui/$$(id -u)
+
+.PHONY: help hub-sync hub-run hub-test hub-lint hub-fmt hub-render-plist hub-install-service hub-uninstall-service hub-logs display-gen display-build display-test kit-test test lint
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-18s %s\n", $$1, $$2}'
@@ -9,8 +18,8 @@ help: ## List targets
 hub-sync: ## Install Hub dependencies
 	cd hub && uv sync
 
-hub-run: hub-sync ## Run the Hub locally with reload
-	cd hub && uv run uvicorn coco_hub.app:app --host 0.0.0.0 --port 8765 --reload
+hub-run: hub-sync ## Run the Hub locally with reload (hub/config.local.toml + COCO_* env)
+	cd hub && uv run python -m coco_hub --reload
 
 hub-test: hub-sync ## Run Hub tests
 	cd hub && uv run pytest -q
@@ -20,6 +29,33 @@ hub-lint: hub-sync ## Lint and format-check the Hub
 
 hub-fmt: hub-sync ## Auto-format the Hub
 	cd hub && uv run ruff format . && uv run ruff check --fix .
+
+hub-render-plist: ## Print the rendered launchd plist to stdout
+	@test -n "$(UV_BIN)" || { echo "uv not found; set UV_BIN=/path/to/uv" >&2; exit 1; }
+	@sed -e 's|@LABEL@|$(SERVICE_LABEL)|g' \
+		-e 's|@UV_DIR@|$(patsubst %/,%,$(dir $(UV_BIN)))|g' \
+		-e 's|@UV@|$(UV_BIN)|g' \
+		-e 's|@HUB_DIR@|$(HUB_DIR)|g' \
+		-e 's|@LOG_DIR@|$(HUB_LOG_DIR)|g' \
+		$(PLIST_TEMPLATE)
+
+hub-install-service: hub-sync ## Install + start the Hub launchd agent (starts at login, restarts on crash)
+	@test -f hub/config.local.toml || { echo "Create hub/config.local.toml first (see hub/config.example.toml)" >&2; exit 1; }
+	mkdir -p "$(HUB_LOG_DIR)" "$(dir $(PLIST_DEST))"
+	$(MAKE) -s hub-render-plist > "$(PLIST_DEST).tmp"
+	plutil -lint "$(PLIST_DEST).tmp"
+	mv "$(PLIST_DEST).tmp" "$(PLIST_DEST)"
+	-launchctl bootout $(LAUNCH_DOMAIN)/$(SERVICE_LABEL) 2>/dev/null
+	launchctl bootstrap $(LAUNCH_DOMAIN) "$(PLIST_DEST)"
+	@echo "Installed $(SERVICE_LABEL). Follow logs with: make hub-logs"
+
+hub-uninstall-service: ## Stop and remove the Hub launchd agent
+	-launchctl bootout $(LAUNCH_DOMAIN)/$(SERVICE_LABEL) 2>/dev/null
+	rm -f "$(PLIST_DEST)"
+
+hub-logs: ## Follow the Hub service logs
+	@mkdir -p "$(HUB_LOG_DIR)"
+	tail -n 100 -F "$(HUB_LOG_DIR)/hub.out.log" "$(HUB_LOG_DIR)/hub.err.log"
 
 display-gen: ## Generate the Xcode project from display/project.yml
 	cd display && xcodegen generate -q

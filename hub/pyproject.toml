@@ -5,6 +5,7 @@ description = "Coco Hub: the Mac-side brain of hey-coco"
 requires-python = ">=3.13"
 dependencies = [
     "fastapi>=0.115",
+    "httpx>=0.28",
     "ifaddr>=0.2",
     "pydantic>=2.9",
     "pydantic-settings>=2.6",

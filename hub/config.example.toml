@@ -1,0 +1,40 @@
+# Coco Hub settings. Copy to config.local.toml (gitignored) and fill in.
+# Any value can be overridden by env: COCO_<FIELD>, nested with "__",
+# e.g. COCO_TOKEN, COCO_PORT, COCO_NIGHT__START. COCO_CONFIG points at another file.
+
+# Shared LAN token: the Display sends it as "Authorization: Bearer <token>".
+# Generate one with: python3 -c 'import secrets; print(secrets.token_urlsafe(32))'
+token = "change-me"
+
+host = "0.0.0.0"
+port = 8765
+# data_dir = "~/Library/Application Support/CocoHub"
+
+timezone = "America/Toronto"
+units = "metric"          # "metric" | "imperial"
+
+[location]
+lat = 45.4215
+lon = -75.6972
+name = "Home"
+
+[night]
+start = "21:30"           # HH:MM, 24-hour, local time
+end = "06:30"
+dark_after_idle_s = 300
+
+[qwen]
+enabled = false
+model = "qwen3:8b"
+
+[discovery]
+enabled = true            # Bonjour _coco._tcp
+name = "Coco Hub"
+
+[keys]
+# youtube = ""
+
+[spotify]
+# client_id = ""
+# client_secret = ""
+# redirect_uri = ""

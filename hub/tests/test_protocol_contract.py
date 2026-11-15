@@ -70,7 +70,7 @@ def test_every_view_type_has_a_fixture():
 
 def test_every_event_type_has_a_fixture():
     seen = {json.loads(path.read_text())["type"] for path in FIXTURES.glob("event_*.json")}
-    expected = {"hello", "now_playing", "settings.changed"} | {
+    expected = {"hello", "now_playing", "settings.changed", "spotify.wake_requested"} | {
         f"timer.{kind}" for kind in ("created", "updated", "fired", "dismissed", "cancelled")
     }
     assert seen == expected
@@ -93,6 +93,20 @@ def test_commands_are_discriminated_by_type():
         p.ScreenWake,
         p.ScreenSleep,
     ]
+
+
+def test_music_play_command_decodes():
+    action = p.Action.model_validate_json((FIXTURES / "action_music_play.json").read_text())
+    assert action.commands == [p.MusicPlay(query="raffi", kind="artist")]
+    with pytest.raises(ValidationError):
+        p.MusicPlay(query="raffi", kind="podcast")
+
+
+def test_spotify_wake_requested_event_decodes():
+    raw = (FIXTURES / "event_spotify_wake_requested.json").read_text()
+    event = p.EVENT_ADAPTER.validate_json(raw)
+    assert isinstance(event, p.SpotifyWakeRequestedEvent)
+    assert event.device_name == "Kitchen iPad"
 
 
 def test_events_are_discriminated_by_type():

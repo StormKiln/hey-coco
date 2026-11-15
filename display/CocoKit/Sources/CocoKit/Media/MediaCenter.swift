@@ -28,8 +28,9 @@ public protocol SoundPlaying: MediaPlayerControl {
 /// - Tracks the playing kind for `UtteranceContext.media_playing`, so "pause" / "next" reach the
 ///   right thing. Local players (YouTube, sound clips) win over music the Hub reports through
 ///   `now_playing` events.
-/// - Routes `media.*` commands to the registered player for the target. `music` lives on the
-///   Hub's speakers (Spotify / Apple Music), so music commands are left to the Hub. There is no
+/// - Routes `media.*` commands to the registered player for the target. Spotify music is
+///   driven by the Hub, so music commands only reach a registered `MusicProvider` (Apple
+///   Music, #42), which ignores them until it has played something. There is no
 ///   local YouTube queue, so `media.next` for YouTube is ignored (the Hub sends a new
 ///   `youtube` view instead); `media.next` for a sound replays it.
 /// - Volume is an app-level output gain (0–100) applied to Coco's own players. iPadOS has no
@@ -61,12 +62,21 @@ public final class MediaCenter {
     public private(set) var hubNowPlaying: NowPlaying?
     /// Whether the Hub reports music playing on its speakers.
     public var hubMusicPlaying: Bool { hubNowPlaying?.isPlaying ?? false }
+    /// What the Display's own `MusicProvider` (Apple Music) is playing; reported locally, the
+    /// Hub never sees it.
+    public private(set) var localMusicNowPlaying: NowPlaying?
+    /// What the Now Playing screen shows: the Display's own music, else the Hub's.
+    public var musicNowPlaying: NowPlaying? { localMusicNowPlaying ?? hubNowPlaying }
+    /// Why the last `music.play` failed (shown on the Now Playing screen); cleared by the next.
+    public private(set) var musicNotice: String?
 
     /// Called when a player reports it reached its end (or was stopped by a command).
     @ObservationIgnored public var onFinished: (@MainActor (MediaTarget) -> Void)?
 
     @ObservationIgnored private weak var youtube: (any YouTubeControlling)?
     @ObservationIgnored private weak var sound: (any SoundPlaying)?
+    /// Held strongly: unlike the screen-owned players it outlives every screen.
+    @ObservationIgnored private var music: (any MusicProvider)?
     @ObservationIgnored private var alarmRinging = false
     @ObservationIgnored private var pausedForAlarm = false
 
@@ -74,7 +84,7 @@ public final class MediaCenter {
 
     /// Sent as `context.media_playing`.
     public var mediaPlaying: MediaTarget? {
-        nowPlayingKind ?? (hubMusicPlaying ? .music : nil)
+        nowPlayingKind ?? ((musicNowPlaying?.isPlaying ?? false) ? .music : nil)
     }
 
     /// `volume` as 0...1, lowered while ducked.
@@ -92,6 +102,29 @@ public final class MediaCenter {
     public func register(sound player: any SoundPlaying) {
         sound = player
         player.setGain(effectiveGain)
+    }
+
+    /// The Display's own music player (Apple Music, #42).
+    public func register(music provider: any MusicProvider) {
+        music = provider
+        provider.onNowPlayingChanged = { [weak self] nowPlaying in
+            self?.localMusicChanged(nowPlaying)
+        }
+    }
+
+    /// `music.play`: search and play on the Display's `MusicProvider`. Failures land in
+    /// `musicNotice`.
+    public func playMusic(query: String, kind: MusicSearchKind) async {
+        musicNotice = nil
+        guard let music else {
+            musicNotice = "Apple Music isn't available on this iPad."
+            return
+        }
+        do throws(MusicProviderError) {
+            try await music.play(query: query, kind: kind)
+        } catch {
+            musicNotice = error.say
+        }
     }
 
     /// The player is going away (its screen closed). Clears its state without `onFinished`.
@@ -140,7 +173,7 @@ public final class MediaCenter {
         case .mediaStop(let target): stop(target)
         case .volumeSet(let level): setVolume(level)
         case .volumeChange(let delta): setVolume(volume + delta)
-        case .alarmStop, .screenWake, .screenSleep, .unknown: break
+        case .alarmStop, .screenWake, .screenSleep, .musicPlay, .unknown: break
         }
     }
 
@@ -163,14 +196,30 @@ public final class MediaCenter {
     }
 
     public func next(_ target: MediaTarget) {
-        guard target == .sound else { return }
-        sound?.replay()
+        switch target {
+        case .sound: sound?.replay()
+        case .music: music?.skip()
+        case .youtube: break
+        }
     }
 
     public func stop(_ target: MediaTarget) {
         guard let player = player(for: target) else { return }
         player.stop()
         playerEnded(target)
+    }
+
+    private func localMusicChanged(_ nowPlaying: NowPlaying?) {
+        localMusicNowPlaying = nowPlaying
+        switch nowPlaying?.isPlaying {
+        case true?:
+            // Never take the slot from a playing video or sound.
+            if nowPlayingKind == nil || (nowPlayingKind == .music && isPaused) {
+                playerStarted(.music)
+            }
+        case false?: playerPaused(.music)
+        case nil: playerEnded(.music)
+        }
     }
 
     public func setVolume(_ level: Int) {
@@ -220,7 +269,7 @@ public final class MediaCenter {
         switch target {
         case .youtube: youtube
         case .sound: sound
-        case .music: nil
+        case .music: music
         }
     }
 

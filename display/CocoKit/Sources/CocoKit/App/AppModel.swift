@@ -46,6 +46,8 @@ public final class AppModel {
     public let media: MediaCenter
     /// Dim / dark on the Hub's night schedule (#24).
     public let night: NightModeController
+    /// Opens Spotify when the Hub can't see the iPad (#5); set by the app. `nil`: ignored.
+    @ObservationIgnored public var spotifyWaker: SpotifyWaker?
 
     @ObservationIgnored private let config: any HubConfigStore
     @ObservationIgnored private let discovery: any HubDiscovery

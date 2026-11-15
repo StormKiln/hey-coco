@@ -14,11 +14,14 @@ extension AppModel {
         if kind == .youtube, case .youtube = currentView { show(.idle) }
     }
 
-    /// The Hub's music state, so "pause" can target music when nothing plays locally.
+    /// The Hub's music state, so "pause" can target music when nothing plays locally; and the
+    /// Hub's request to open Spotify (#5), which `spotifyWaker` ignores under Guided Access.
     func mediaEventReceived(_ event: Event) {
         switch event.kind {
         case .hello(_, let nowPlaying), .nowPlaying(let nowPlaying):
             media.nowPlayingChanged(nowPlaying)
+        case .spotifyWakeRequested:
+            spotifyWaker?.wakeRequested()
         default:
             break
         }

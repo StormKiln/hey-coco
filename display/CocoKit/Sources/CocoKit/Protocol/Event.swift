@@ -13,6 +13,9 @@ public struct Event: Codable, Sendable, Equatable {
         case timerCancelled(TimerInfo)
         case nowPlaying(NowPlaying?)
         case settingsChanged(night: Night)
+        /// The Hub can't see the iPad in Spotify's device list (#5): open Spotify, unless
+        /// Guided Access is on (`SpotifyWake`).
+        case spotifyWakeRequested(deviceName: String?)
         case unknown(String)
 
         public var type: String {
@@ -25,6 +28,7 @@ public struct Event: Codable, Sendable, Equatable {
             case .timerCancelled: "timer.cancelled"
             case .nowPlaying: "now_playing"
             case .settingsChanged: "settings.changed"
+            case .spotifyWakeRequested: "spotify.wake_requested"
             case .unknown(let type): type
             }
         }
@@ -42,6 +46,7 @@ public struct Event: Codable, Sendable, Equatable {
         case type, timers, timer, night
         case serverTime = "server_time"
         case nowPlaying = "now_playing"
+        case deviceName = "device_name"
     }
 
     public init(from decoder: any Decoder) throws {
@@ -65,6 +70,9 @@ public struct Event: Codable, Sendable, Equatable {
         case "now_playing": kind = .nowPlaying(try nowPlaying())
         case "settings.changed":
             kind = .settingsChanged(night: try container.decode(Night.self, forKey: .night))
+        case "spotify.wake_requested":
+            kind = .spotifyWakeRequested(
+                deviceName: try container.decodeIfPresent(String.self, forKey: .deviceName))
         default: kind = .unknown(type)
         }
     }
@@ -82,6 +90,8 @@ public struct Event: Codable, Sendable, Equatable {
             try container.encode(timer, forKey: .timer)
         case .nowPlaying(let nowPlaying): try container.encode(nowPlaying, forKey: .nowPlaying)
         case .settingsChanged(let night): try container.encode(night, forKey: .night)
+        case .spotifyWakeRequested(let deviceName):
+            try container.encode(deviceName, forKey: .deviceName)
         case .unknown: break
         }
     }

@@ -93,6 +93,20 @@ class Spotify(BaseModel):
     device_name: str | None = None
     """The Spotify Connect device to play on, e.g. "Kitchen iPad" (as the Spotify app names
     it). Unset: the active device, or the only one."""
+    wake_wait_s: Annotated[float, Field(ge=0, le=30)] = 4.0
+    """When the iPad is missing from Spotify's device list, the Hub asks the Display to open
+    the Spotify app (``spotify.wake_requested``) and waits this long before listing devices
+    again. 0 turns waking off. Under Guided Access the Display can't open Spotify, so this is
+    only extra delay there (docs/spotify.md, spike #5)."""
+
+
+class Music(BaseModel):
+    """Which service plays music (#42, docs/apple-music.md)."""
+
+    provider: Literal["spotify", "apple_music"] = "spotify"
+    """``spotify``: the Hub drives the Spotify app on the iPad over the Web API.
+    ``apple_music``: the Hub tells the Display to search and play with MusicKit
+    (``music.play`` command)."""
 
 
 class Timers(BaseModel):
@@ -171,6 +185,7 @@ class Settings(BaseSettings):
     keys: Keys = Keys()
     youtube: YouTube = YouTube()
     spotify: Spotify = Spotify()
+    music: Music = Music()
     discovery: Discovery = Discovery()
     tls: Tls = Tls()
     timers: Timers = Timers()

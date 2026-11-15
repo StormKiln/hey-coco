@@ -1,9 +1,9 @@
 import CocoKit
 import SwiftUI
 
-/// `ViewSpec.nowPlaying` (#41): what the Hub is playing on its speakers, readable from across the
-/// room. Pause/resume and next go to the Hub as touch utterances with `media_playing: music`, so
-/// the Hub drives Spotify. Returns to idle after `NowPlayingRules.idleTimeout` with nothing
+/// `ViewSpec.nowPlaying` (#41): what's playing (Spotify via the Hub, or Apple Music on the iPad,
+/// #42), readable from across the room. Pause/resume and next go to the Hub as touch utterances
+/// with `media_playing: music`; the Hub drives Spotify or sends Apple Music its command. Returns to idle after `NowPlayingRules.idleTimeout` with nothing
 /// playing. The bottom centre stays clear for the mic button.
 struct NowPlayingScreen: View {
     @Environment(AppModel.self) private var model
@@ -21,6 +21,13 @@ struct NowPlayingScreen: View {
                     Text("Nothing playing")
                         .font(.system(size: 48, weight: .semibold, design: .rounded))
                         .foregroundStyle(.secondary)
+                    // Why Apple Music didn't start (#42), e.g. nothing found.
+                    if let notice = model.media.musicNotice {
+                        Text(notice)
+                            .font(.system(size: 32, design: .rounded))
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
                 }
             }
         }

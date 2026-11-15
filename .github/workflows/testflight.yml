@@ -118,6 +118,9 @@ jobs:
             [ -s "$app/$f" ] || { echo "::error::$f is missing from the app bundle"; exit 1; }
           done
           [ -s "$app/hey_coco.onnx" ] || echo "::warning::No hey_coco.onnx in the app: it ships without the wake word (docs/wake-word.md)"
+          # ITMS-90208 (build 39): Xcode embeds an empty onnxruntime.framework stub that
+          # display/project.yml deletes; App Store Connect rejects the build if it ships.
+          [ ! -e "$app/Frameworks/onnxruntime.framework" ] || { echo "::error::Frameworks/onnxruntime.framework is in the app (ITMS-90208); see display/project.yml"; exit 1; }
       - name: Package the unsigned archive
         if: ${{ inputs.dry_run }}
         run: make display-artifact ARCHIVE=build/CocoDisplay-unsigned.xcarchive
@@ -165,6 +168,12 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: make display-archive
+      - name: The signed archive has no onnxruntime.framework stub (ITMS-90208)
+        if: ${{ !inputs.dry_run }}
+        run: |
+          app=display/build/CocoDisplay.xcarchive/Products/Applications/CocoDisplay.app
+          [ -d "$app" ] || { echo "::error::No CocoDisplay.app in the signed archive"; exit 1; }
+          [ ! -e "$app/Frameworks/onnxruntime.framework" ] || { echo "::error::Frameworks/onnxruntime.framework is in the app (ITMS-90208); see display/project.yml"; exit 1; }
       - name: Package the signed archive
         if: ${{ !inputs.dry_run }}
         run: make display-artifact

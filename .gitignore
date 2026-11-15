@@ -13,9 +13,13 @@ display/CocoKit/.swiftpm/
 DerivedData/
 *.xcuserstate
 xcuserdata/
+# Archives and exports (make display-archive / display-testflight)
+display/build/
 
 # Local config & secrets
 hub/config.local.toml
+# Apple team ID / bundle ID override (docs/testflight.md)
+display/Signing.local.xcconfig
 *.env
 .env*
 *.p8

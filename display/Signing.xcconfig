@@ -1,0 +1,14 @@
+// Code signing for Coco Display (#4). Committed: defaults only, no team ID and no secrets.
+// Your Apple team ID (and the bundle ID, if the default is taken) go in Signing.local.xcconfig,
+// which is gitignored: copy Signing.local.xcconfig.example to start. See docs/testflight.md.
+//
+// Unsigned by default, so a fresh clone and CI build for the simulator without a team.
+// make display-build also passes CODE_SIGNING_ALLOWED=NO explicitly; make display-archive
+// passes CODE_SIGNING_ALLOWED=YES.
+
+PRODUCT_BUNDLE_IDENTIFIER = com.stormkiln.heycoco.display
+CODE_SIGN_STYLE = Automatic
+CODE_SIGNING_ALLOWED = NO
+
+// Optional (the "?"): absent in a fresh clone and in CI.
+#include? "Signing.local.xcconfig"

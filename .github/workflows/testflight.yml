@@ -1,0 +1,76 @@
+# Archive Coco Display and upload it to TestFlight (#4). Manual only: Actions, TestFlight, Run
+# workflow. Never runs on pull requests or pushes. See docs/testflight.md, "Uploading from GitHub".
+#
+# Signing is automatic and cloud-managed: xcodebuild -allowProvisioningUpdates authenticates with
+# the App Store Connect API key, creates or fetches the provisioning profile, and signs with Apple's
+# cloud-managed distribution certificate. No certificate or profile is stored here. That needs an
+# API key with the Admin role, or App Manager with "Access to Cloud Managed Distribution
+# Certificate" ticked.
+#
+# Secrets (Settings, Secrets and variables, Actions):
+#   ASC_KEY_ID, ASC_ISSUER_ID   App Store Connect API key ID and issuer ID
+#   ASC_KEY_P8                  the AuthKey_<KEY_ID>.p8 file, base64 (base64 -i AuthKey_X.p8 | pbcopy)
+#   DEVELOPMENT_TEAM            Apple team ID
+#   PICOVOICE_ACCESS_KEY        optional: wake word AccessKey
+#   HEY_COCO_PPN_B64            optional: hey-coco_ios.ppn, base64
+# Variable (optional): BUNDLE_ID, if not com.stormkiln.heycoco.display.
+name: TestFlight
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: testflight
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  upload:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The build number is the commit count (make display-testflight), so fetch all history.
+          fetch-depth: 0
+      - run: brew install xcodegen
+      - name: Cache Swift packages (Porcupine is a large clone)
+        uses: actions/cache@v4
+        with:
+          path: display/.spm
+          key: spm-${{ runner.os }}-${{ hashFiles('display/project.yml') }}
+          restore-keys: spm-${{ runner.os }}-
+      - name: Write signing config, API key and wake-word files
+        env:
+          DEVELOPMENT_TEAM: ${{ secrets.DEVELOPMENT_TEAM }}
+          BUNDLE_ID: ${{ vars.BUNDLE_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          PICOVOICE_ACCESS_KEY: ${{ secrets.PICOVOICE_ACCESS_KEY }}
+          HEY_COCO_PPN_B64: ${{ secrets.HEY_COCO_PPN_B64 }}
+        run: |
+          {
+            echo "DEVELOPMENT_TEAM = $DEVELOPMENT_TEAM"
+            echo "CODE_SIGN_STYLE = Automatic"
+            if [ -n "$BUNDLE_ID" ]; then echo "PRODUCT_BUNDLE_IDENTIFIER = $BUNDLE_ID"; fi
+          } > display/Signing.local.xcconfig
+          key="$RUNNER_TEMP/AuthKey_$ASC_KEY_ID.p8"
+          echo "$ASC_KEY_P8" | base64 --decode > "$key"
+          echo "ASC_KEY_PATH=$key" >> "$GITHUB_ENV"
+          if [ -n "$PICOVOICE_ACCESS_KEY" ]; then
+            printf '%s\n' "$PICOVOICE_ACCESS_KEY" > display/WakeWord/PicovoiceAccessKey.txt
+          fi
+          if [ -n "$HEY_COCO_PPN_B64" ]; then
+            echo "$HEY_COCO_PPN_B64" | base64 --decode > display/WakeWord/hey-coco_ios.ppn
+          fi
+      - run: xcodebuild -version
+      - name: Archive and upload
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: make display-testflight
+      - name: Remove the API key
+        if: always()
+        run: rm -f "$RUNNER_TEMP"/AuthKey_*.p8

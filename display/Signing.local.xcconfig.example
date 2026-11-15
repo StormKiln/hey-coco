@@ -1,0 +1,17 @@
+// Copy to display/Signing.local.xcconfig (gitignored) and fill in. See docs/testflight.md.
+//   cp display/Signing.local.xcconfig.example display/Signing.local.xcconfig
+
+// Your Apple Developer team ID (10 characters): developer.apple.com, Account, Membership details.
+DEVELOPMENT_TEAM = ABCDE12345
+
+// The bundle ID of the app record in App Store Connect. Leave this commented out to use the
+// default, com.stormkiln.heycoco.display; set it if that ID is already taken.
+// PRODUCT_BUNDLE_IDENTIFIER = com.example.coco.display
+
+// Automatic signing (Xcode manages the certificate and provisioning profile).
+CODE_SIGN_STYLE = Automatic
+
+// Optional: also sign when you build and run from Xcode itself (on the iPad or this Mac).
+// make display-build always passes CODE_SIGNING_ALLOWED=NO and make display-archive YES, so the
+// Makefile targets do not depend on this line.
+// CODE_SIGNING_ALLOWED = YES

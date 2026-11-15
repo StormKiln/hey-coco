@@ -39,12 +39,21 @@ targets:
         # No NSAppTransportSecurity exception (#54): the Hub serves HTTPS/WSS (TLS 1.2+, ECDHE,
         # P-256/SHA-256 cert). Its certificate is self-signed, and CocoKit's
         # PinningSessionDelegate does the trust evaluation (exact match with the paired pin).
+        # Only standard TLS (and hashing), so exempt from export compliance (#4).
+        ITSAppUsesNonExemptEncryption: false
     dependencies:
       - package: CocoKit
       - package: Porcupine
+    # Bundle ID and signing (#4): defaults in Signing.xcconfig, team and overrides in the
+    # gitignored Signing.local.xcconfig. Not set under `settings` below, which would win.
+    configFiles:
+      Debug: Signing.xcconfig
+      Release: Signing.xcconfig
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.stormkiln.heycoco.display
+        INFOPLIST_KEY_CFBundleDisplayName: Coco
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         TARGETED_DEVICE_FAMILY: "2"
         # Runs on Apple silicon Macs as "Designed for iPad" (#25); not Mac Catalyst.
         SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: YES
@@ -56,7 +65,6 @@ targets:
         INFOPLIST_KEY_NSLocalNetworkUsageDescription: "Coco Display finds and talks to Coco Hub on your home network."
         INFOPLIST_KEY_NSMicrophoneUsageDescription: "Coco listens for \u201chey coco\u201d, and to you when you tap the mic, so you can ask it things."
         INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "Coco turns what you say into text so it can answer you."
-        CODE_SIGNING_ALLOWED: NO
 schemes:
   CocoDisplay:
     build:

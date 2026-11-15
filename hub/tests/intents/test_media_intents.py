@@ -75,6 +75,9 @@ PHRASES: list[tuple[str, UtteranceContext, str | None, dict[str, str]]] = [
     ("unpause", YT, "media.resume", {}),
     ("play", YT, "media.resume", {}),
     ("keep playing", MUSIC, "media.resume", {}),
+    ("ok keep going with the music", MUSIC, "media.resume", {}),
+    ("keep going with it", YT, "media.resume", {}),
+    ("carry on with the video", YT, "media.resume", {}),
     # media.next
     ("skip", YT, "media.next", {}),
     ("next", YT, "media.next", {}),

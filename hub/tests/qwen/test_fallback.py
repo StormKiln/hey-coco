@@ -124,6 +124,37 @@ async def test_valid_intent_is_dispatched_to_its_handler(ctx):
     }
 
 
+async def test_user_message_tells_qwen_about_a_ringing_alarm(ctx):
+    fake = FakeOllama(reply("alarm.stop"))
+    action = await run(
+        fallback(fake),
+        "ugh that noise, make it be quiet",
+        ctx,
+        alarm_ringing=True,
+        view="timers",
+        media_playing="music",
+    )
+    assert (action.intent, action.say) == ("alarm.stop", "Alarm off.")
+    (chat,) = fake.chats
+    assert chat["messages"][1]["content"] == (
+        "ugh that noise, make it be quiet\n[context: alarm ringing; screen: timers; playing: music]"
+    )
+
+
+def test_context_note():
+    from coco_hub.qwen.fallback import context_note
+
+    video = UtteranceContext(view="youtube", alarm_ringing=False, media_playing="youtube")
+    assert context_note(video) == "[context: screen: youtube; playing: youtube]"
+    ringing = UtteranceContext(view="idle", alarm_ringing=True, media_playing=None)
+    assert context_note(ringing) == "[context: alarm ringing; screen: idle; playing: nothing]"
+    timers = UtteranceContext(view="timers", alarm_ringing=False, media_playing=None)
+    assert context_note(timers) == "[context: screen: timers; playing: nothing]"
+    # Nothing worth saying: no line (an always-on line made qwen3:8b over-eager in the eval).
+    idle = UtteranceContext(view="idle", alarm_ringing=False, media_playing=None)
+    assert context_note(idle) == ""
+
+
 async def test_builtin_intent_via_qwen(ctx):
     fake = FakeOllama(reply("spell.word", {"word": "Rhythm"}))
     action = await run(fallback(fake), "spelling of rhythm please coco", ctx)

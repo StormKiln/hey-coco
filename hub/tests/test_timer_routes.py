@@ -108,6 +108,62 @@ def test_dismiss_running_timer_is_409(client):
     assert response.json()["error"]["code"] == "conflict"
 
 
+def test_add_time_to_a_running_timer(client):
+    timer = client.post("/v1/timers", json={"name": "eggs", "duration_s": 420}, headers=AUTH)
+    response = client.post(
+        f"/v1/timers/{timer.json()['id']}/add", json={"seconds": 60}, headers=AUTH
+    )
+    assert response.status_code == 200
+    added = Timer.model_validate(response.json())
+    assert (added.name, added.state, added.duration_s) == ("eggs", "running", 480)
+    assert added.ends_at == T0 + timedelta(seconds=480)
+
+
+def test_add_time_to_a_ringing_timer_restarts_it(client, app, clock):
+    timer = client.post("/v1/timers", json={"name": "eggs", "duration_s": 60}, headers=AUTH).json()
+    clock.now = T0 + timedelta(seconds=90)
+    app.state.services["timers"].tick()
+    response = client.post(f"/v1/timers/{timer['id']}/add", json={"seconds": 60}, headers=AUTH)
+    assert response.status_code == 200
+    assert response.json()["state"] == "running"
+    assert Timer.model_validate(response.json()).ends_at == clock.now + timedelta(seconds=60)
+
+
+def test_add_time_to_unknown_timer_is_404(client):
+    response = client.post("/v1/timers/t_nope/add", json={"seconds": 60}, headers=AUTH)
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "not_found"
+
+
+def test_add_time_to_a_cancelled_timer_is_409(client):
+    timer = client.post("/v1/timers", json={"name": "x", "duration_s": 60}, headers=AUTH).json()
+    client.delete(f"/v1/timers/{timer['id']}", headers=AUTH)
+    response = client.post(f"/v1/timers/{timer['id']}/add", json={"seconds": 60}, headers=AUTH)
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "conflict"
+
+
+@pytest.mark.parametrize(
+    ("body", "code"),
+    [
+        ({"seconds": 0}, "invalid_request"),
+        ({"seconds": -5}, "invalid_request"),
+        ({}, "invalid_request"),
+        ({"seconds": 24 * 3600 + 1}, "invalid_timer"),
+        ({"seconds": 24 * 3600 - 30}, "invalid_timer"),  # past 24 h from now in total
+    ],
+)
+def test_add_time_enforces_limits(client, body, code):
+    timer = client.post("/v1/timers", json={"name": "x", "duration_s": 60}, headers=AUTH).json()
+    response = client.post(f"/v1/timers/{timer['id']}/add", json=body, headers=AUTH)
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == code
+
+
+def test_add_time_requires_token(client):
+    assert client.post("/v1/timers/t_x/add", json={"seconds": 60}).status_code == 401
+
+
 # --- WebSocket ---------------------------------------------------------------------------
 
 

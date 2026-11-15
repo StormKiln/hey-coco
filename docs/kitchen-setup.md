@@ -16,6 +16,32 @@ This guide is for someone comfortable with a Terminal. Anything that is not buil
 
 ## Part 1: The Mac (Coco Hub)
 
+### Quick start: `make hub-setup`
+
+After cloning (1.2), one command does most of 1.1 and 1.3 for you and is safe to run again:
+
+```sh
+make hub-setup
+```
+
+It checks for `uv` and Ollama and, when one is missing, asks before running `brew install`
+(press Enter to just print the command instead). It does the same for
+`brew services start ollama` and `ollama pull qwen3:8b` (the model named in your config). If
+`hub/config.local.toml` doesn't exist yet, it creates it from the example with a freshly generated
+token, asks for your home latitude, longitude and timezone, and turns Qwen on; an existing file is
+never changed. Finally it prints the Hub's TLS fingerprint and the next step,
+`make hub-install-service` (1.4).
+
+Without a terminal to answer questions (for example over a script), pass the values instead.
+Nothing is installed then; brew and ollama commands are only printed:
+
+```sh
+make hub-setup ARGS="--non-interactive --lat 45.42 --lon -75.69 --timezone America/Toronto"
+```
+
+(or set `COCO_SETUP_LAT`, `COCO_SETUP_LON` and `COCO_SETUP_TIMEZONE`). The steps below are the same
+thing by hand; read them for what each setting means.
+
 ### 1.1 Install the prerequisites
 
 1. Install [Homebrew](https://brew.sh) if you don't have it.

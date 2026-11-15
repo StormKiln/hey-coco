@@ -105,6 +105,13 @@ def test_system_prompt_follows_the_spike_v2_wording(catalog):
     assert "debug.secret" not in prompt and "legacy.slotted" not in prompt
 
 
+def test_system_prompt_explains_the_context_line(catalog):
+    prompt = catalog.system_prompt
+    assert "[context: ...]" in prompt
+    assert "While an alarm is ringing" in prompt
+    assert "alarm.stop" in prompt.split("Context rules:")[1]
+
+
 def test_new_intents_appear_without_code_changes():
     registry = demo_registry()
     registry.register(

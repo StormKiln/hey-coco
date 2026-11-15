@@ -10,10 +10,13 @@ PLIST_DEST := $(HOME)/Library/LaunchAgents/$(SERVICE_LABEL).plist
 HUB_LOG_DIR := $(HOME)/Library/Logs/CocoHub
 LAUNCH_DOMAIN = gui/$$(id -u)
 
-.PHONY: help hub-sync hub-run hub-test hub-resilience hub-lint hub-fingerprint hub-eval hub-fmt hub-render-plist hub-install-service hub-uninstall-service hub-logs hub-logs-launchd hub-diag spotify-login spotify-spike sounds-build display-gen display-build display-testflight-check display-archive display-testflight display-icon display-build-mac display-run-mac display-test kit-test test lint
+.PHONY: help hub-setup hub-sync hub-run hub-test hub-resilience hub-lint hub-fingerprint hub-eval hub-fmt hub-render-plist hub-install-service hub-uninstall-service hub-logs hub-logs-launchd hub-diag spotify-login spotify-spike sounds-build display-gen display-build display-testflight-check display-archive display-testflight display-icon display-build-mac display-run-mac display-test kit-test test lint
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-18s %s\n", $$1, $$2}'
+
+hub-setup: ## Bootstrap the Hub's Mac: uv, Ollama + model, hub/config.local.toml, fingerprint (re-runnable)
+	python3 hub/deploy/setup.py $(ARGS)
 
 hub-sync: ## Install Hub dependencies
 	cd hub && uv sync

@@ -23,6 +23,7 @@ final class FakeTimerHub: HubAPI {
         var created: [TimerCreateRequest] = []
         var dismissed: [String] = []
         var cancelled: [String] = []
+        var added: [AddedTime] = []
         var nextID = 1
     }
 
@@ -41,6 +42,12 @@ final class FakeTimerHub: HubAPI {
     var created: [TimerCreateRequest] { state.withLock { $0.created } }
     var dismissed: [String] { state.withLock { $0.dismissed } }
     var cancelled: [String] { state.withLock { $0.cancelled } }
+    var added: [AddedTime] { state.withLock { $0.added } }
+
+    struct AddedTime: Equatable, Sendable {
+        var id: String
+        var seconds: Int
+    }
 
     private func checkReachable() throws(HubError) {
         if !reachable { throw .unreachable("Could not connect to Coco Hub.") }
@@ -75,6 +82,23 @@ final class FakeTimerHub: HubAPI {
     func cancelTimer(id: String) async throws(HubError) -> TimerInfo {
         try checkReachable()
         return try finish(id: id, as: .cancelled)
+    }
+    /// Like the Hub: a running timer ends later; a ringing one restarts `seconds` from now.
+    func addTime(id: String, seconds: Int) async throws(HubError) -> TimerInfo {
+        try checkReachable()
+        let now = serverNow()
+        let result: TimerInfo? = state.withLock { state in
+            state.added.append(AddedTime(id: id, seconds: seconds))
+            guard var timer = state.timers[id] else { return nil }
+            let base = timer.state == .ringing ? now : timer.endsAt
+            timer.endsAt = base.addingTimeInterval(TimeInterval(seconds))
+            timer.durationS = Int(timer.endsAt.timeIntervalSince(timer.createdAt))
+            timer.state = .running
+            state.timers[id] = timer
+            return timer
+        }
+        guard let result else { throw .server(code: "not_found", message: "No timer \(id).") }
+        return result
     }
 
     private func finish(id: String, as newState: TimerInfo.State) throws(HubError) -> TimerInfo {

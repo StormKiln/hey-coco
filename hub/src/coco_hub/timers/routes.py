@@ -9,7 +9,7 @@ from datetime import datetime
 from fastapi import APIRouter, Request, status
 
 from coco_hub.errors import HubError
-from coco_hub.protocol import Timer, TimerCreateRequest, TimersList
+from coco_hub.protocol import Timer, TimerAddRequest, TimerCreateRequest, TimersList
 from coco_hub.timers.service import TimerLimitError, TimerNotFound, TimerService, TimerStateError
 
 router = APIRouter(prefix="/timers")
@@ -45,6 +45,15 @@ async def create_timer(body: TimerCreateRequest, request: Request) -> Timer:
 @router.post("/{timer_id}/dismiss", response_model=Timer)
 async def dismiss_timer(timer_id: str, request: Request) -> Timer:
     return _call(_service(request).dismiss, timer_id)
+
+
+@router.post("/{timer_id}/add", response_model=Timer)
+async def add_time(timer_id: str, body: TimerAddRequest, request: Request) -> Timer:
+    """Same rules as the voice "add N minutes" (``TimerService.add_time``)."""
+    try:
+        return _call(lambda tid: _service(request).add_time(tid, body.seconds), timer_id)
+    except TimerLimitError as exc:
+        raise HubError(status.HTTP_422_UNPROCESSABLE_CONTENT, "invalid_timer", str(exc)) from exc
 
 
 @router.delete("/{timer_id}", response_model=Timer)

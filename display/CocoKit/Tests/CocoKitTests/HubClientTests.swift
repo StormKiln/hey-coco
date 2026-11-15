@@ -122,6 +122,17 @@ extension Data {
         #expect(body == (try Fixtures.jsonObject(Fixtures.data("timer_create_request_unnamed"))))
     }
 
+    @Test func addTimePostsSecondsToAdd() async throws {
+        serve("timer_running")
+        let timer = try await client.addTime(id: "t_7f3a", seconds: 60)
+        #expect(timer == (try Fixtures.decode(TimerInfo.self, "timer_running")))
+        let sent = try #require(lastRequest)
+        #expect(sent.httpMethod == "POST")
+        #expect(sent.url?.path == "/v1/timers/t_7f3a/add")
+        let body = try Fixtures.jsonObject(try #require(sent.httpBody))
+        #expect(body == (try Fixtures.jsonObject(Fixtures.data("timer_add_request"))))
+    }
+
     @Test func dismissTimerPostsToDismiss() async throws {
         serve("timer_dismissed")
         let timer = try await client.dismissTimer(id: "t_7f3a")

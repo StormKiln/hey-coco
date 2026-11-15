@@ -86,11 +86,38 @@ import Testing
         #expect(store.remaining(of: store.timers[0]) == 120)
     }
 
-    @Test func addTimePhrase() {
-        let end = Date()
-        let named = DisplayTimer(id: "a", name: "pasta", durationS: 60, endsAt: end, state: .running, isLocalOnly: false)
-        let unnamed = DisplayTimer(id: "b", name: nil, durationS: 60, endsAt: end, state: .running, isLocalOnly: false)
-        #expect(AppModel.addTimePhrase(for: named, seconds: 60) == "add 1 minute to the pasta timer")
-        #expect(AppModel.addTimePhrase(for: unnamed, seconds: 300) == "add 5 minutes to the timer")
+    @Test func addTimeToAHubTimerCallsTheAddEndpoint() async throws {
+        let clock = TestClock()
+        let store = TimerStore(now: clock.function)
+        let hub = FakeTimerHub(serverNow: clock.function)
+        let model = makeModel(hub: hub, updates: [], store: store)
+        model.start()
+        let created = try await hub.createTimer(TimerCreateRequest(name: "pasta", durationS: 60))
+        store.apply(Event(serverTime: clock.now, kind: .timerCreated(created)))
+        #expect(await eventually { model.client != nil })
+
+        await model.addTime(to: store.timers[0], seconds: 60)
+
+        #expect(hub.added == [FakeTimerHub.AddedTime(id: created.id, seconds: 60)])
+        #expect(store.remaining(of: store.timers[0]) == 120)
+        #expect(model.lastError == nil)
+        model.stop()
+    }
+
+    @Test func addTimeFailureIsReported() async throws {
+        let clock = TestClock()
+        let store = TimerStore(now: clock.function)
+        let hub = FakeTimerHub(serverNow: clock.function)
+        let model = makeModel(hub: hub, updates: [], store: store)
+        model.start()
+        store.apply(
+            Event(serverTime: clock.now, kind: .timerCreated(.make(id: "gone", endsAt: clock.now + 60))))
+        #expect(await eventually { model.client != nil })
+
+        await model.addTime(to: store.timers[0], seconds: 60)
+
+        #expect(hub.added == [FakeTimerHub.AddedTime(id: "gone", seconds: 60)])
+        #expect(model.lastError == .server(code: "not_found", message: "No timer gone."))
+        model.stop()
     }
 }

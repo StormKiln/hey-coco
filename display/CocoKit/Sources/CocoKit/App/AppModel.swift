@@ -286,22 +286,27 @@ extension AppModel {
         media.alarmChanged(ringing: timerStore.isAlarmRinging)
     }
 
-    /// Touch "+1 min". Local-only timers change here; Hub timers change through the Hub. The
-    /// protocol has no add-time endpoint, so this sends the equivalent touch utterance.
+    /// Touch "+1 min". Local-only timers change here; Hub timers through
+    /// `POST /v1/timers/{id}/add`, whose reply updates the timer at once (the `timer.updated`
+    /// event follows). Errors set `lastError`, like `submit`.
     public func addTime(to timer: DisplayTimer, seconds: Int) async {
         if timer.isLocalOnly {
             timerStore.addTimeLocally(id: timer.id, seconds: seconds)
-        } else {
-            await submit(text: Self.addTimePhrase(for: timer, seconds: seconds), source: .touch)
+            return
         }
-    }
-
-    /// e.g. "add 1 minute to the pasta timer".
-    public static func addTimePhrase(for timer: DisplayTimer, seconds: Int) -> String {
-        let minutes = max(1, seconds / 60)
-        let amount = minutes == 1 ? "1 minute" : "\(minutes) minutes"
-        let target = timer.name.map { "the \($0) timer" } ?? "the timer"
-        return "add \(amount) to \(target)"
+        guard let client else { return }
+        do throws(HubError) {
+            timerStore.apply(try await client.addTime(id: timer.id, seconds: seconds))
+            lastError = nil
+        } catch {
+            lastError = error
+            switch error {
+            case .unauthorized: connection = .unauthorized
+            case .unreachable(let reason): connection = .unreachable(reason: reason)
+            case .untrustedHub(let host): connection = .untrustedHub(host: host)
+            case .server, .decoding: break
+            }
+        }
     }
 }
 

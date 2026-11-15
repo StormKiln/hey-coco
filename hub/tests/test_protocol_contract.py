@@ -18,6 +18,7 @@ PREFIXES: dict[str, type[BaseModel] | TypeAdapter] = {
     "idle_info": p.IdleInfo,
     "timers_list": p.TimersList,
     "timer_create_request": p.TimerCreateRequest,
+    "timer_add_request": p.TimerAddRequest,
     "timer_": p.Timer,
     "event_": p.EVENT_ADAPTER,
     "error": p.ErrorResponse,

@@ -261,7 +261,8 @@ def register(registry: IntentRegistry) -> None:
             "media.resume",
             patterns=[
                 rf"(?:resume|unpause|un pause|continue|carry on|keep going|keep playing|play|"
-                rf"start (?:it )?again|go on|play it again){_THING}",
+                rf"start (?:it )?again|go on|play it again){_THING}"
+                rf"(?: with (?:it|this|that|the {_ITEM}|this {_ITEM}))?",
             ],
             handler=media_resume,
             applies=_not_ringing,

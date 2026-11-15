@@ -86,6 +86,12 @@ public final class TimerStore {
         }
     }
 
+    /// A Hub timer from a REST reply (e.g. `POST /v1/timers/{id}/add`), like `timer.updated`.
+    public func apply(_ timer: TimerInfo) {
+        upsert(timer)
+        changed()
+    }
+
     /// A `GET /v1/timers` result: authoritative, like `hello`.
     public func apply(_ list: TimersList) {
         replaceHubTimers(list.timers, serverTime: list.serverTime)
@@ -134,7 +140,7 @@ public final class TimerStore {
     }
 
     /// Adds time to a timer that only exists on this iPad. Hub timers change through the Hub
-    /// (the protocol has no add-time endpoint; see `AppModel.addTime`).
+    /// (`POST /v1/timers/{id}/add`; see `AppModel.addTime`).
     public func addTimeLocally(id: String, seconds: Int) {
         guard let index = timers.firstIndex(where: { $0.id == id && $0.isLocalOnly }) else { return }
         let base = max(timers[index].endsAt, now())

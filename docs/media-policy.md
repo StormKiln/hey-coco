@@ -26,6 +26,11 @@ is checked before searching, then each ranked candidate with `item_id` = Spotify
 plays. "Play some music" (resume whatever Spotify last had) is checked at the query level
 only. `hub/tests/spotify/test_music_intents.py` checks every play phrasing hits the policy.
 
+With `music.provider = "apple_music"` (#42) the Hub checks the query the same way before it
+sends the Display `music.play`, but there is no per-candidate check: the Display searches
+Apple Music itself and the Hub never sees the results (`docs/apple-music.md`).
+`hub/tests/spotify/test_music_provider.py` checks a denial sends no command.
+
 ## Adding controls later
 
 Implement `check(request: MediaRequest) -> MediaDecision` (for example: a channel

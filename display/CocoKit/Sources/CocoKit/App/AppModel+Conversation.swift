@@ -28,6 +28,8 @@ extension AppModel: ConversationHost {
             night.wake()
         case .screenSleep:
             night.sleepNow()
+        case .musicPlay(let query, let kind):
+            Task { await media.playMusic(query: query, kind: kind) }
         default:
             break
         }

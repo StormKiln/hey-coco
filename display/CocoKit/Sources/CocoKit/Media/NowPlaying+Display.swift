@@ -37,8 +37,9 @@ public enum NowPlayingRules {
 }
 
 extension AppModel {
-    /// What the Hub is playing on its speakers, from `hello` and `now_playing` events.
-    public var nowPlaying: NowPlaying? { media.hubNowPlaying }
+    /// What's playing: the Display's own Apple Music (#42), else what the Hub reports for
+    /// Spotify (`hello` and `now_playing` events).
+    public var nowPlaying: NowPlaying? { media.musicNowPlaying }
 
     /// Sends a Now Playing touch control to the Hub, which drives Spotify.
     public func send(_ control: NowPlayingControl) async {

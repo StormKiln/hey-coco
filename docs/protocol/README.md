@@ -165,6 +165,14 @@ Hub behaviour (not a shape change):
 | `volume.change` | `delta`: −100–100 | relative volume |
 | `screen.wake` | – | leave night-dark mode |
 | `screen.sleep` | – | go dark now (night mode only) |
+| `music.play` | `query`: str, `kind`: `artist` \| `album` \| `playlist` \| `song` \| `any` | Apple Music (#42): search the catalog and play the best match; `query` `""` resumes |
+
+Hub behaviour (not a shape change): `music.play` is sent only with `music.provider =
+"apple_music"`, after the media policy allowed the query, together with the `now_playing`
+view (`fixtures/action_music_play.json`). With Apple Music the Hub also sends `media.*`
+commands with target `music` (and `volume.*`) without driving Spotify; the Display's own
+player handles them, and the Display reports its Apple Music now-playing locally (source
+`apple_music`), not through the Hub. See `docs/apple-music.md`.
 
 ## IdleInfo
 
@@ -213,6 +221,14 @@ Every event has `type` and `server_time`.
 | `timer.created` / `timer.updated` / `timer.fired` / `timer.dismissed` / `timer.cancelled` | `timer` |
 | `now_playing` | `now_playing: NowPlaying \| null` |
 | `settings.changed` | `night` (same shape as `IdleInfo.night`) |
+| `spotify.wake_requested` | `device_name` (nullable): the iPad's Spotify Connect name |
+
+`spotify.wake_requested` (#5, `fixtures/event_spotify_wake_requested.json`): Spotify doesn't
+list the iPad, so the Hub asks the Display to open the Spotify app, then waits
+`spotify.wake_wait_s` and lists devices again. The Display opens the `spotify:` URL scheme
+only when Guided Access is off (and at most once a minute); under Guided Access it does
+nothing and the Hub says "Open Spotify on the iPad once, then try again." The Display sends
+nothing back. The Hub only publishes it while a Display is connected.
 
 `NowPlaying`: `source` (`spotify`|`apple_music`), `title`, `artist`, `album` (nullable),
 `artwork_url` (nullable), `is_playing`.

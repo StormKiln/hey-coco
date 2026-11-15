@@ -21,7 +21,7 @@ import sqlite3
 import unicodedata
 from collections.abc import Awaitable, Callable, Sequence
 from datetime import UTC, datetime, timedelta
-from typing import Literal, Protocol
+from typing import Protocol
 
 import httpx
 
@@ -36,12 +36,11 @@ from coco_hub.media.spotify.errors import (
     SpotifyRateLimited,
     SpotifyVolumeUnsupported,
 )
-from coco_hub.protocol import NowPlaying, NowPlayingEvent
+from coco_hub.protocol import MusicKind, NowPlaying, NowPlayingEvent
 from coco_hub.settings import Settings
 
 log = logging.getLogger(__name__)
 
-MusicKind = Literal["artist", "album", "playlist", "song", "any"]
 MUSIC_KINDS: tuple[MusicKind, ...] = ("artist", "album", "playlist", "song", "any")
 
 ACTIVE_POLL_S = 5
@@ -69,11 +68,8 @@ class DeviceWaker(Protocol):
 
 
 class NoopWaker:
-    """Default: does nothing.
-
-    TODO(#5): replace with the wake path the Spotify-on-iPad spike settles on (e.g. ask the
-    Display to open the Spotify app via its URL scheme, then wait for the device to appear).
-    """
+    """Does nothing (tests, and ``spotify.wake_wait_s = 0``). The Hub's real waker is
+    ``coco_hub.media.spotify.waker.DisplayWaker``."""
 
     async def wake(self, device_name: str | None) -> bool:
         return False

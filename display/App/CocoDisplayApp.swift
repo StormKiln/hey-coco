@@ -13,6 +13,7 @@ struct CocoDisplayApp: App {
                 .task {
                     // The alarm tone lives in Library/Sounds so the notification backup can use it.
                     _ = try? AlarmTone.installNotificationSound()
+                    model.installLiveMusic()  // Apple Music (#42) + Spotify wake (#5)
                     model.start()
                 }
         }

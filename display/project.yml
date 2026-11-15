@@ -65,6 +65,9 @@ targets:
         INFOPLIST_KEY_NSLocalNetworkUsageDescription: "Coco Display finds and talks to Coco Hub on your home network."
         INFOPLIST_KEY_NSMicrophoneUsageDescription: "Coco listens for \u201chey coco\u201d, and to you when you tap the mic, so you can ask it things."
         INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "Coco turns what you say into text so it can answer you."
+        # Apple Music fallback (#42). MusicKit also needs the MusicKit service on the App ID
+        # (developer portal); see docs/apple-music.md.
+        INFOPLIST_KEY_NSAppleMusicUsageDescription: "Coco plays the music you ask for from Apple Music."
 schemes:
   CocoDisplay:
     build:

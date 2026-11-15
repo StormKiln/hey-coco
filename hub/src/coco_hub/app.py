@@ -18,6 +18,7 @@ from coco_hub.logging_setup import configure_logging
 from coco_hub.media.policy import AllowAllPolicy
 from coco_hub.media.spotify import auth as spotify_auth
 from coco_hub.media.spotify.service import SpotifyService
+from coco_hub.media.spotify.waker import DisplayWaker
 from coco_hub.media.youtube import YoutubeService
 from coco_hub.pictures.commons import PictureService
 from coco_hub.protocol import Health
@@ -59,8 +60,15 @@ def create_app(
         youtube = YoutubeService.from_settings(app.state.db, settings, clock=clock)
         app.state.services["youtube"] = youtube
         # Always registered; inert (no network, no poller) without spotify.client_id.
+        # A missing iPad: ask the Display to open Spotify (#5; a no-op under Guided Access).
+        waker = DisplayWaker(app.state.events, wait_s=settings.spotify.wake_wait_s, clock=clock)
         spotify = SpotifyService.from_settings(
-            app.state.db, settings, clock=clock, bus=app.state.events, transport=spotify_transport
+            app.state.db,
+            settings,
+            clock=clock,
+            bus=app.state.events,
+            transport=spotify_transport,
+            waker=waker,
         )
         app.state.services["spotify"] = spotify
         spotify_task = None

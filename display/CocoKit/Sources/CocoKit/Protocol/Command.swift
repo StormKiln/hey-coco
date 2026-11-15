@@ -14,10 +14,12 @@ public enum Command: Codable, Sendable, Equatable {
     case volumeChange(delta: Int)
     case screenWake
     case screenSleep
+    /// Apple Music (#42): search the catalog and play the best match; `query` "" resumes.
+    case musicPlay(query: String, kind: MusicSearchKind)
     case unknown(String)
 
     enum CodingKeys: String, CodingKey {
-        case type, target, level, delta
+        case type, target, level, delta, query, kind
     }
 
     public var type: String {
@@ -31,6 +33,7 @@ public enum Command: Codable, Sendable, Equatable {
         case .volumeChange: "volume.change"
         case .screenWake: "screen.wake"
         case .screenSleep: "screen.sleep"
+        case .musicPlay: "music.play"
         case .unknown(let type): type
         }
     }
@@ -52,6 +55,10 @@ public enum Command: Codable, Sendable, Equatable {
             self = .volumeChange(delta: try container.decode(Int.self, forKey: .delta))
         case "screen.wake": self = .screenWake
         case "screen.sleep": self = .screenSleep
+        case "music.play":
+            self = .musicPlay(
+                query: try container.decode(String.self, forKey: .query),
+                kind: try container.decode(MusicSearchKind.self, forKey: .kind))
         default: self = .unknown(type)
         }
     }
@@ -65,7 +72,20 @@ public enum Command: Codable, Sendable, Equatable {
             try container.encode(target, forKey: .target)
         case .volumeSet(let level): try container.encode(level, forKey: .level)
         case .volumeChange(let delta): try container.encode(delta, forKey: .delta)
+        case .musicPlay(let query, let kind):
+            try container.encode(query, forKey: .query)
+            try container.encode(kind, forKey: .kind)
         case .alarmStop, .screenWake, .screenSleep, .unknown: break
         }
+    }
+}
+
+/// What `music.play` searches for. An unknown kind from a newer Hub searches everything.
+public enum MusicSearchKind: String, Codable, Sendable, Equatable, CaseIterable {
+    case artist, album, playlist, song, any
+
+    public init(from decoder: any Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = MusicSearchKind(rawValue: raw) ?? .any
     }
 }

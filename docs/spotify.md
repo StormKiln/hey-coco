@@ -4,7 +4,7 @@ Coco plays music with the owner's **Spotify Premium** account. Audio comes out o
 iPad's own speaker through the **Spotify iOS app**, which shows up as a Spotify Connect
 device; the Hub drives it with the Spotify Web API (search, start playback on the iPad,
 pause / resume / skip / volume, now playing). Apple Music is a separate, conditional
-fallback (see the design doc) and isn't covered here.
+fallback (`[music] provider = "apple_music"`, `docs/apple-music.md`).
 
 Without a `spotify.client_id` in the config, Spotify is off: nothing talks to Spotify and
 music requests get "Spotify isn't set up yet."
@@ -86,8 +86,14 @@ owner).
 ## Troubleshooting
 
 - **"Open Spotify on the iPad once, then try again."** Spotify drops an idle iPad from the
-  device list. Open the Spotify app on the iPad and retry. (Spike #5 is finding a way for
-  Coco to wake it itself; the hook is `DeviceWaker` in `hub/src/coco_hub/media/spotify/service.py`.)
+  device list. Open the Spotify app on the iPad and retry. Before saying this, the Hub asks
+  the Display to open Spotify itself (`spotify.wake_requested`, waits
+  `spotify.wake_wait_s`, default 4 s; 0 turns it off). That only works with **Guided Access
+  off**, and leaves Spotify in front; under Guided Access iOS won't switch apps, so the
+  Display does nothing. Whether the iPad stays listed on its own under Guided Access is what
+  spike #5 measures: `make spotify-spike`, procedure and decision rule in
+  `docs/spikes/spotify-test-procedure.md`. If it doesn't, switch to Apple Music
+  (`docs/apple-music.md`).
 - **"Spotify needs a Premium account for that."** Playback control needs Premium.
 - **"Spotify won't let me change the iPad's volume."** Some iOS devices report
   `supports_volume: false`; use the iPad's volume buttons.

@@ -189,8 +189,20 @@ class ScreenSleep(Message):
     type: Literal["screen.sleep"] = "screen.sleep"
 
 
+MusicKind = Literal["artist", "album", "playlist", "song", "any"]
+
+
+class MusicPlay(Message):
+    """Apple Music (#42): the Display searches the catalog and plays the best match.
+    ``query`` "" resumes whatever the Display's music player last had."""
+
+    type: Literal["music.play"] = "music.play"
+    query: str
+    kind: MusicKind
+
+
 Command = Annotated[
-    AlarmStop | MediaCommand | VolumeSet | VolumeChange | ScreenWake | ScreenSleep,
+    AlarmStop | MediaCommand | VolumeSet | VolumeChange | ScreenWake | ScreenSleep | MusicPlay,
     Field(discriminator="type"),
 ]
 
@@ -289,8 +301,17 @@ class SettingsChangedEvent(Message):
     night: Night
 
 
+class SpotifyWakeRequestedEvent(Message):
+    """The Hub can't see the iPad in Spotify's device list: asks the Display to open the
+    Spotify app (#5). The Display does nothing under Guided Access."""
+
+    type: Literal["spotify.wake_requested"] = "spotify.wake_requested"
+    server_time: UtcDatetime
+    device_name: str | None
+
+
 Event = Annotated[
-    HelloEvent | TimerEvent | NowPlayingEvent | SettingsChangedEvent,
+    HelloEvent | TimerEvent | NowPlayingEvent | SettingsChangedEvent | SpotifyWakeRequestedEvent,
     Field(discriminator="type"),
 ]
 EVENT_ADAPTER: TypeAdapter[Event] = TypeAdapter(Event)

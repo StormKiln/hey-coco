@@ -12,8 +12,9 @@
   volume intents also drive Spotify (``ctx.services["spotify"]``) on the Hub, and still send
   the Display command so its media state stays in sync. Spotify failures are logged, not
   spoken, except where the household can act on them (resume with the iPad missing, Premium
-  required, a device that refuses remote volume). Music play / "what's playing" are in
-  ``intents/music.py``.
+  required, a device that refuses remote volume). With ``music.provider = "apple_music"``
+  only the Display command is sent: its MusicKit player handles it. Music play / "what's
+  playing" are in ``intents/music.py``.
 
 The transport intents step aside while an alarm rings (``alarm.stop`` owns "stop" then).
 Patterns match normalised text (``normalize.py``): lowercase, digits, ``%`` → ``percent``,
@@ -126,6 +127,8 @@ async def _drive_spotify(
     """
     if request.context.media_playing != "music":
         return None
+    if ctx.settings.music.provider != "spotify":
+        return None  # Apple Music: the Display's own player takes the command (#42).
     spotify = ctx.services.get("spotify")
     if spotify is None or not spotify.ready:
         return None

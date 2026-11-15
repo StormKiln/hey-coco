@@ -166,3 +166,22 @@ func everyFixtureDecodesWithItsModel(name: String) throws {
     let unknown = try CocoJSON.decoder.decode([CheckStatus].self, from: Data(#"["ok", "melting"]"#.utf8))
     #expect(unknown == [.ok, .unknown])
 }
+
+@Test func musicPlayCommandDecodes() throws {
+    let action = try Fixtures.decode(Action.self, "action_music_play")
+    #expect(action.commands == [.musicPlay(query: "raffi", kind: .artist)])
+    #expect(action.view == .nowPlaying)
+    let encoded = try Fixtures.jsonObject(CocoJSON.encoder.encode(action))
+    #expect(encoded == (try Fixtures.jsonObject(Fixtures.data("action_music_play"))))
+
+    let newer = try CocoJSON.decoder.decode(
+        Command.self, from: Data(#"{"type": "music.play", "query": "x", "kind": "podcast"}"#.utf8))
+    #expect(newer == .musicPlay(query: "x", kind: .any))
+}
+
+@Test func spotifyWakeRequestedEventDecodes() throws {
+    let event = try Fixtures.decode(Event.self, "event_spotify_wake_requested")
+    #expect(event.kind == .spotifyWakeRequested(deviceName: "Kitchen iPad"))
+    let encoded = try Fixtures.jsonObject(CocoJSON.encoder.encode(event))
+    #expect(encoded == (try Fixtures.jsonObject(Fixtures.data("event_spotify_wake_requested"))))
+}

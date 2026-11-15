@@ -10,7 +10,7 @@ PLIST_DEST := $(HOME)/Library/LaunchAgents/$(SERVICE_LABEL).plist
 HUB_LOG_DIR := $(HOME)/Library/Logs/CocoHub
 LAUNCH_DOMAIN = gui/$$(id -u)
 
-.PHONY: help hub-sync hub-run hub-test hub-resilience hub-lint hub-fingerprint hub-eval hub-fmt hub-render-plist hub-install-service hub-uninstall-service hub-logs hub-logs-launchd hub-diag spotify-login sounds-build display-gen display-build display-testflight-check display-archive display-testflight display-icon display-build-mac display-run-mac display-test kit-test test lint
+.PHONY: help hub-sync hub-run hub-test hub-resilience hub-lint hub-fingerprint hub-eval hub-fmt hub-render-plist hub-install-service hub-uninstall-service hub-logs hub-logs-launchd hub-diag spotify-login spotify-spike sounds-build display-gen display-build display-testflight-check display-archive display-testflight display-icon display-build-mac display-run-mac display-test kit-test test lint
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-18s %s\n", $$1, $$2}'
@@ -66,6 +66,9 @@ spotify-login: ## Print the URL to connect Spotify (open it in a browser on the 
 	@echo "  open https://127.0.0.1:$(HUB_PORT)/spotify/login"
 	@echo "The browser warns about the Hub's self-signed certificate: continue to 127.0.0.1."
 	@echo "See docs/spotify.md for the one-time Spotify developer app setup."
+
+spotify-spike: hub-sync ## Spike #5: log iPad visibility in Spotify (ARGS="--hours 10 --cold-start-every 30")
+	cd hub && uv run python -m coco_hub.media.spotify.spike $(ARGS)
 
 hub-fingerprint: hub-sync ## Print the Hub's TLS fingerprint (compare it with the iPad when pairing)
 	@cd hub && uv run --quiet python -m coco_hub --fingerprint

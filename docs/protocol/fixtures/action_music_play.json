@@ -1,0 +1,15 @@
+{
+  "say": "Playing Raffi on Apple Music.",
+  "view": {
+    "type": "now_playing"
+  },
+  "commands": [
+    {
+      "type": "music.play",
+      "query": "raffi",
+      "kind": "artist"
+    }
+  ],
+  "intent": "music.play",
+  "matched_by": "rules"
+}

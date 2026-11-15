@@ -81,7 +81,7 @@ public final class TimerStore {
             measureOffset(event.serverTime)
             timers.removeAll { $0.id == timer.id }
             changed()
-        case .nowPlaying, .settingsChanged, .unknown:
+        case .nowPlaying, .settingsChanged, .spotifyWakeRequested, .unknown:
             return
         }
     }

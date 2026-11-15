@@ -1,4 +1,10 @@
-"""Music intents: play on Spotify and "what's playing".
+"""Music intents: play music (Spotify or Apple Music) and "what's playing".
+
+``music.provider`` (#42) picks who plays. ``spotify`` (default): the Hub searches and drives
+the Spotify app on the iPad. ``apple_music``: after the same query-level policy check, the
+Hub sends the Display a ``music.play`` command (query + kind) and the Display searches and
+plays with MusicKit; the Hub never sees the catalog, so the per-candidate policy check below
+only runs for Spotify (docs/apple-music.md).
 
 - ``music.play`` covers "play X" without "on YouTube": "play Raffi", "play some music", "play
   the Frozen soundtrack", "put on my Discover Weekly", "play Taylor Swift on Spotify", "play
@@ -18,17 +24,20 @@ the transport phrases ("play it again", "play the next one", "play something els
 """
 
 import re
+import string
 
 from coco_hub.intents.engine import Intent, IntentContext, IntentRegistry, LlmSlot, Match, Reply
 from coco_hub.media.policy import MediaDecision, MediaRequest, policy_from
 from coco_hub.media.spotify.errors import NOT_CONFIGURED_SAY, SpotifyError
 from coco_hub.media.spotify.service import MUSIC_KINDS, MusicKind, SpotifyService
 from coco_hub.media.youtube import spoken_title
-from coco_hub.protocol import NowPlayingView, UtteranceRequest
+from coco_hub.protocol import MusicPlay, NowPlayingView, UtteranceRequest
 
 NO_RESULTS = "I couldn't find that on Spotify."
 NOTHING_PLAYING = "Nothing's playing on Spotify."
 PLAYING_MUSIC = "Playing music on Spotify."
+APPLE_PLAYING_MUSIC = "Playing music on Apple Music."
+APPLE_NOW_PLAYING = "Here's what's playing."
 
 # Requests with nothing to search for: resume Spotify on the iPad.
 _GENERIC = frozenset(
@@ -106,6 +115,17 @@ def _spotify(ctx: IntentContext) -> SpotifyService | None:
     return ctx.services.get("spotify")
 
 
+def apple_music(ctx: IntentContext) -> bool:
+    """True when ``music.provider = "apple_music"``: the Display plays music, not Spotify."""
+    return ctx.settings.music.provider == "apple_music"
+
+
+def _apple_music_play(query: str, kind: MusicKind) -> Reply:
+    """The policy already allowed ``query``; the Display searches and plays it."""
+    say = f"Playing {string.capwords(query)} on Apple Music." if query else APPLE_PLAYING_MUSIC
+    return Reply(say=say, view=NowPlayingView(), commands=(MusicPlay(query=query, kind=kind),))
+
+
 async def music_play(match: Match, request: UtteranceRequest, ctx: IntentContext) -> Reply:
     asked = " ".join(match.slots.get("query", "").split())
     kind, query = parse_music_request(asked)
@@ -115,6 +135,8 @@ async def music_play(match: Match, request: UtteranceRequest, ctx: IntentContext
     decision = policy.check(MediaRequest(kind="music", query=query or asked or "music"))
     if not decision.allowed:
         return Reply(say=decision.say)
+    if apple_music(ctx):
+        return _apple_music_play(query, kind)
     spotify = _spotify(ctx)
     if spotify is None:
         return Reply(say=NOT_CONFIGURED_SAY)
@@ -147,6 +169,9 @@ async def music_play(match: Match, request: UtteranceRequest, ctx: IntentContext
 
 
 async def music_now_playing(match: Match, request: UtteranceRequest, ctx: IntentContext) -> Reply:
+    if apple_music(ctx):
+        # Only the Display knows what MusicKit is playing: show it on screen.
+        return Reply(say=APPLE_NOW_PLAYING, view=NowPlayingView())
     spotify = _spotify(ctx)
     if spotify is None:
         return Reply(say=NOT_CONFIGURED_SAY)

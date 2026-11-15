@@ -34,6 +34,9 @@ final class ManualSleeper: Sendable {
     /// Durations of the sleeps currently waiting, oldest first.
     var pending: [Duration] { state.withLock { $0.pending.map(\.duration) } }
 
+    /// How many sleeps have started in total (waiting, fired or cancelled).
+    var started: Int { state.withLock { $0.nextID } }
+
     /// Ends every pending sleep (or only those of `duration`) normally.
     func fire(_ duration: Duration? = nil) {
         let fired = state.withLock { state -> [Pending] in

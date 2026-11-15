@@ -87,6 +87,8 @@ public final class VoiceLoop {
 
     @ObservationIgnored private var started = false
     @ObservationIgnored private var micGranted = false
+    /// Mic permission without prompting (for the bare "stop" when there is no wake word to ask for).
+    @ObservationIgnored private let micAlreadyGranted: @MainActor () -> Bool
     @ObservationIgnored private var interrupted = false
     @ObservationIgnored private var alarmRinging = false
     /// From the start of a turn until its recognizer is done.
@@ -108,6 +110,7 @@ public final class VoiceLoop {
         synthesizer: any SpeechSynthesizer,
         session: any VoiceAudioSession,
         requestMicPermission: @escaping @MainActor () async -> Bool,
+        micAlreadyGranted: @escaping @MainActor () -> Bool = { false },
         retryBackoff: Duration = .seconds(2),
         maxBackoff: Duration = .seconds(60),
         activationTimeout: Duration = .seconds(3),
@@ -129,6 +132,7 @@ public final class VoiceLoop {
         self.stopWord = stopWord
         self.session = session
         self.requestMicPermission = requestMicPermission
+        self.micAlreadyGranted = micAlreadyGranted
         self.retryBackoff = retryBackoff
         self.maxBackoff = maxBackoff
         self.activationTimeout = activationTimeout
@@ -151,7 +155,11 @@ public final class VoiceLoop {
         guard !started else { return }
         started = true
         session.onEvent = { [weak self] event in self?.handle(event) }
-        if engine != nil { micGranted = await requestMicPermission() }
+        if engine != nil {
+            micGranted = await requestMicPermission()
+        } else {
+            micGranted = micAlreadyGranted()
+        }
         reconcile()
     }
 
@@ -176,6 +184,8 @@ public final class VoiceLoop {
     public func alarmRingingChanged(_ ringing: Bool) {
         guard alarmRinging != ringing else { return }
         alarmRinging = ringing
+        // Tap-to-talk may have granted the mic since start: check again, never prompt.
+        if ringing, !micGranted { micGranted = micAlreadyGranted() }
         reconcile()
     }
 
@@ -183,7 +193,9 @@ public final class VoiceLoop {
 
     private var desiredStandby: Standby {
         guard started, !interrupted, !micHeldByConversation else { return .none }
-        if alarmRinging { return .stopWord }
+        // The bare "stop" needs the mic already granted: opening it without permission can stall
+        // Core Audio, and the Stop button always works.
+        if alarmRinging { return micGranted ? .stopWord : .none }
         if engine != nil, micGranted { return .wakeWord }
         return .none
     }

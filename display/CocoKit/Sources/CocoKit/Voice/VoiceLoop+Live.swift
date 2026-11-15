@@ -1,5 +1,6 @@
 @preconcurrency import AVFoundation
 import Foundation
+import Speech
 
 extension VoiceLoop {
     /// The real wiring: Apple speech with echo cancellation, the shared audio-session
@@ -15,6 +16,12 @@ extension VoiceLoop {
             recognizer: AppleSpeechRecognizer(voiceProcessing: true),
             synthesizer: AppleSpeechSynthesizer(),
             session: AudioSessionCoordinator.shared,
-            requestMicPermission: { await AVAudioApplication.requestRecordPermission() })
+            requestMicPermission: { await AVAudioApplication.requestRecordPermission() },
+            // The bare "stop" uses the mic and speech recognition; only if both are already
+            // granted (tap-to-talk asks for them), never prompting while an alarm rings.
+            micAlreadyGranted: {
+                AVAudioApplication.shared.recordPermission == .granted
+                    && SFSpeechRecognizer.authorizationStatus() == .authorized
+            })
     }
 }

@@ -35,6 +35,7 @@ private struct Harness {
             synthesizer: synthesizer,
             session: session,
             requestMicPermission: { micGranted },
+            micAlreadyGranted: { micGranted },
             retryBackoff: .seconds(2),
             sleep: sleeper.sleep)
     }
@@ -296,6 +297,19 @@ private func action(say: String?, view: ViewSpec? = nil, commands: [Command] = [
         #expect(h.stopWord.isRunning == false)
         #expect(h.loop.stopWordActive == false)
         #expect(h.wake?.isRunning == true)
+    }
+
+    /// Opening the mic without permission is what stalled Core Audio in the simulator; the bare
+    /// "stop" is a nicety (the Stop button always works), so it needs permission already given.
+    @Test func stopWordNeedsMicPermissionAlreadyGranted() async {
+        let h = Harness(wakeWord: false, micGranted: false)
+        await h.loop.start()
+        await h.loop.settled()
+        h.loop.alarmRingingChanged(true)
+        await h.loop.settled()
+        #expect(h.stopWord.startCount == 0)
+        #expect(h.loop.stopWordActive == false)
+        #expect(h.session.activationCalls == 0)
     }
 
     @Test func stopWordWorksWithoutAWakeWordConfigured() async {

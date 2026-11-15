@@ -112,7 +112,10 @@ SIM_DEVICE ?= iPad (A16)
 SIM_APP := build/sim/Build/Products/Debug-iphonesimulator/CocoDisplay.app
 
 display-run-sim: display-gen ## Build (ad-hoc signed), install and launch in a simulator (SIM_DEVICE="iPad (A16)")
-	@udid=$$(xcrun simctl list devices available | grep -F "$(SIM_DEVICE) (" | head -1 | grep -oE '[0-9A-F-]{36}'); \
+	@if echo "$(SIM_DEVICE)" | grep -qE '^[0-9A-F-]{36}$$'; then udid="$(SIM_DEVICE)"; \
+	else udid=$$(xcrun simctl list devices available | grep -F "$(SIM_DEVICE) (" | head -1 | grep -oE '[0-9A-F-]{36}'); \
+		if [ $$(xcrun simctl list devices available | grep -cF "$(SIM_DEVICE) (") -gt 1 ]; then \
+			echo "Several simulators are named '$(SIM_DEVICE)'; using the first ($$udid). Pass SIM_DEVICE=<UDID> to choose." >&2; fi; fi; \
 	if [ -z "$$udid" ]; then echo "No available simulator named '$(SIM_DEVICE)'; see: xcrun simctl list devices available" >&2; exit 1; fi; \
 	xcrun simctl boot "$$udid" 2>/dev/null || true; \
 	open -a Simulator 2>/dev/null || true; \

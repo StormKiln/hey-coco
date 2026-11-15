@@ -46,6 +46,18 @@ targets:
       - package: CocoKit
       - package: OnnxRuntime
         product: onnxruntime
+    # ONNX Runtime is a static library, linked into the app binary. Xcode's package handling
+    # still embeds an empty stub onnxruntime.framework (binary minos 18.0, Info.plist 15.1)
+    # that nothing loads, and App Store Connect rejects it as ITMS-90208. `embed: false` on the
+    # dependency has no effect (Xcode adds the embed, not XcodeGen), so delete the stub before
+    # signing.
+    # The TestFlight workflow checks that the archive has no Frameworks/onnxruntime.framework.
+    postBuildScripts:
+      - name: Remove the onnxruntime.framework stub (ITMS-90208)
+        basedOnDependencyAnalysis: false
+        script: |
+          rm -rf "${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/onnxruntime.framework"
+          rmdir "${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}" 2>/dev/null || true
     # Bundle ID and signing (#4): defaults in Signing.xcconfig, team and overrides in the
     # gitignored Signing.local.xcconfig. Not set under `settings` below, which would win.
     configFiles:

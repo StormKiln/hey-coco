@@ -100,13 +100,19 @@ public final class AppModel {
     // MARK: - Router
 
     /// Applies an Action's `view`: replaces the screen, `nil` keeps it, unknown types are ignored.
+    /// A new screen or a spoken reply wakes night mode (a reply to a typed command, a timer
+    /// view), so nothing appears on a black screen.
     public func apply(_ action: Action) {
         lastSay = action.say
         // Every sound view plays, even an identical resend ("play it again").
         if case .sound? = action.view { media.soundRequested() }
+        let speaks = !(action.say?.isEmpty ?? true)
         switch action.view {
-        case nil, .unknown?: break
-        case let view?: currentView = view
+        case nil, .unknown?:
+            if speaks { night.wake() }
+        case let view?:
+            currentView = view
+            night.wake()
         }
     }
 

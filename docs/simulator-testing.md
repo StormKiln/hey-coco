@@ -1,0 +1,67 @@
+# Testing Coco Display in the iOS Simulator
+
+DEBUG builds carry a small harness (`display/App/Debug/DebugHarness.swift`) so an end-to-end run
+needs no taps. Release and TestFlight builds compile none of it.
+
+## 1. A scratch Hub
+
+Use a temporary config so the run never touches your real Hub's data or token:
+
+```toml
+token = "<at least 24 characters>"
+host = "127.0.0.1"
+port = 59xxx                      # any free port
+data_dir = "/tmp/coco-scratch/data"
+log_dir = "/tmp/coco-scratch/logs"
+timezone = "America/Toronto"
+[location]
+lat = 45.42
+lon = -75.69
+[discovery]
+enabled = false                   # don't advertise a second Hub on the LAN
+```
+
+```sh
+cd hub && COCO_CONFIG=/tmp/coco-scratch/config.toml uv run python -m coco_hub
+```
+
+Its log prints `pairing fingerprint XXXX-XXXX-…`.
+
+## 2. The app
+
+```sh
+make display-run-sim SIM_DEVICE="iPad Air 13-inch (M4)"
+```
+
+Then relaunch it pointed at the scratch Hub (`<udid>` from `xcrun simctl list devices`):
+
+```sh
+xcrun simctl terminate <udid> com.stormkiln.heycoco.display
+xcrun simctl launch <udid> com.stormkiln.heycoco.display \
+  -CocoDebugHost 127.0.0.1 -CocoDebugPort <port> -CocoDebugToken <token>
+```
+
+## 3. Commands
+
+Write commands, one per line, to the app's inbox; the app reads and deletes the file every
+half second and appends the resulting state to `coco-debug-log.txt` next to it:
+
+```sh
+docs=$(xcrun simctl get_app_container <udid> com.stormkiln.heycoco.display data)/Documents
+printf 'pair FFCE-42CE-F4C8-2DE2-E73A-FAB9\n' > "$docs/coco-debug-commands.txt"
+printf "say: what's the weather\n" > "$docs/coco-debug-commands.txt"
+cat "$docs/coco-debug-log.txt"
+```
+
+Commands (`DebugCommand`): `pair <fingerprint>`, `say: <text>`, `timer <seconds> [name]`,
+`stop-alarm`, `show idle|timers`, `night sleep|wake`, `forget`. Pairing still requires the
+fingerprint to match the one the app sees.
+
+## 4. Look at it
+
+```sh
+xcrun simctl io <udid> screenshot /tmp/coco.png
+```
+
+Night mode follows the Hub's `[night]` window; `night sleep` only works inside it. Stop the
+scratch Hub when done.

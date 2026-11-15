@@ -101,7 +101,6 @@ public final class IdleModel {
     /// The next `count` forecast hours, starting with the hour in progress.
     public func upcomingHours(count: Int = 6, at date: Date? = nil) -> [WeatherHour] {
         guard let hourly = info?.weather?.hourly else { return [] }
-        let cutoff = (date ?? now()).addingTimeInterval(-3600)
-        return Array(hourly.filter { $0.time > cutoff }.sorted { $0.time < $1.time }.prefix(count))
+        return WeatherForecast.upcomingHours(hourly, count: count, at: date ?? now())
     }
 }

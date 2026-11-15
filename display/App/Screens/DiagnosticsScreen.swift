@@ -20,9 +20,12 @@ struct DiagnosticsScreen: View {
     @Environment(AppModel.self) private var model
     @Environment(VoiceLoop.self) private var voice: VoiceLoop?
     @State private var diagnostics = DiagnosticsModel()
+    @State private var typedCommand = ""
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         List {
+            typedCommandSection
             displaySection
             if let voice { VoiceTestSection(recorder: voice.voiceTest, wakeWord: voice.wakeWord, device: deviceLine) }
             hubSection
@@ -41,6 +44,37 @@ struct DiagnosticsScreen: View {
             }
         }
         .task { await diagnostics.load(using: model.hubClient) }
+    }
+
+    // MARK: - Type a command
+
+    /// Sends text to the Hub exactly as if it had been heard, for testing without a microphone
+    /// (the iOS Simulator, a noisy kitchen) and for checking what the Hub makes of a phrase. The
+    /// reply is shown, not spoken.
+    private var typedCommandSection: some View {
+        Section {
+            HStack {
+                TextField("e.g. set a pasta timer for 10 minutes", text: $typedCommand)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .submitLabel(.send)
+                    .onSubmit(sendTypedCommand)
+                Button("Send", action: sendTypedCommand)
+                    .disabled(typedCommand.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+        } header: {
+            Text("Type a command")
+        } footer: {
+            Text("Goes to Coco Hub as if you had said it. The reply is shown, not spoken.")
+        }
+    }
+
+    private func sendTypedCommand() {
+        let text = typedCommand.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        typedCommand = ""
+        dismiss()
+        Task { await model.submit(text: text, source: .touch) }
     }
 
     // MARK: - This iPad

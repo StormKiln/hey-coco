@@ -35,7 +35,8 @@ struct ConversationLayer: ViewModifier {
                         .padding(.bottom, 36)
                 }
             }
-            .overlay(alignment: .bottomLeading) {
+            // Top-left: the bottom-left corner holds the idle screen's Timers button.
+            .overlay(alignment: .topLeading) {
                 if let voice {
                     WakeWordIndicator(status: voice.wakeWord)
                         .padding(24)

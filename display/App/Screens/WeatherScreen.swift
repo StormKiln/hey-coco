@@ -34,7 +34,9 @@ struct WeatherScreen: View {
                     VStack(spacing: 48) {
                         current
                         hourly(hours)
-                        daily(days, now: context.date)
+                        // Four days in portrait: seven ran under the Home and mic buttons, and the
+                        // kitchen iPad (7th gen, 4:3) is shorter than the simulator it was laid out on.
+                        daily(Array(days.prefix(4)), now: context.date)
                             .frame(maxWidth: 700)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)

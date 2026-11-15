@@ -16,6 +16,13 @@ import Observation
 /// ```
 /// Interruptions (Siri, calls) and route changes stop and re-arm the standby listener; a failed
 /// start re-arms after an exponential backoff.
+///
+/// Never blocks the main actor on the audio session. A standby listener that must go is stopped
+/// at once (so the recognizer can have the mic), but arming one is a serialized background pass:
+/// stop the old listener → await the session activation (at most `activationTimeout`) → start the
+/// new listener only if it is still the one wanted. Rapid changes coalesce: the pass re-reads what
+/// is wanted when it finishes and runs again only for the latest state. A timed-out activation is
+/// treated like a failed start (wake word `.retrying`, standby left off).
 @MainActor
 @Observable
 public final class VoiceLoop {
@@ -74,6 +81,7 @@ public final class VoiceLoop {
     @ObservationIgnored private let session: any VoiceAudioSession
     @ObservationIgnored private let requestMicPermission: @MainActor () async -> Bool
     @ObservationIgnored private let retryBackoff: Duration
+    @ObservationIgnored private let activationTimeout: Duration
     @ObservationIgnored private let maxBackoff: Duration
     @ObservationIgnored private let sleep: @Sendable (Duration) async throws -> Void
 
@@ -87,6 +95,10 @@ public final class VoiceLoop {
     @ObservationIgnored private(set) var turn = 0
     @ObservationIgnored private var nextBackoff: Duration
     @ObservationIgnored private var retryTask: Task<Void, Never>?
+    /// The background pass that arms the standby listener; nil when there is none.
+    @ObservationIgnored private var reconcileTask: Task<Void, Never>?
+    /// Something changed while a pass was running: run another one.
+    @ObservationIgnored private var reconcileAgain = false
 
     public init(
         host: any ConversationHost,
@@ -98,6 +110,7 @@ public final class VoiceLoop {
         requestMicPermission: @escaping @MainActor () async -> Bool,
         retryBackoff: Duration = .seconds(2),
         maxBackoff: Duration = .seconds(60),
+        activationTimeout: Duration = .seconds(3),
         sleep: @escaping @Sendable (Duration) async throws -> Void = cocoRealSleep,
         voiceTest: VoiceTestRecorder? = nil
     ) {
@@ -118,6 +131,7 @@ public final class VoiceLoop {
         self.requestMicPermission = requestMicPermission
         self.retryBackoff = retryBackoff
         self.maxBackoff = maxBackoff
+        self.activationTimeout = activationTimeout
         self.nextBackoff = retryBackoff
         self.sleep = sleep
 
@@ -157,7 +171,8 @@ public final class VoiceLoop {
         reconcile()
     }
 
-    /// Feed the app's "an alarm is ringing" state on every change.
+    /// Feed the app's "an alarm is ringing" state on every change. Returns at once: the audio
+    /// session work happens in the background (the alarm itself never waits for it).
     public func alarmRingingChanged(_ ringing: Bool) {
         guard alarmRinging != ringing else { return }
         alarmRinging = ringing
@@ -175,21 +190,77 @@ public final class VoiceLoop {
 
     /// Makes the running standby listener match what is wanted. `restart` restarts it even if it
     /// is already the right one (its audio engine may have been stopped by the system).
+    ///
+    /// Synchronous part: a listener that is no longer wanted (or must restart) is stopped now, so
+    /// whoever asked for the mic gets it. Arming is left to the background pass.
     private func reconcile(restart: Bool = false) {
         let wanted = desiredStandby
-        if wanted == standby, !restart || wanted == .none {
+        if standby != .none, standby != wanted || restart { stopStandby() }
+        if wanted == standby {
+            // Releasing the session doesn't wait for it, so it can happen right here.
+            if wanted == .none, !ducking { session.deactivate() }
             refreshWakeWordStatus()
+            if reconcileTask == nil { return }
+        }
+        // During a conversation the session is already active (ducking): nothing to wait for, so
+        // the listener comes back at once (barge-in).
+        if ducking, wanted != .none, reconcileTask == nil {
+            startListener(wanted)
             return
         }
-        stopStandby()
+        // Show what is running now (e.g. paused, not a stale "armed") until the pass is done.
+        refreshWakeWordStatus()
+        reconcileAgain = true
+        guard reconcileTask == nil else { return }
+        reconcileTask = Task { [weak self] in await self?.runReconcilePasses() }
+    }
+
+    /// Waits until no background pass is pending (tests).
+    func settled() async {
+        while let task = reconcileTask { await task.value }
+    }
+
+    private func runReconcilePasses() async {
+        while reconcileAgain {
+            reconcileAgain = false
+            await reconcilePass()
+        }
+        reconcileTask = nil
+    }
+
+    private func reconcilePass() async {
+        let wanted = desiredStandby
+        if standby != wanted { stopStandby() }
         guard wanted != .none else {
             if !ducking { session.deactivate() }
             refreshWakeWordStatus()
             return
         }
+        guard standby != wanted else {
+            refreshWakeWordStatus()
+            return
+        }
+        // During a conversation the session is already active (ducking).
+        if !ducking {
+            do {
+                try await withAudioSessionTimeout(activationTimeout, sleep: sleep) { [session] in
+                    try await session.activateStandby()
+                }
+            } catch {
+                // Wanted something else meanwhile? The next pass deals with it.
+                guard desiredStandby == wanted else { return }
+                // Includes `AudioSessionTimeout`: give up on the listener for now, try later.
+                scheduleRetry(for: wanted)
+                return
+            }
+            // Re-check: a conversation or the alarm may have changed things while we waited.
+            guard desiredStandby == wanted, standby == .none else { return }
+        }
+        startListener(wanted)
+    }
+
+    private func startListener(_ wanted: Standby) {
         do {
-            // During a conversation the session is already active (ducking).
-            if !ducking { try session.activateStandby() }
             switch wanted {
             case .wakeWord:
                 try engine?.start { [weak self] in self?.wakeWordHeard() }
@@ -295,12 +366,14 @@ public final class VoiceLoop {
 
     // MARK: - Conversation hooks
 
-    fileprivate func conversationWillBegin() throws {
+    fileprivate func conversationWillBegin() async throws {
         turn += 1
         micHeldByConversation = true
         ducking = true
         reconcile()
-        try session.beginConversation()
+        try await withAudioSessionTimeout(activationTimeout, sleep: sleep) { [session] in
+            try await session.beginConversation()
+        }
     }
 
     fileprivate func conversationDidEnd() {
@@ -339,7 +412,7 @@ private final class LoopConversationAudio: ConversationAudio {
 
     init(session: any VoiceAudioSession) { self.session = session }
 
-    func beginConversation() throws { try loop?.conversationWillBegin() }
+    func beginConversation() async throws { try await loop?.conversationWillBegin() }
     func playListeningChime() async { await loop?.playListeningChime() }
     func endConversation() { loop?.conversationDidEnd() }
 }

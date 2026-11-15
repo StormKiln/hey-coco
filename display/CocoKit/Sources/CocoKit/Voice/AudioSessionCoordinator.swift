@@ -13,8 +13,12 @@ import Foundation
 /// - Interruptions, route changes and media-server resets are reported through `onEvent`;
 ///   `VoiceLoop` restarts the wake-word engine.
 ///
-/// `AudioAlarmPlayer` defers to it (`prepareForAlarm()` / `alarmDidStop()`) so a ringing alarm
-/// doesn't switch the session to `.playback` and cut the mic the bare-"stop" listener needs.
+/// Every `AVAudioSession` call runs on `AudioSessionQueue` (never the main thread): the async
+/// methods return once the session has been configured, and the main actor stays free if that
+/// takes long or never happens.
+///
+/// `AudioAlarmPlayer` reads `isManaging` so a ringing alarm doesn't switch the session to
+/// `.playback` and cut the mic the bare-"stop" listener needs.
 @MainActor
 public final class AudioSessionCoordinator: VoiceAudioSession {
     public static let shared = AudioSessionCoordinator()
@@ -22,28 +26,36 @@ public final class AudioSessionCoordinator: VoiceAudioSession {
     private enum Mode { case inactive, standby, conversation }
 
     public var onEvent: (@MainActor (AudioSessionEvent) -> Void)?
+    /// The mode last asked for (claimed at once, before the session work has run).
     private var mode: Mode = .inactive
+    /// The session work for `mode`; a repeated `activateStandby()` joins it instead of queueing
+    /// another call behind one that may be wedged.
+    private var work: Task<Void, any Error>?
+    private let queue: AudioSessionQueue
     private var chime: AVAudioPlayer?
     private var observers: [any NSObjectProtocol] = []
 
-    private init() {
+    private init(queue: AudioSessionQueue = .shared) {
+        self.queue = queue
         chime = try? AVAudioPlayer(data: ListeningChime.wavData())
         chime?.prepareToPlay()
         observe()
     }
 
-    /// True while the voice loop holds the session (the alarm player then leaves it alone).
+    /// True while the voice loop holds (or is claiming) the session; the alarm player then leaves
+    /// the category alone.
     public var isManaging: Bool { mode != .inactive }
 
-    public func activateStandby() throws {
-        guard mode != .standby else { return }
-        try apply(duckOthers: false)
-        mode = .standby
+    public func activateStandby() async throws {
+        if mode == .standby, let work {
+            try await work.value
+            return
+        }
+        try await claim(.standby, duckOthers: false)
     }
 
-    public func beginConversation() throws {
-        try apply(duckOthers: true)
-        mode = .conversation
+    public func beginConversation() async throws {
+        try await claim(.conversation, duckOthers: true)
     }
 
     public func playListeningChime() async {
@@ -56,30 +68,34 @@ public final class AudioSessionCoordinator: VoiceAudioSession {
     public func deactivate() {
         guard mode != .inactive else { return }
         mode = .inactive
+        work = nil
         #if os(iOS)
-            // Fails ("session busy") while something still plays, e.g. the alarm; it stays
-            // active then, which is harmless.
-            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            queue.enqueue {
+                // Fails ("session busy") while something still plays, e.g. the alarm; it stays
+                // active then, which is harmless.
+                try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            }
         #endif
     }
-
-    /// The alarm is about to play. Returns true if the coordinator owns the session (it is made
-    /// active as-is); false means the alarm player should configure the session itself.
-    public func prepareForAlarm() -> Bool {
-        guard isManaging else { return false }
-        #if os(iOS)
-            try? AVAudioSession.sharedInstance().setActive(true)
-        #endif
-        return true
-    }
-
-    /// The alarm stopped. Returns true if the coordinator owns the session (the alarm player must
-    /// not deactivate it: the wake word is still listening).
-    public func alarmDidStop() -> Bool { isManaging }
 
     // MARK: - Private
 
-    private func apply(duckOthers: Bool) throws {
+    private func claim(_ newMode: Mode, duckOthers: Bool) async throws {
+        mode = newMode
+        let task = Task { [queue] in try await queue.run { try Self.apply(duckOthers: duckOthers) } }
+        work = task
+        do {
+            try await task.value
+        } catch {
+            if work == task {
+                mode = .inactive
+                work = nil
+            }
+            throw error
+        }
+    }
+
+    private nonisolated static func apply(duckOthers: Bool) throws {
         #if os(iOS)
             let session = AVAudioSession.sharedInstance()
             var options: AVAudioSession.CategoryOptions = [.defaultToSpeaker]
@@ -101,7 +117,10 @@ public final class AudioSessionCoordinator: VoiceAudioSession {
                     let began = raw.flatMap(AVAudioSession.InterruptionType.init) == .began
                     MainActor.assumeIsolated {
                         let coordinator = AudioSessionCoordinator.shared
-                        if began { coordinator.mode = .inactive }
+                        if began {
+                            coordinator.mode = .inactive
+                            coordinator.work = nil
+                        }
                         coordinator.onEvent?(began ? .interruptionBegan : .interruptionEnded)
                     }
                 })
@@ -128,6 +147,7 @@ public final class AudioSessionCoordinator: VoiceAudioSession {
                     MainActor.assumeIsolated {
                         let coordinator = AudioSessionCoordinator.shared
                         coordinator.mode = .inactive
+                        coordinator.work = nil
                         coordinator.onEvent?(.mediaServicesReset)
                     }
                 })

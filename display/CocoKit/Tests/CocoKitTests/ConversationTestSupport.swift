@@ -144,7 +144,7 @@ final class FakeSynthesizer: SpeechSynthesizer {
 final class FakeConversationAudio: ConversationAudio {
     let log: CallLog
     init(log: CallLog) { self.log = log }
-    func beginConversation() throws { log.record("audio:begin") }
+    func beginConversation() async throws { log.record("audio:begin") }
     func playListeningChime() async { log.record("audio:chime") }
     func endConversation() { log.record("audio:end") }
 }

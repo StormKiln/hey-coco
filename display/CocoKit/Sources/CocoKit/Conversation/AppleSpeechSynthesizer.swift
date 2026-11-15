@@ -126,11 +126,13 @@ public final class AppleConversationAudio: ConversationAudio {
         chime?.prepareToPlay()
     }
 
-    public func beginConversation() throws {
+    public func beginConversation() async throws {
         #if os(iOS)
-            let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .duckOthers])
-            try session.setActive(true)
+            try await AudioSessionQueue.shared.run {
+                let session = AVAudioSession.sharedInstance()
+                try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .duckOthers])
+                try session.setActive(true)
+            }
         #endif
     }
 
@@ -143,7 +145,9 @@ public final class AppleConversationAudio: ConversationAudio {
 
     public func endConversation() {
         #if os(iOS)
-            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            AudioSessionQueue.shared.enqueue {
+                try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            }
         #endif
     }
 }

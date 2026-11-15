@@ -13,7 +13,7 @@ Count tries yourself with a tally on paper and compare with the detections count
 
 ## Before you start
 
-1. Wake word set up: Picovoice AccessKey and `hey-coco_ios.ppn` in `display/WakeWord/`, see
+1. Wake word set up: the trained `display/WakeWord/hey_coco.onnx` in the build, see
    `docs/wake-word.md`. The bottom-left "Wake word off" hint must **not** be showing.
 2. Coco Hub running on the Mac and the iPad connected (no banner at the top).
 3. Install the build on the iPad (TestFlight, or Xcode → Run on the device).
@@ -99,7 +99,7 @@ Copy this into `docs/spikes/voice.md`, fill it in, and paste each block's report
 # Spike #6: wake word + on-device speech on the A10 iPad
 
 Date: YYYY-MM-DD · iPad: <model (identifier), iPadOS x.y> · App build: <version (build)>
-Porcupine: v4.0, keyword "hey coco", sensitivity 0.6
+openWakeWord: hey_coco.onnx <sha256 prefix>, threshold 0.5, smoothing 2, cooldown 2 s
 
 ## Verdict
 

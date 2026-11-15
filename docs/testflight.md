@@ -137,11 +137,12 @@ export ASC_ISSUER_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 export ASC_KEY_PATH=~/.appstoreconnect/private_keys/AuthKey_XXXXXXXXXX.p8
 ```
 
-### 7. Wake word files (optional but you want them)
+### 7. Wake word model
 
-Put `PicovoiceAccessKey.txt` and `hey-coco_ios.ppn` in `display/WakeWord/`
-(see `docs/wake-word.md`). They are bundled into the archive. Without them the build still works
-with tap-to-talk only, and the check warns: "archive will ship without wake word".
+The wake word needs no secret: its openWakeWord models are committed in `display/WakeWord/` and
+bundled into the archive. Until `display/WakeWord/hey_coco.onnx` is trained and committed
+(`make wakeword-train`, see `docs/wake-word.md`) the build works with tap-to-talk only, and the
+check warns: "archive will ship without the wake word".
 
 ### 8. Check, then upload
 
@@ -150,8 +151,8 @@ make display-testflight-check   # validates everything above without building
 make display-testflight         # archive + upload
 ```
 
-The check lists every missing value at once. The first archive takes a while (it builds the
-Porcupine package in Release) and Xcode may create an Apple Distribution certificate in your
+The check lists every missing value at once. The first archive takes a while (it downloads
+the ~50 MB ONNX Runtime package) and Xcode may create an Apple Distribution certificate in your
 login keychain and an App Store provisioning profile for you; that is expected.
 
 Upload from an up-to-date `main`: the build number is the commit count, and App Store Connect
@@ -194,8 +195,8 @@ never runs on pull requests. Runs queue one at a time and are never cancelled mi
 - **`dry_run` ticked (default): rehearsal.** Any branch. `make lint`, `make hub-test`,
   `make kit-test`, then an unsigned Release archive, kept 14 days as an artifact
   (`coco-display-unsigned-*`: zipped `.xcarchive`, `SHA256SUMS`, `commit.txt`). No secrets
-  needed, nothing uploaded. The run fails if the archive contains `PicovoiceAccessKey.txt` or
-  `hey-coco*.ppn`, because the repo is public and anyone can download its artifacts.
+  needed, nothing uploaded. The run fails if the openWakeWord feature models are missing from
+  the app, and warns if `hey_coco.onnx` is (no wake word).
 - **`dry_run` unticked: real upload.** In order, failing at the first problem: Preflight lists
   every missing required secret; HEAD must be on `main`'s history; the same lint and tests;
   `make display-testflight-check`; the App Store Connect build-number preflight; then the
@@ -203,8 +204,8 @@ never runs on pull requests. Runs queue one at a time and are never cancelled mi
   waiting for Apple's processing (fails if Apple marks it INVALID; still processing is only a
   notice). The API key file is deleted at the end whatever happened.
 
-  **The signed archive is never kept as an artifact**: it bundles the Picovoice AccessKey and
-  keyword file, and this repo's artifacts are public. Only `SHA256SUMS` (the signed archive's
+  **The signed archive is never kept as an artifact**: it is the distributable app, and this
+  repo's artifacts are public. Only `SHA256SUMS` (the signed archive's
   hash) and `commit.txt` are kept, 14 days, as `coco-display-signed-provenance-*`.
 
 To check processing later: Actions, then **TestFlight status**, then Run workflow with the
@@ -221,11 +222,9 @@ A repository secret or variable of the same name overrides the org's.
 | `ASC_KEY_ID` | secret | Key ID from step 4 |
 | `ASC_ISSUER_ID` | secret | Issuer ID from step 4 |
 | `ASC_KEY_P8` | secret | `base64 -i AuthKey_XXXXXXXXXX.p8 \| gh secret set ASC_KEY_P8 --org StormKiln --visibility selected --repos hey-coco` |
-| `PICOVOICE_ACCESS_KEY` | secret | Optional: the Picovoice AccessKey (one per Picovoice account) |
 
 | hey-coco repository | Kind | Value |
 |---|---|---|
-| `HEY_COCO_PPN_B64` | secret | Optional: `base64 -i display/WakeWord/hey-coco_ios.ppn \| gh secret set HEY_COCO_PPN_B64 -R StormKiln/hey-coco` |
 | `BUNDLE_ID` | variable | Only if you are not using `com.stormkiln.heycoco.display` |
 
 Spotify and YouTube values are not here: the Hub uses them at run time on the Mac, from

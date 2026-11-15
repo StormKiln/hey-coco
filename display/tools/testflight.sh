@@ -60,11 +60,9 @@ check() {
     echo "Team:         ${t:-<missing>}"
     echo "Build number: ${BUILD_NUMBER:-<from git>}"
 
-    for f in PicovoiceAccessKey.txt hey-coco_ios.ppn; do
-        if [ ! -s "display/WakeWord/$f" ]; then
-            echo "warning: display/WakeWord/$f is missing: the archive will ship without the wake word (docs/wake-word.md)" >&2
-        fi
-    done
+    if [ ! -s display/WakeWord/hey_coco.onnx ]; then
+        echo "warning: display/WakeWord/hey_coco.onnx is missing: the archive will ship without the wake word (make wakeword-train, docs/wake-word.md)" >&2
+    fi
 
     if [ -n "$missing" ]; then
         echo "Not ready for TestFlight. Missing:$missing" >&2

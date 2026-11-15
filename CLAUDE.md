@@ -30,5 +30,5 @@ Always use the Makefile (`make help`). CI runs `make hub-lint`, `make hub-test`,
 ## Rules
 - Never work on `main`; one branch + PR per issue, title prefixed with the issue (`#12: ...`), body `Closes #12`.
 - TDD: write the failing test first. Hub tests never hit the live network (use recorded responses).
-- No secrets in git: API keys, Picovoice AccessKey, Spotify tokens live in `hub/config.local.toml` or env.
+- No secrets in git: API keys, Spotify tokens live in `hub/config.local.toml` or env.
 - The Hub ↔ Display contract lives in `docs/protocol/`; change it in one PR together with both sides.

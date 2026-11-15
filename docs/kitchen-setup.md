@@ -313,9 +313,8 @@ spare display. It is not a Mac Catalyst build.
 1. Xcode signed in with your Apple ID (Xcode, then Settings, then Accounts). macOS only launches a
    signed iPad app, so you need your team ID (Accounts, select the team, the ID is shown there, or
    developer.apple.com, then Membership).
-2. For "hey coco", put `hey-coco_mac.ppn` (and the AccessKey) in `display/WakeWord/`, see
-   `docs/wake-word.md`. Without the Mac keyword the iOS one is tried; without either, use the mic
-   button.
+2. "Hey coco" uses the same openWakeWord model as the iPad (`display/WakeWord/hey_coco.onnx`,
+   see `docs/wake-word.md`). Without it, use the mic button.
 3. Build, sign and open it:
 
    ```sh
@@ -340,7 +339,7 @@ settings for that. Guided Access does not apply.
 | **"Pair with Coco Hub?" fingerprint doesn't match `make hub-fingerprint`** | Something other than your Hub answered. | Tap **Not now**. Type the Mac's IP address as the Hub host in Settings so Coco asks that Mac directly, then pair. |
 | **"Coco Hub needs a valid token"** (unauthorized) | The token on the iPad doesn't match `token` in `hub/config.local.toml`. | Open Coco's Settings, enter the exact token, and Save. If you changed the token on the Mac, run `make hub-install-service` again to restart the Hub. |
 | **No forecast** ("Forecast unavailable") | The Hub has no home location, or can't reach the weather service. | Set `[location]` `lat` and `lon` in `hub/config.local.toml` and re-run `make hub-install-service`. "Forecast may be out of date" means the last fetch failed, so check the Mac's internet. |
-| **"Hey coco" does nothing** | The wake word isn't built yet, or its AccessKey and keyword aren't configured. | Use the mic button for now. Wake-word setup is coming in #21; see `docs/wake-word.md` once that lands. |
+| **"Hey coco" does nothing** | This build has no trained "hey coco" model (the bottom-left hint says "Wake word off"). | Use the mic button for now. Train and commit the model: `docs/wake-word.md`. |
 | **The mic does nothing**, or Coco says it needs a permission | Microphone or Speech Recognition was denied. | iPad Settings, then Coco Display, and switch both on. |
 | **No spoken answers to general questions** | Ollama isn't running, the model isn't pulled, or Qwen is disabled. | On the Mac: `brew services list` (ollama should be started), `ollama list` (should show `qwen3:8b`), and check `enabled = true` under `[qwen]` in `hub/config.local.toml`. Run `make hub-logs` and look for a Qwen unavailable message. If a question takes too long, Coco says "Sorry, that took too long." |
 | **A timer didn't ring** | Notifications are off for Coco, a Focus is hiding the backup notification, the volume is down or muted, or Coco was closed. | Check iPad Settings, then Coco Display, then Notifications. Add Coco to your Focus's allowed apps. Turn the volume up and check the side switch. Start Guided Access so the app stays open. |

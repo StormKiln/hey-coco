@@ -1,0 +1,38 @@
+[project]
+name = "hey-coco-wakeword-train"
+version = "0.1.0"
+description = "Trains display/WakeWord/hey_coco.onnx with openWakeWord (make wakeword-train)"
+# Python 3.11: the newest with wheels for every pin below (piper-phonemize-cross, torch 2.5).
+requires-python = "==3.11.*"
+# Pins follow openWakeWord's automatic_model_training notebook where it pins; torch is the newest
+# whose torchaudio still has the backends speechbrain 0.5 uses. Not installed by anything else.
+dependencies = [
+    "acoustics==0.2.6",
+    "audiomentations==0.33.0",
+    "deep-phonemizer==0.0.19",
+    "mutagen==1.47.0",
+    "numpy>=1.26,<2",
+    "onnx==1.17.0",
+    "onnxruntime==1.20.1",
+    "piper-phonemize-cross==1.2.1",
+    "pronouncing==0.2.0",
+    "pyarrow==18.1.0",
+    "pyyaml==6.0.2",
+    "requests==2.32.3",
+    "scikit-learn==1.5.2",
+    "scipy==1.13.1",
+    # pronouncing imports pkg_resources, which setuptools 81 removed.
+    "setuptools==80.9.0",
+    "soundfile==0.12.1",
+    "speechbrain==0.5.16",
+    "torch==2.5.1",
+    "torch-audiomentations==0.11.0",
+    "torchaudio==2.5.1",
+    "torchinfo==1.8.0",
+    "torchmetrics==1.2.0",
+    "tqdm==4.67.1",
+    "webrtcvad-wheels==2.0.14",
+]
+
+[tool.uv]
+package = false

@@ -1,8 +1,8 @@
 import Foundation
 
-/// Listens for the wake phrase ("hey coco") and calls back on every detection. Porcupine is the
-/// first implementation (in the app target, since Picovoice's package is iOS-only); the protocol
-/// keeps it swappable if its free tier or accuracy disappoints.
+/// Listens for the wake phrase ("hey coco") and calls back on every detection. The real one is
+/// `OpenWakeWordEngine` (app target: it links ONNX Runtime, which CocoKit stays free of; the
+/// pipeline logic is `OpenWakeWordRecognizer` here).
 ///
 /// `start` opens the microphone; it must not be running while the speech recognizer is
 /// (`VoiceLoop` hands the mic back and forth).
@@ -55,42 +55,45 @@ public final class FakeWakeWordEngine: WakeWordEngine {
     }
 }
 
-/// The non-committed pieces Porcupine needs: the Picovoice AccessKey and the trained keyword
-/// file. Both are bundled from the gitignored `display/WakeWord/` folder (see
-/// `docs/wake-word.md`).
+/// The three openWakeWord models the wake word needs, bundled from `display/WakeWord/` (see
+/// `docs/wake-word.md`). The two feature models are openWakeWord's published ones and are
+/// committed; `hey_coco.onnx` is trained with `make wakeword-train`.
 public struct WakeWordResources: Sendable, Equatable {
-    public static let accessKeyFile = "PicovoiceAccessKey.txt"
-    public static let iOSKeywordFile = "hey-coco_ios.ppn"
-    public static let macKeywordFile = "hey-coco_mac.ppn"
-    public static let noKeyReason = "Wake word off: no Picovoice AccessKey in this build."
-    public static let noKeywordReason = "Wake word off: no \"hey coco\" keyword file in this build."
+    public static let melSpectrogramFile = "melspectrogram.onnx"
+    public static let embeddingFile = "embedding_model.onnx"
+    public static let wakeModelFile = "hey_coco.onnx"
+    public static let noFeatureModelsReason =
+        "Wake word off: openWakeWord's feature models are missing from this build."
+    public static let noWakeModelReason = "Wake word off: no \"hey coco\" model in this build."
 
     public enum Lookup: Sendable, Equatable {
         case available(WakeWordResources)
         case unavailable(String)
     }
 
-    public var accessKey: String
-    public var keywordURL: URL
+    public var melSpectrogramURL: URL
+    public var embeddingURL: URL
+    public var classifierURL: URL
 
-    public init(accessKey: String, keywordURL: URL) {
-        self.accessKey = accessKey
-        self.keywordURL = keywordURL
+    public init(melSpectrogramURL: URL, embeddingURL: URL, classifierURL: URL) {
+        self.melSpectrogramURL = melSpectrogramURL
+        self.embeddingURL = embeddingURL
+        self.classifierURL = classifierURL
     }
 
-    /// Looks in `directory` (the app bundle's resources). On a Mac ("Designed for iPad") the
-    /// macOS keyword is preferred, falling back to the iOS one.
-    public static func locate(in directory: URL?, runningOnMac: Bool) -> Lookup {
-        guard let directory,
-            let raw = try? String(contentsOf: directory.appending(path: accessKeyFile), encoding: .utf8)
-        else { return .unavailable(noKeyReason) }
-        let key = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !key.isEmpty else { return .unavailable(noKeyReason) }
-
-        let names = runningOnMac ? [macKeywordFile, iOSKeywordFile] : [iOSKeywordFile]
-        let keyword = names.map { directory.appending(path: $0) }
-            .first { FileManager.default.fileExists(atPath: $0.path(percentEncoded: false)) }
-        guard let keyword else { return .unavailable(noKeywordReason) }
-        return .available(WakeWordResources(accessKey: key, keywordURL: keyword))
+    /// Looks in `directory` (the app bundle's resources). An empty file does not count.
+    public static func locate(in directory: URL?) -> Lookup {
+        func model(_ name: String) -> URL? {
+            guard let url = directory?.appending(path: name),
+                let size = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize, size > 0
+            else { return nil }
+            return url
+        }
+        guard let mel = model(melSpectrogramFile), let embedding = model(embeddingFile) else {
+            return .unavailable(noFeatureModelsReason)
+        }
+        guard let classifier = model(wakeModelFile) else { return .unavailable(noWakeModelReason) }
+        return .available(
+            WakeWordResources(melSpectrogramURL: mel, embeddingURL: embedding, classifierURL: classifier))
     }
 }

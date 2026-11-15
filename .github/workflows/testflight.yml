@@ -15,11 +15,10 @@
 # a repository secret or variable of the same name overrides it:
 #   ASC_KEY_ID, ASC_ISSUER_ID   secrets: App Store Connect API key ID and issuer ID
 #   ASC_KEY_P8                  secret: the AuthKey_<KEY_ID>.p8 file, base64 (base64 -i AuthKey_X.p8 | pbcopy)
-#   PICOVOICE_ACCESS_KEY        secret, optional: wake word AccessKey (one per Picovoice account)
 #   APPLE_TEAM_ID               variable: Apple team ID (not a secret; it is in every signed app)
 # This repository only:
-#   HEY_COCO_PPN_B64            secret, optional: hey-coco_ios.ppn, base64
 #   BUNDLE_ID                   variable, optional: if not com.stormkiln.heycoco.display
+# The wake word needs no secret: its openWakeWord models are committed in display/WakeWord/.
 name: TestFlight
 
 on:
@@ -65,17 +64,13 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
           DEVELOPMENT_TEAM: ${{ vars.APPLE_TEAM_ID }}
-          PICOVOICE_ACCESS_KEY: ${{ secrets.PICOVOICE_ACCESS_KEY }}
-          HEY_COCO_PPN_B64: ${{ secrets.HEY_COCO_PPN_B64 }}
         run: |
           missing=""
           for name in ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8; do
             [ -n "$(printenv "$name")" ] || missing="$missing $name"
           done
           [ -n "$DEVELOPMENT_TEAM" ] || missing="$missing APPLE_TEAM_ID(variable)"
-          for name in PICOVOICE_ACCESS_KEY HEY_COCO_PPN_B64; do
-            [ -n "$(printenv "$name")" ] || echo "::warning::$name is not set: the build ships without the wake word"
-          done
+          [ -s display/WakeWord/hey_coco.onnx ] || echo "::warning::display/WakeWord/hey_coco.onnx is not committed: the build ships without the wake word (docs/wake-word.md)"
           if [ -n "$missing" ]; then
             echo "::error::Missing org or repository secrets/variables:$missing. Add them (docs/testflight.md), or run with dry_run for a rehearsal."
             exit 1
@@ -97,7 +92,7 @@ jobs:
       - name: Select Xcode (XCODE_PRIMARY in the Makefile, same as CI's display-build)
         run: make ci-xcode
       - run: brew install xcodegen
-      - name: Cache Swift packages (Porcupine is a large clone)
+      - name: Cache Swift packages (ONNX Runtime is a ~50 MB download)
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: display/.spm
@@ -113,18 +108,16 @@ jobs:
       - name: Unsigned Release archive
         if: ${{ inputs.dry_run }}
         run: make display-archive-unsigned
-      # The repo is public, so artifacts are downloadable by others: the rehearsal archive must
-      # never contain the Picovoice AccessKey or keyword file (it has no secrets; assert it).
-      # Matches our files by name only: Porcupine's own bundle ships public built-in keyword .ppns.
-      - name: The rehearsal archive holds no wake-word secrets
+      # The wake word's openWakeWord models are committed (no secrets): the feature models must
+      # be in the app; without the trained hey_coco.onnx it ships with tap-to-talk only.
+      - name: The archive bundles the wake-word models
         if: ${{ inputs.dry_run }}
         run: |
-          found=$(find display/build/CocoDisplay-unsigned.xcarchive \( -name PicovoiceAccessKey.txt -o -name 'hey-coco*.ppn' \) -print)
-          if [ -n "$found" ]; then
-            echo "::error::The unsigned archive contains wake-word secrets and must not be published:"
-            echo "$found"
-            exit 1
-          fi
+          app=display/build/CocoDisplay-unsigned.xcarchive/Products/Applications/CocoDisplay.app
+          for f in melspectrogram.onnx embedding_model.onnx; do
+            [ -s "$app/$f" ] || { echo "::error::$f is missing from the app bundle"; exit 1; }
+          done
+          [ -s "$app/hey_coco.onnx" ] || echo "::warning::No hey_coco.onnx in the app: it ships without the wake word (docs/wake-word.md)"
       - name: Package the unsigned archive
         if: ${{ inputs.dry_run }}
         run: make display-artifact ARCHIVE=build/CocoDisplay-unsigned.xcarchive
@@ -138,14 +131,12 @@ jobs:
           retention-days: 14
 
       # ---- Real upload ----
-      - name: Write signing config, API key and wake-word files
+      - name: Write signing config and API key
         if: ${{ !inputs.dry_run }}
         env:
           DEVELOPMENT_TEAM: ${{ vars.APPLE_TEAM_ID }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
-          PICOVOICE_ACCESS_KEY: ${{ secrets.PICOVOICE_ACCESS_KEY }}
-          HEY_COCO_PPN_B64: ${{ secrets.HEY_COCO_PPN_B64 }}
         run: |
           {
             echo "DEVELOPMENT_TEAM = $DEVELOPMENT_TEAM"
@@ -155,12 +146,6 @@ jobs:
           key="$RUNNER_TEMP/AuthKey_$ASC_KEY_ID.p8"
           (umask 077 && echo "$ASC_KEY_P8" | base64 --decode > "$key")
           echo "ASC_KEY_PATH=$key" >> "$GITHUB_ENV"
-          if [ -n "$PICOVOICE_ACCESS_KEY" ]; then
-            printf '%s\n' "$PICOVOICE_ACCESS_KEY" > display/WakeWord/PicovoiceAccessKey.txt
-          fi
-          if [ -n "$HEY_COCO_PPN_B64" ]; then
-            echo "$HEY_COCO_PPN_B64" | base64 --decode > display/WakeWord/hey-coco_ios.ppn
-          fi
       - name: Check config
         if: ${{ !inputs.dry_run }}
         env:
@@ -190,9 +175,9 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: make display-testflight-upload
 
-      # Provenance only: the repo is public and the signed archive bundles the Picovoice
-      # AccessKey and keyword file, so it is never uploaded as an artifact. SHA256SUMS records
-      # the signed archive's hash. Kept even if the upload or processing check fails.
+      # Provenance only: the repo is public and the signed archive is the distributable app, so
+      # it goes to TestFlight only, never to the public artifacts. SHA256SUMS records the signed
+      # archive's hash. Kept even if the upload or processing check fails.
       - name: Keep the provenance (SHA256SUMS + commit.txt, no archive)
         if: ${{ !cancelled() && !inputs.dry_run && hashFiles('display/build/artifact/SHA256SUMS') != '' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

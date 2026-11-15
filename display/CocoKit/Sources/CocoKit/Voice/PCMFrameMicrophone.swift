@@ -2,7 +2,7 @@
 import Foundation
 
 /// The mic as fixed-length frames of 16-bit mono PCM at a fixed rate: what wake-word engines
-/// (Porcupine: 512 samples at 16 kHz) consume. Voice processing (echo cancellation) is on, so
+/// (openWakeWord: 1280 samples at 16 kHz) consume. Voice processing (echo cancellation) is on, so
 /// Coco's own speech, music and video are largely removed from what the engine hears.
 ///
 /// Frames are delivered in order on a private serial queue, never on the main actor. Restarts

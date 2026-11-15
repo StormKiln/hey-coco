@@ -73,9 +73,9 @@ dark at night.
 - **YouTube Data API** free quota ≈ 100 searches/day — plenty for a family; cache
   recent searches.
 - **Google Images** has no usable public API for new users → Wikimedia Commons.
-- **Porcupine** (Picovoice) needs a free personal AccessKey and a custom "hey coco"
-  keyword model trained in the Picovoice console for iOS (and macOS for the Mac
-  build).
+- **openWakeWord** (Apache-2.0, on ONNX Runtime) replaced Porcupine: Picovoice became a
+  7-day trial that needs a company registration. The "hey coco" model is trained locally
+  from synthetic speech (`make wakeword-train`, `docs/wake-word.md`); no key or account.
 - Owner's preferences: Makefiles for consistent commands; Python/FastAPI on the
   backend.
 
@@ -91,7 +91,7 @@ dark at night.
 
 ```
 ┌──────────── iPad (Coco Display, SwiftUI) ────────────┐        ┌──────── Mac (Coco Hub, FastAPI) ────────┐
-│ Porcupine "hey coco"  →  Apple Speech (STT)          │  text  │ Intent pipeline:                         │
+│ openWakeWord "hey coco" → Apple Speech (STT)         │  text  │ Intent pipeline:                         │
 │ Screens: Idle/Clock, Timers, Answer, Picture,        │ ─────► │   1. rules engine (deterministic)        │
 │   Sound, YouTube player, Now Playing, Night          │        │   2. Qwen via Ollama (intent fallback +  │
 │ TTS (AVSpeechSynthesizer)                            │ ◄───── │      general Q&A)                        │
@@ -139,7 +139,7 @@ dark at night.
 
 - SwiftUI app, iPadOS 18 target; also runs on Apple silicon Mac as "Designed for
   iPad".
-- **Listening:** Porcupine runs continuously; on wake, chime + duck audio, start
+- **Listening:** openWakeWord runs continuously; on wake, chime + duck audio, start
   `SFSpeechRecognizer` (prefer on-device), end on silence, send transcript to Hub.
 - **Screens:** Idle (clock + current temp + next ~6h forecast), Answer (spoken text
   shown large), Timers (big countdown cards; multiple), Picture, Sound (picture +
@@ -181,8 +181,8 @@ dark at night.
   unavailable, Apple's server recognition is acceptable.
 - **Mac Display is dev / substitute only**, never simultaneous with the iPad — one
   Display at a time; the Hub does not arbitrate multiple clients.
-- **Wake-word engine behind a protocol**; Porcupine is the first implementation, so
-  it can be swapped if its free tier or quality disappoints.
+- **Wake-word engine behind a protocol**; Porcupine was the first implementation and
+  was swapped for openWakeWord when its free tier disappeared.
 - **"Hey coco" must work while music/video plays** through the iPad speaker; use
   the iOS voice-processing audio mode (echo cancellation) and duck media on wake.
 

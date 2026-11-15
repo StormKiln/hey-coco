@@ -56,7 +56,7 @@ jobs:
 
   display:
     name: display (Xcode ${{ matrix.xcode }})
-    # 4.5-7 min measured for kit-test + display-build (cold Porcupine clone is the slow part).
+    # 4.5-7 min measured for kit-test + display-build (cold ONNX Runtime download is the slow part).
     timeout-minutes: 30
     runs-on: ${{ matrix.runner }}
     strategy:
@@ -86,7 +86,7 @@ jobs:
       - run: make kit-test
       - if: matrix.build
         run: brew install xcodegen
-      - name: Cache Swift packages (Porcupine is a large clone)
+      - name: Cache Swift packages (ONNX Runtime is a ~50 MB download)
         if: matrix.build
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:

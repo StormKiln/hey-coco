@@ -46,8 +46,8 @@ Throwaway test of whether the Hub can reliably start Spotify on the iPad's own s
 
 Throwaway app proving "hey coco" + speech recognition work on the actual kitchen iPad, including while audio plays.
 
-- [ ] Picovoice AccessKey obtained; custom "hey coco" keyword trained for iOS and macOS.
-- [ ] Porcupine detects "hey coco" from across a kitchen (~3–4 m); false-wake rate noted over a few hours of normal noise.
+- [ ] "hey coco" openWakeWord model trained (`make wakeword-train`) and committed.
+- [ ] openWakeWord detects "hey coco" from across a kitchen (~3–4 m); false-wake rate noted over a few hours of normal noise.
 - [ ] `SFSpeechRecognizer.supportsOnDeviceRecognition` result recorded for the A10; latency for a short command measured.
 - [ ] Wake word tested while music plays through the iPad speaker with `AVAudioSession` voice-processing (echo cancellation) on.
 - [ ] CPU / battery / thermal over a 1h continuous-listen run recorded.
@@ -192,12 +192,12 @@ Hands-free "hey coco" all day, a bare "stop" for ringing alarms, and a dark scre
 
 **Done when:** From across the kitchen, "hey coco, set a 5 minute timer" works with music playing; "stop" silences the alarm; at night the screen dims then goes black and "hey coco" brings it back.
 
-### Wake-word engine protocol with Porcupine implementation
+### Wake-word engine protocol with openWakeWord implementation
 
 Swappable wake-word detection.
 
-- [ ] `WakeWordEngine` protocol; `PorcupineWakeWordEngine` using the trained "hey coco" model (iOS + macOS).
-- [ ] AccessKey from configuration, not committed.
+- [ ] `WakeWordEngine` protocol; `OpenWakeWordEngine` using the trained "hey coco" model (iOS + macOS).
+- [ ] No key or account: the models are committed (replaced Porcupine, now a paid trial).
 - [ ] Fake engine for tests.
 
 Depends on: Spike: wake word + on-device speech on the A10 iPad; Tap-to-talk, speech recognition, and spoken replies
@@ -211,7 +211,7 @@ One owner of the microphone and audio session.
 - [ ] Media (YouTube/Spotify/sounds) ducked while listening and speaking, restored after.
 - [ ] Recovers if the audio session is interrupted.
 
-Depends on: Wake-word engine protocol with Porcupine implementation
+Depends on: Wake-word engine protocol with openWakeWord implementation
 
 ### Bare "stop" while an alarm rings
 
@@ -243,7 +243,7 @@ Same app as a dev / substitute display.
 - [ ] Brightness / Guided Access behaviour degrades gracefully on Mac.
 - [ ] `make display-run-mac` documented.
 
-Depends on: Wake-word engine protocol with Porcupine implementation
+Depends on: Wake-word engine protocol with openWakeWord implementation
 
 ## Phase 4: Qwen fallback and general questions
 

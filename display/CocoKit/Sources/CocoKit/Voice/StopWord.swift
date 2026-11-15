@@ -3,9 +3,9 @@ import Foundation
 /// Listens for a bare "stop" (no wake word) while an alarm rings (#23). `VoiceLoop` only runs it
 /// while an alarm is ringing, so "stop" is never acted on at any other time.
 ///
-/// Porcupine has no built-in "stop" keyword (its built-ins are names like "computer", "jarvis";
-/// a custom "stop" model would need another Picovoice console training), so the real listener
-/// is short speech-recognition windows (`RecognizerStopWordListener`).
+/// A dedicated "stop" wake-word model would need its own training (and a one-syllable word
+/// false-triggers easily), so the real listener is short speech-recognition windows
+/// (`RecognizerStopWordListener`).
 @MainActor
 public protocol StopWordListener: AnyObject {
     var isRunning: Bool { get }

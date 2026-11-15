@@ -10,7 +10,7 @@ PLIST_DEST := $(HOME)/Library/LaunchAgents/$(SERVICE_LABEL).plist
 HUB_LOG_DIR := $(HOME)/Library/Logs/CocoHub
 LAUNCH_DOMAIN = gui/$$(id -u)
 
-.PHONY: help hub-setup hub-sync hub-run hub-test hub-resilience hub-lint hub-fingerprint hub-eval hub-fmt hub-render-plist hub-install-service hub-uninstall-service hub-logs hub-logs-launchd hub-diag spotify-login spotify-spike sounds-build display-gen display-build display-run-sim display-testflight-check display-testflight-preflight display-archive display-archive-unsigned display-artifact display-testflight-upload display-testflight testflight-status display-icon display-build-mac display-run-mac display-test kit-test test lint repo-check check-workflows ci-xcode
+.PHONY: help hub-setup hub-sync hub-run hub-test hub-resilience hub-lint hub-fingerprint hub-eval hub-fmt hub-render-plist hub-install-service hub-uninstall-service hub-logs hub-logs-launchd hub-diag spotify-login spotify-spike sounds-build display-gen display-build display-run-sim display-testflight-check display-testflight-preflight display-archive display-archive-unsigned display-artifact display-testflight-upload display-testflight testflight-status display-icon wakeword-train display-build-mac display-run-mac display-test kit-test test lint repo-check check-workflows ci-xcode
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-18s %s\n", $$1, $$2}'
@@ -106,7 +106,7 @@ display-build: display-gen ## Build Coco Display for the iOS simulator (unsigned
 	cd display && xcodebuild -project CocoDisplay.xcodeproj -scheme CocoDisplay -destination '$(SIM_DEST)' -clonedSourcePackagesDirPath .spm build -quiet CODE_SIGNING_ALLOWED=NO
 
 # Run the app in a simulator. Ad-hoc signed, unlike `display-build` (a compile check): the
-# simulator refuses unsigned embedded frameworks (Porcupine), and Signing.xcconfig keeps signing
+# simulator refuses unsigned embedded frameworks, and Signing.xcconfig keeps signing
 # off by default.
 SIM_DEVICE ?= iPad (A16)
 SIM_APP := build/sim/Build/Products/Debug-iphonesimulator/CocoDisplay.app
@@ -175,7 +175,7 @@ display-archive-unsigned: display-gen ## Archive an UNSIGNED Release build (Test
 
 # Zip an archive (ARCHIVE=, relative to display/) with SHA256SUMS and commit.txt into
 # display/build/artifact. The TestFlight workflow publishes the zip only for unsigned rehearsals
-# (signed archives bundle the wake-word key; artifacts are public): see docs/testflight.md.
+# (artifacts are public; a signed build is only distributed through TestFlight): see docs/testflight.md.
 ARCHIVE ?= $(ARCHIVE_PATH)
 ARTIFACT_DIR := display/build/artifact
 display-artifact: ## Package an archive (ARCHIVE=, under display/) as zip + SHA256SUMS + commit.txt in display/build/artifact
@@ -217,6 +217,14 @@ display-run-mac: ## Build, sign and open Coco Display on this Mac (needs DEVELOP
 	@test -n "$(DEVELOPMENT_TEAM)" || { echo "Set DEVELOPMENT_TEAM=<your Apple team ID>: macOS only runs signed iPad apps (docs/kitchen-setup.md)" >&2; exit 1; }
 	$(MAKE) display-build-mac DEVELOPMENT_TEAM=$(DEVELOPMENT_TEAM)
 	open "$(MAC_APP)"
+
+# "hey coco" wake-word model (docs/wake-word.md). Its own uv environment (torch, Piper), never the
+# Hub's. Downloads ~19 GB into WAKEWORD_WORK and runs for hours; SMOKE=1 checks the toolchain on a
+# tiny slice in minutes and leaves display/WakeWord alone.
+WAKEWORD_WORK ?= $(HOME)/Library/Caches/hey-coco/wakeword
+wakeword-train: ## Train display/WakeWord/hey_coco.onnx with openWakeWord (hours, ~19 GB download; SMOKE=1 for a quick check)
+	uv run --project display/tools/wakeword --locked python display/tools/wakeword/train.py \
+		--work "$(WAKEWORD_WORK)" --out display/WakeWord/hey_coco.onnx $(if $(SMOKE),--smoke,) $(ARGS)
 
 display-test: kit-test display-build ## Test CocoKit and build the app
 

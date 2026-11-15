@@ -24,23 +24,38 @@ public final class AppleSpeechSynthesizer: NSObject, SpeechSynthesizer {
     }
 
     public let language: String
-    public let voiceIdentifier: String?
+    /// Chosen off the main thread after init (listing voices asks the speech service, which can
+    /// block); until then, and if none qualifies, the system default voice for `language`.
+    public private(set) var voiceIdentifier: String?
 
     private let synthesizer = AVSpeechSynthesizer()
     private var current: (id: ObjectIdentifier, continuation: CheckedContinuation<Void, Never>)?
 
     public init(language: String = AppleSpeechSynthesizer.preferredLanguage()) {
         self.language = language
-        self.voiceIdentifier = Self.bestVoice(
-            in: AVSpeechSynthesisVoice.speechVoices().map(VoiceInfo.init), language: language)
         super.init()
         synthesizer.delegate = self
+        Task.detached(priority: .utility) { [weak self] in
+            let best = Self.bestVoice(
+                in: AVSpeechSynthesisVoice.speechVoices().map(VoiceInfo.init), language: language)
+            await MainActor.run { self?.voiceIdentifier = best }
+        }
     }
 
-    /// The device language if it's English, else en-US.
-    public nonisolated static func preferredLanguage() -> String {
-        let current = AVSpeechSynthesisVoice.currentLanguageCode()
-        return current.hasPrefix("en") ? current : "en-US"
+    /// The device's first language if it's English with a region (en-CA), else en-US.
+    ///
+    /// Read from `Locale.preferredLanguages`, never `AVSpeechSynthesisVoice.currentLanguageCode()`:
+    /// that waits on the speech service, and on the main thread at launch it froze the app on a
+    /// blank screen after a (simulator) reboot.
+    public nonisolated static func preferredLanguage(
+        from preferredLanguages: [String] = Locale.preferredLanguages
+    ) -> String {
+        guard let first = preferredLanguages.first else { return "en-US" }
+        let locale = Locale(identifier: first)
+        guard locale.language.languageCode?.identifier == "en",
+            let region = locale.region?.identifier
+        else { return "en-US" }
+        return "en-\(region)"
     }
 
     /// The best non-novelty enhanced/premium voice: same language first, then any English.

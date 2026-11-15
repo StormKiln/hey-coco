@@ -78,8 +78,9 @@ import Testing
         timer.update(view: .answer(text: "1"), busy: false)
         #expect(await waitUntil { sleeper.pending.count == 1 })
         timer.update(view: .answer(text: "2"), busy: false)
-        try? await Task.sleep(for: .milliseconds(30))
-        #expect(sleeper.pending.count == 1)
+        // Wait for the restarted countdown itself: a fixed delay raced the old sleep's cancel and
+        // the new one's start on a slow CI runner (pending was briefly 0).
+        #expect(await waitUntil { sleeper.started == 2 && sleeper.pending.count == 1 })
         sleeper.fire()
         #expect(await waitUntil { counter.count == 1 })
     }

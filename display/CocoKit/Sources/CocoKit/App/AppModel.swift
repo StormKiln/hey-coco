@@ -60,6 +60,8 @@ public final class AppModel {
         @Sendable (HubEndpoint) -> AsyncStream<EventStreamUpdate>
     @ObservationIgnored private(set) var client: (any HubAPI)?
     @ObservationIgnored private var runTask: Task<Void, Never>?
+    @ObservationIgnored private let rediscovery: RediscoveryPolicy
+    @ObservationIgnored private let now: @Sendable () -> Date
 
     public init(
         config: any HubConfigStore,
@@ -72,8 +74,12 @@ public final class AppModel {
         timerStore: TimerStore? = nil,
         idleModel: IdleModel? = nil,
         media: MediaCenter? = nil,
-        night: NightModeController? = nil
+        night: NightModeController? = nil,
+        rediscovery: RediscoveryPolicy = RediscoveryPolicy(),
+        now: @escaping @Sendable () -> Date = { Date() }
     ) {
+        self.rediscovery = rediscovery
+        self.now = now
         self.config = config
         self.discovery = discovery
         self.probe = probe
@@ -145,19 +151,79 @@ public final class AppModel {
         try saveSettings(config.load().forgettingHub())
     }
 
+    // MARK: - Rediscovery
+
+    /// The manual host while it can't be reached (`nil` otherwise, and always with Bonjour): the
+    /// banner says "Can't reach <host> — check the Mac" and opens Settings.
+    public var unreachableManualHost: String? {
+        guard case .unreachable = connection else { return nil }
+        return settings.manualHost
+    }
+
+    /// The app came back to the foreground.
+    public func appBecameActive() { rediscoverIfStuck() }
+
+    /// The network path changed (Wi-Fi rejoined, new interface): the Hub may have a new address.
+    public func networkChanged() { rediscoverIfStuck() }
+
+    /// Browses again at once when a Bonjour-found Hub isn't connected. A working connection, a
+    /// pending pairing and a manual host are left alone (a manual host keeps retrying itself).
+    private func rediscoverIfStuck() {
+        guard runTask != nil, settings.manualHost == nil else { return }
+        switch connection {
+        case .unreachable, .searching, .untrustedHub: start()
+        case .connecting, .connected, .unauthorized, .needsPairing: break
+        }
+    }
+
     private func run() async {
-        client = nil
-        endpoint = nil
-        timerStore.hubDisconnected()
+        // Paces repeated rediscovery while the Hub is gone altogether.
+        var rebrowseBackoff = Backoff(base: .seconds(2), cap: .seconds(60))
+        var rebrowsing = false
+        while !Task.isCancelled {
+            if rebrowsing {
+                do { try await sleeper.sleep(for: rebrowseBackoff.nextDelay()) } catch { return }
+                if Task.isCancelled { return }
+            }
+            switch await connectOnce() {
+            case .done:
+                return
+            case .lostWorkingAddress:
+                rebrowseBackoff.reset()
+                rebrowsing = true
+            case .rediscover:
+                rebrowsing = true
+            }
+        }
+    }
+
+    private enum ConnectOutcome {
+        /// Nothing more to do (pairing needed, untrusted, stream ended, cancelled).
+        case done
+        /// The Bonjour-found address never answered; browse again.
+        case rediscover
+        /// Like `.rediscover`, but the address had been working until now.
+        case lostWorkingAddress
+    }
+
+    /// One discovery + connection. Only a Bonjour-found Hub ever comes back for rediscovery.
+    private func connectOnce() async -> ConnectOutcome {
+        disconnectFromHub()
         let settings = config.load()
         self.settings = settings
         hubSession.setPin(settings.pin)
         connection = settings.manualHost == nil ? .searching : .connecting
         guard let token = settings.token else {
             connection = .unauthorized
-            return
+            return .done
         }
-        guard let address = await trustedHub(settings), !Task.isCancelled else { return }
+        let address: HubAddress
+        switch await trustedHub(settings) {
+        case .found(let found): address = found
+        case .rediscover: return .rediscover
+        case nil: return .done
+        }
+        if Task.isCancelled { return .done }
         let endpoint = HubEndpoint(host: address.host, port: address.port, token: token)
         self.endpoint = endpoint
         let client = makeClient(endpoint)
@@ -167,16 +233,48 @@ public final class AppModel {
         // Idle info is best-effort; the event stream decides the connection state.
         idleModel.connect(client)
 
+        let canRediscover = settings.manualHost == nil
+        var outage = OutageTracker(policy: rediscovery)
+        var everConnected = false
         for await update in makeEvents(endpoint) {
-            if Task.isCancelled { return }
+            if Task.isCancelled { return .done }
             handle(update)
+            guard canRediscover else { continue }
+            switch update {
+            case .connected:
+                everConnected = true
+                outage.reset()
+            case .waiting:
+                // The Hub may have a new address (DHCP): look for it by its ID again.
+                if outage.failed(at: now()) {
+                    disconnectFromHub()
+                    return everConnected ? .lostWorkingAddress : .rediscover
+                }
+            default:
+                break
+            }
         }
+        return .done
+    }
+
+    private func disconnectFromHub() {
+        client = nil
+        endpoint = nil
+        timerStore.hubDisconnected()
+        idleModel.disconnect()
+    }
+
+    private enum HubSearch {
+        case found(HubAddress)
+        /// The discovered address stopped answering: browse again.
+        case rediscover
     }
 
     /// The address of the paired Hub: the manual host, or the first discovered Hub whose
     /// certificate matches the pin. Sets `connection` and returns `nil` when pairing is needed,
-    /// the manual host is someone else, or discovery ends. Never sends the token.
-    private func trustedHub(_ settings: HubSettings) async -> HubAddress? {
+    /// the manual host is someone else, or discovery ends; `.rediscover` when a discovered
+    /// address stays unreachable (see `RediscoveryPolicy`). Never sends the token.
+    private func trustedHub(_ settings: HubSettings) async -> HubSearch? {
         let addresses: AsyncStream<HubAddress>
         let manual = settings.manualHost != nil
         if let host = settings.manualHost {
@@ -189,15 +287,23 @@ public final class AppModel {
         }
         var sawUntrusted = false
         for await address in addresses {
+            // TXT is advisory: it can only rule a Hub out, never in (the probe decides that).
+            if let pin = settings.pin, let advertised = address.advertisedHubID,
+                advertised != pin.hubID
+            {
+                continue
+            }
             var backoff = Backoff()
+            var outage = OutageTracker(policy: rediscovery)
             // An unreachable address is retried (the Hub may be starting); a definite answer
-            // (trusted, untrusted, unpaired) ends the retries.
+            // (trusted, untrusted, unpaired) ends the retries. A discovered address that stays
+            // unreachable is given up on and discovery starts over.
             while !Task.isCancelled {
                 let probed = await probe.identify(address)
                 if Task.isCancelled { return nil }
                 switch HubAssessment.assess(probed, pin: settings.pin) {
                 case .trusted:
-                    return address
+                    return .found(address)
                 case .needsPairing(let presented):
                     connection = .needsPairing(PairingCandidate(address: address, pin: presented))
                     return nil
@@ -207,6 +313,7 @@ public final class AppModel {
                     if manual { return nil }
                 case .unreachable(let reason):
                     connection = .unreachable(reason: reason)
+                    if !manual, outage.failed(at: now()) { return .rediscover }
                     let delay = backoff.nextDelay()
                     do { try await sleeper.sleep(for: delay) } catch { return nil }
                     continue

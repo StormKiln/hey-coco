@@ -78,6 +78,9 @@ Picovoice accepts either on an iOS-app-on-Mac has not been verified yet.
 
 ## On-device checks (not testable in CI)
 
+Diagnostics → **Voice test** measures most of these (detections, probable false wakes, latency,
+listening time, thermal/battery/CPU): see `docs/spikes/voice-test-procedure.md`.
+
 - "hey coco" detected while a YouTube video / Spotify / a sound plays from the iPad speaker
   at typical volume (echo cancellation); and while Coco itself is speaking (barge-in).
 - Bare "stop" heard over the alarm at full volume.

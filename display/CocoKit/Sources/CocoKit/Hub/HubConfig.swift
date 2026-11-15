@@ -49,10 +49,15 @@ public struct HubEndpoint: Sendable, Equatable, Hashable {
 public struct HubAddress: Sendable, Equatable, Hashable {
     public var host: String
     public var port: Int
+    /// The Hub ID from the Bonjour TXT record (`id`), when discovered. Unauthenticated, so only
+    /// used to skip Hubs that are clearly not the paired one; trust still comes from the pinned
+    /// TLS probe.
+    public var advertisedHubID: String?
 
-    public init(host: String, port: Int) {
+    public init(host: String, port: Int, advertisedHubID: String? = nil) {
         self.host = host
         self.port = port
+        self.advertisedHubID = advertisedHubID
     }
 }
 

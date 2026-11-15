@@ -24,6 +24,7 @@ struct DiagnosticsScreen: View {
     var body: some View {
         List {
             displaySection
+            if let voice { VoiceTestSection(recorder: voice.voiceTest, wakeWord: voice.wakeWord, device: deviceLine) }
             hubSection
             if !diagnostics.healthRows.isEmpty { healthSection }
             if diagnostics.diagnostics != nil { utterancesSection }
@@ -143,6 +144,11 @@ struct DiagnosticsScreen: View {
 
     private static var appBuild: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
+    }
+
+    /// For the voice test report, e.g. "iPad (iPad7,11), iPadOS 18.6, app 1.0 (12)".
+    private var deviceLine: String {
+        "\(Self.deviceModel), iPadOS \(UIDevice.current.systemVersion), app \(Self.appVersion) (\(Self.appBuild))"
     }
 
     /// The hardware identifier, e.g. "iPad7,11" (the simulator reports its host's).

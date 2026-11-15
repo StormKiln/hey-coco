@@ -54,6 +54,8 @@ public final class ConversationController {
     public static let oneMomentDelay: Duration = .milliseconds(1500)
 
     public private(set) var state: ConversationState = .idle
+    /// Called at each step of a turn (the voice test listens here).
+    @ObservationIgnored public var onEvent: (@MainActor (ConversationEvent) -> Void)?
 
     @ObservationIgnored private let host: any ConversationHost
     @ObservationIgnored private let recognizer: any SpeechRecognizer
@@ -115,7 +117,10 @@ public final class ConversationController {
         let wasRunning = run != nil || state != .idle
         stopRun()
         state = .idle
-        if wasRunning { audio.endConversation() }
+        if wasRunning {
+            audio.endConversation()
+            onEvent?(.ended)
+        }
     }
 
     /// Waits for the current run to end (tests, and callers that need to sequence after it).
@@ -147,10 +152,12 @@ public final class ConversationController {
         guard isCurrent(id) else { return }
         guard permission == .granted else {
             state = .permissionNeeded(permission)
+            onEvent?(.ended)
             return
         }
 
         let transcript: String
+        onEvent?(.started)
         do {
             try audio.beginConversation()
             state = .listening(partial: "")
@@ -160,6 +167,9 @@ public final class ConversationController {
             var heard = ""
             for try await update in stream {
                 guard isCurrent(id) else { return }
+                if !update.isFinal, !update.text.isEmpty, update.text != heard {
+                    onEvent?(.heardSpeech)
+                }
                 heard = update.text
                 if update.isFinal { break }
                 state = .listening(partial: update.text)
@@ -168,9 +178,11 @@ public final class ConversationController {
             transcript = heard.trimmingCharacters(in: .whitespacesAndNewlines)
         } catch {
             guard isCurrent(id) else { return }
+            onEvent?(.recognitionFailed)
             await fail(id, message: Self.didNotHearMessage, speak: false)
             return
         }
+        onEvent?(.finalTranscript(transcript))
 
         guard !transcript.isEmpty else {
             finish(id)
@@ -187,8 +199,10 @@ public final class ConversationController {
         let action: Action
         do throws(HubError) {
             action = try await host.postUtterance(request)
+            if isCurrent(id) { onEvent?(.hubReplied(succeeded: true)) }
             await endOneMoment(id)
         } catch {
+            if isCurrent(id) { onEvent?(.hubReplied(succeeded: false)) }
             await endOneMoment(id)
             guard isCurrent(id) else { return }
             await fail(id, message: Self.message(for: error), speak: true)
@@ -246,6 +260,7 @@ public final class ConversationController {
         guard isCurrent(id) else { return }
         state = .idle
         audio.endConversation()
+        onEvent?(.ended)
     }
 
     static func message(for error: HubError) -> String {

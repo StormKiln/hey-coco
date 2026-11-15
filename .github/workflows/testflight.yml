@@ -11,13 +11,15 @@
 # API key with the Admin role, or App Manager with "Access to Cloud Managed Distribution
 # Certificate" ticked.
 #
-# Secrets (Settings, Secrets and variables, Actions):
-#   ASC_KEY_ID, ASC_ISSUER_ID   App Store Connect API key ID and issuer ID
-#   ASC_KEY_P8                  the AuthKey_<KEY_ID>.p8 file, base64 (base64 -i AuthKey_X.p8 | pbcopy)
-#   DEVELOPMENT_TEAM            Apple team ID
-#   PICOVOICE_ACCESS_KEY        optional: wake word AccessKey
-#   HEY_COCO_PPN_B64            optional: hey-coco_ios.ppn, base64
-# Variable (optional): BUNDLE_ID, if not com.stormkiln.heycoco.display.
+# Shared by every StormKiln app, so set on the org (Settings, Secrets and variables, Actions);
+# a repository secret or variable of the same name overrides it:
+#   ASC_KEY_ID, ASC_ISSUER_ID   secrets: App Store Connect API key ID and issuer ID
+#   ASC_KEY_P8                  secret: the AuthKey_<KEY_ID>.p8 file, base64 (base64 -i AuthKey_X.p8 | pbcopy)
+#   PICOVOICE_ACCESS_KEY        secret, optional: wake word AccessKey (one per Picovoice account)
+#   APPLE_TEAM_ID               variable: Apple team ID (not a secret; it is in every signed app)
+# This repository only:
+#   HEY_COCO_PPN_B64            secret, optional: hey-coco_ios.ppn, base64
+#   BUNDLE_ID                   variable, optional: if not com.stormkiln.heycoco.display
 name: TestFlight
 
 on:
@@ -62,19 +64,20 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
-          DEVELOPMENT_TEAM: ${{ secrets.DEVELOPMENT_TEAM }}
+          DEVELOPMENT_TEAM: ${{ vars.APPLE_TEAM_ID }}
           PICOVOICE_ACCESS_KEY: ${{ secrets.PICOVOICE_ACCESS_KEY }}
           HEY_COCO_PPN_B64: ${{ secrets.HEY_COCO_PPN_B64 }}
         run: |
           missing=""
-          for name in ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8 DEVELOPMENT_TEAM; do
+          for name in ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8; do
             [ -n "$(printenv "$name")" ] || missing="$missing $name"
           done
+          [ -n "$DEVELOPMENT_TEAM" ] || missing="$missing APPLE_TEAM_ID(variable)"
           for name in PICOVOICE_ACCESS_KEY HEY_COCO_PPN_B64; do
             [ -n "$(printenv "$name")" ] || echo "::warning::$name is not set: the build ships without the wake word"
           done
           if [ -n "$missing" ]; then
-            echo "::error::Missing repository secrets:$missing. Add them (docs/testflight.md), or run with dry_run for a rehearsal."
+            echo "::error::Missing org or repository secrets/variables:$missing. Add them (docs/testflight.md), or run with dry_run for a rehearsal."
             exit 1
           fi
 
@@ -138,7 +141,7 @@ jobs:
       - name: Write signing config, API key and wake-word files
         if: ${{ !inputs.dry_run }}
         env:
-          DEVELOPMENT_TEAM: ${{ secrets.DEVELOPMENT_TEAM }}
+          DEVELOPMENT_TEAM: ${{ vars.APPLE_TEAM_ID }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
           PICOVOICE_ACCESS_KEY: ${{ secrets.PICOVOICE_ACCESS_KEY }}

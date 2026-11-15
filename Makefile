@@ -10,7 +10,7 @@ PLIST_DEST := $(HOME)/Library/LaunchAgents/$(SERVICE_LABEL).plist
 HUB_LOG_DIR := $(HOME)/Library/Logs/CocoHub
 LAUNCH_DOMAIN = gui/$$(id -u)
 
-.PHONY: help hub-setup hub-sync hub-run hub-test hub-resilience hub-lint hub-fingerprint hub-eval hub-fmt hub-render-plist hub-install-service hub-uninstall-service hub-logs hub-logs-launchd hub-diag spotify-login spotify-spike sounds-build display-gen display-build display-testflight-check display-testflight-preflight display-archive display-archive-unsigned display-artifact display-testflight-upload display-testflight testflight-status display-icon display-build-mac display-run-mac display-test kit-test test lint repo-check check-workflows ci-xcode
+.PHONY: help hub-setup hub-sync hub-run hub-test hub-resilience hub-lint hub-fingerprint hub-eval hub-fmt hub-render-plist hub-install-service hub-uninstall-service hub-logs hub-logs-launchd hub-diag spotify-login spotify-spike sounds-build display-gen display-build display-run-sim display-testflight-check display-testflight-preflight display-archive display-archive-unsigned display-artifact display-testflight-upload display-testflight testflight-status display-icon display-build-mac display-run-mac display-test kit-test test lint repo-check check-workflows ci-xcode
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-18s %s\n", $$1, $$2}'
@@ -104,6 +104,26 @@ kit-test: ## Run CocoKit (Display logic) tests on macOS
 
 display-build: display-gen ## Build Coco Display for the iOS simulator (unsigned)
 	cd display && xcodebuild -project CocoDisplay.xcodeproj -scheme CocoDisplay -destination '$(SIM_DEST)' -clonedSourcePackagesDirPath .spm build -quiet CODE_SIGNING_ALLOWED=NO
+
+# Run the app in a simulator. Ad-hoc signed, unlike `display-build` (a compile check): the
+# simulator refuses unsigned embedded frameworks (Porcupine), and Signing.xcconfig keeps signing
+# off by default.
+SIM_DEVICE ?= iPad (A16)
+SIM_APP := build/sim/Build/Products/Debug-iphonesimulator/CocoDisplay.app
+
+display-run-sim: display-gen ## Build (ad-hoc signed), install and launch in a simulator (SIM_DEVICE="iPad (A16)")
+	@if echo "$(SIM_DEVICE)" | grep -qE '^[0-9A-F-]{36}$$'; then udid="$(SIM_DEVICE)"; \
+	else udid=$$(xcrun simctl list devices available | grep -F "$(SIM_DEVICE) (" | head -1 | grep -oE '[0-9A-F-]{36}'); \
+		if [ $$(xcrun simctl list devices available | grep -cF "$(SIM_DEVICE) (") -gt 1 ]; then \
+			echo "Several simulators are named '$(SIM_DEVICE)'; using the first ($$udid). Pass SIM_DEVICE=<UDID> to choose." >&2; fi; fi; \
+	if [ -z "$$udid" ]; then echo "No available simulator named '$(SIM_DEVICE)'; see: xcrun simctl list devices available" >&2; exit 1; fi; \
+	xcrun simctl boot "$$udid" 2>/dev/null || true; \
+	open -a Simulator 2>/dev/null || true; \
+	cd display && xcodebuild -project CocoDisplay.xcodeproj -scheme CocoDisplay -destination "id=$$udid" \
+		-clonedSourcePackagesDirPath .spm -derivedDataPath build/sim build -quiet \
+		CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= && \
+	xcrun simctl install "$$udid" $(SIM_APP) && \
+	xcrun simctl launch "$$udid" com.stormkiln.heycoco.display
 
 # TestFlight (#4, docs/testflight.md). Team ID and bundle ID come from display/Signing.local.xcconfig
 # (env DEVELOPMENT_TEAM overrides the team); the upload authenticates with an App Store Connect API

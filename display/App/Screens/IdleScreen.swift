@@ -84,8 +84,7 @@ private struct ForecastView: View {
         VStack(spacing: 20) {
             if status != .unavailable, status != .loading, let weather = idle.info?.weather {
                 HStack(spacing: 24) {
-                    Image(systemName: WeatherFormat.symbolName(code: weather.current.code, isDay: weather.current.isDay))
-                        .symbolRenderingMode(.multicolor)
+                    WeatherIcon(code: weather.current.code, isDay: weather.current.isDay)
                         .font(.system(size: 72))
                     Text(WeatherFormat.temperature(weather.current.temp))
                         .font(.system(size: 88, weight: .medium, design: .rounded))
@@ -127,14 +126,13 @@ private struct HourlyStrip: View {
                     Text(WeatherFormat.hourLabel(hour.time))
                         .font(.system(size: 26, weight: .medium, design: .rounded))
                         .foregroundStyle(.secondary)
-                    Image(systemName: WeatherFormat.symbolName(code: hour.code, isDay: WeatherFormat.isDaytime(hour.time)))
-                        .symbolRenderingMode(.multicolor)
+                    WeatherIcon(code: hour.code, isDay: WeatherFormat.isDaytime(hour.time))
                         .font(.system(size: 40))
                         .frame(height: 48)
                     Text(WeatherFormat.temperature(hour.temp))
                         .font(.system(size: 36, weight: .medium, design: .rounded))
                         .monospacedDigit()
-                    Text(hour.precipProbability >= 30 ? "\(hour.precipProbability)%" : " ")
+                    Text(WeatherForecast.precipText(hour.precipProbability) ?? " ")
                         .font(.system(size: 22, design: .rounded))
                         .foregroundStyle(.blue)
                 }

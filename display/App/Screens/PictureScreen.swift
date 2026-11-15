@@ -44,7 +44,7 @@ struct PictureScreen: View {
     private func caption(for image: PictureImage) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Spacer()
-            Text(image.caption)
+            Text(PictureCaption.tidy(image.title, author: image.author, fallback: payload.query))
                 .font(.system(size: 34, weight: .semibold, design: .rounded))
                 .lineLimit(2)
             HStack {

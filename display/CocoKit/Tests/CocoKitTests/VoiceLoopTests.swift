@@ -35,6 +35,7 @@ private struct Harness {
             synthesizer: synthesizer,
             session: session,
             requestMicPermission: { micGranted },
+            micAlreadyGranted: { micGranted },
             retryBackoff: .seconds(2),
             sleep: sleeper.sleep)
     }
@@ -63,6 +64,7 @@ private func action(say: String?, view: ViewSpec? = nil, commands: [Command] = [
         let h = Harness()
         #expect(h.loop.state == .idle(armed: false))
         await h.loop.start()
+        await h.loop.settled()
         #expect(h.wake?.isRunning == true)
         #expect(h.loop.wakeWord == .armed)
         #expect(h.loop.state == .idle(armed: true))
@@ -73,6 +75,7 @@ private func action(say: String?, view: ViewSpec? = nil, commands: [Command] = [
     @Test func noConfigurationMeansTapToTalkOnly() async {
         let h = Harness(wakeWord: false)
         await h.loop.start()
+        await h.loop.settled()
         #expect(h.loop.wakeWord == .unavailable(reason: "No AccessKey"))
         #expect(h.loop.state == .idle(armed: false))
         // Nothing holds the mic while idle.
@@ -85,6 +88,7 @@ private func action(say: String?, view: ViewSpec? = nil, commands: [Command] = [
         #expect(h.loop.ducking)
         h.recognizer.fake.hear(.final("hello"))
         await h.loop.conversation.waitUntilFinished()
+        await h.loop.settled()
         #expect(h.loop.state == .idle(armed: false))
         #expect(h.loop.ducking == false)
         #expect(
@@ -97,6 +101,7 @@ private func action(say: String?, view: ViewSpec? = nil, commands: [Command] = [
     @Test func micPermissionDeniedLeavesWakeWordOff() async {
         let h = Harness(micGranted: false)
         await h.loop.start()
+        await h.loop.settled()
         #expect(h.wake?.isRunning == false)
         #expect(h.loop.wakeWord == .unavailable(reason: VoiceLoop.micDeniedReason))
     }
@@ -109,6 +114,7 @@ private func action(say: String?, view: ViewSpec? = nil, commands: [Command] = [
         h.host.holds = true
         h.synthesizer.holds = true
         await h.loop.start()
+        await h.loop.settled()
 
         h.wake?.detect()
         #expect(await waitUntil { h.loop.state == .woken || h.loop.state == .listening })
@@ -126,6 +132,7 @@ private func action(say: String?, view: ViewSpec? = nil, commands: [Command] = [
 
         h.synthesizer.finishSpeaking()
         await h.loop.conversation.waitUntilFinished()
+        await h.loop.settled()
         #expect(h.loop.state == .idle(armed: true))
         #expect(h.loop.ducking == false)
         #expect(h.wake?.isRunning == true)
@@ -145,6 +152,7 @@ private func action(say: String?, view: ViewSpec? = nil, commands: [Command] = [
         let h = Harness()
         h.host.result = .success(action(say: nil))
         await h.loop.start()
+        await h.loop.settled()
         h.loop.conversation.micTapped()
         #expect(await waitUntil { h.recognizer.fake.continuation != nil })
         #expect(h.wake?.isRunning == false)
@@ -158,6 +166,7 @@ private func action(say: String?, view: ViewSpec? = nil, commands: [Command] = [
         h.host.result = .success(action(say: "A very long answer."))
         h.synthesizer.holds = true
         await h.loop.start()
+        await h.loop.settled()
         await h.wakeAndListen()
         h.recognizer.fake.hear(.final("tell me a story"))
         #expect(await waitUntil { h.loop.state == .speaking })
@@ -172,6 +181,7 @@ private func action(say: String?, view: ViewSpec? = nil, commands: [Command] = [
     @Test func cancellingDuringTheChimeReArms() async {
         let h = Harness()
         await h.loop.start()
+        await h.loop.settled()
         await h.wakeAndListen()
         h.loop.conversation.cancel()
         #expect(await waitUntil { h.loop.state == .idle(armed: true) })
@@ -184,12 +194,15 @@ private func action(say: String?, view: ViewSpec? = nil, commands: [Command] = [
     @Test func interruptionStopsAndThenReArmsTheWakeWord() async {
         let h = Harness()
         await h.loop.start()
+        await h.loop.settled()
         h.session.send(.interruptionBegan)
+        await h.loop.settled()
         #expect(h.wake?.isRunning == false)
         #expect(h.loop.wakeWord == .paused)
         #expect(h.loop.state == .idle(armed: false))
 
         h.session.send(.interruptionEnded)
+        await h.loop.settled()
         #expect(h.wake?.isRunning == true)
         #expect(h.loop.wakeWord == .armed)
         #expect(h.entries(after: "wake:stop") == ["session:standby", "wake:start"])
@@ -198,18 +211,23 @@ private func action(say: String?, view: ViewSpec? = nil, commands: [Command] = [
     @Test func interruptionCancelsAConversation() async {
         let h = Harness()
         await h.loop.start()
+        await h.loop.settled()
         await h.wakeAndListen()
         h.session.send(.interruptionBegan)
+        await h.loop.settled()
         #expect(await waitUntil { h.loop.conversation.state == .idle })
         #expect(h.wake?.isRunning == false)
         h.session.send(.interruptionEnded)
+        await h.loop.settled()
         #expect(h.wake?.isRunning == true)
     }
 
     @Test func routeChangeRestartsTheWakeWord() async {
         let h = Harness()
         await h.loop.start()
+        await h.loop.settled()
         h.session.send(.routeChanged)
+        await h.loop.settled()
         #expect(h.entries(after: "session:standby") == ["wake:start", "wake:stop", "wake:start"])
         #expect(h.loop.wakeWord == .armed)
     }
@@ -218,6 +236,7 @@ private func action(say: String?, view: ViewSpec? = nil, commands: [Command] = [
         let h = Harness()
         h.wake?.startError = TestError()
         await h.loop.start()
+        await h.loop.settled()
         #expect(h.loop.wakeWord == .retrying(after: .seconds(2)))
         #expect(await waitUntil { h.sleeper.pending == [.seconds(2)] })
 
@@ -235,9 +254,12 @@ private func action(say: String?, view: ViewSpec? = nil, commands: [Command] = [
     @Test func resumeReArmsAfterTheEngineWasStoppedBehindOurBack() async {
         let h = Harness()
         await h.loop.start()
+        await h.loop.settled()
         h.session.send(.interruptionBegan)
+        await h.loop.settled()
         // App came back to the foreground without an interruption-ended.
         await h.loop.resume()
+        await h.loop.settled()
         #expect(h.wake?.isRunning == true)
         #expect(h.loop.wakeWord == .armed)
     }
@@ -248,10 +270,13 @@ private func action(say: String?, view: ViewSpec? = nil, commands: [Command] = [
         let h = Harness()
         h.host.result = .success(action(say: nil))
         await h.loop.start()
+        await h.loop.settled()
         await h.wakeAndListen()
         h.recognizer.fake.hear(.final("hi"))
         await h.loop.conversation.waitUntilFinished()
+        await h.loop.settled()
         h.loop.alarmRingingChanged(false)
+        await h.loop.settled()
         #expect(h.stopWord.startCount == 0)
         #expect(h.loop.stopWordActive == false)
     }
@@ -259,24 +284,43 @@ private func action(say: String?, view: ViewSpec? = nil, commands: [Command] = [
     @Test func ringingAlarmSwapsTheWakeWordForTheStopWord() async {
         let h = Harness()
         await h.loop.start()
+        await h.loop.settled()
         h.loop.alarmRingingChanged(true)
+        await h.loop.settled()
         #expect(h.stopWord.isRunning)
         #expect(h.loop.stopWordActive)
         #expect(h.wake?.isRunning == false)
         #expect(h.entries(after: "wake:start") == ["wake:stop", "stopword:start"])
 
         h.loop.alarmRingingChanged(false)
+        await h.loop.settled()
         #expect(h.stopWord.isRunning == false)
         #expect(h.loop.stopWordActive == false)
         #expect(h.wake?.isRunning == true)
     }
 
+    /// Opening the mic without permission is what stalled Core Audio in the simulator; the bare
+    /// "stop" is a nicety (the Stop button always works), so it needs permission already given.
+    @Test func stopWordNeedsMicPermissionAlreadyGranted() async {
+        let h = Harness(wakeWord: false, micGranted: false)
+        await h.loop.start()
+        await h.loop.settled()
+        h.loop.alarmRingingChanged(true)
+        await h.loop.settled()
+        #expect(h.stopWord.startCount == 0)
+        #expect(h.loop.stopWordActive == false)
+        #expect(h.session.activationCalls == 0)
+    }
+
     @Test func stopWordWorksWithoutAWakeWordConfigured() async {
         let h = Harness(wakeWord: false)
         await h.loop.start()
+        await h.loop.settled()
         h.loop.alarmRingingChanged(true)
+        await h.loop.settled()
         #expect(h.stopWord.isRunning)
         h.loop.alarmRingingChanged(false)
+        await h.loop.settled()
         #expect(h.stopWord.isRunning == false)
         #expect(h.log.entries == ["session:standby", "stopword:start", "stopword:stop", "session:off"])
     }
@@ -286,7 +330,9 @@ private func action(say: String?, view: ViewSpec? = nil, commands: [Command] = [
         h.host.alarmRinging = true
         h.host.result = .success(action(say: nil, commands: [.alarmStop]))
         await h.loop.start()
+        await h.loop.settled()
         h.loop.alarmRingingChanged(true)
+        await h.loop.settled()
 
         h.stopWord.hearStop()
         // Local silence first, before any network round trip.
@@ -306,9 +352,12 @@ private func action(say: String?, view: ViewSpec? = nil, commands: [Command] = [
     @Test func stopWordIsIgnoredOnceTheAlarmStopped() async {
         let h = Harness()
         await h.loop.start()
+        await h.loop.settled()
         h.loop.alarmRingingChanged(true)
+        await h.loop.settled()
         let stopWord = h.stopWord
         h.loop.alarmRingingChanged(false)
+        await h.loop.settled()
         stopWord.hearStop()
         try? await Task.sleep(for: .milliseconds(50))
         #expect(!h.log.entries.contains("command:alarm.stop"))
@@ -319,13 +368,136 @@ private func action(say: String?, view: ViewSpec? = nil, commands: [Command] = [
         let h = Harness()
         h.host.result = .success(action(say: nil))
         await h.loop.start()
+        await h.loop.settled()
         h.loop.alarmRingingChanged(true)
+        await h.loop.settled()
         h.loop.conversation.micTapped()
         #expect(await waitUntil { h.recognizer.fake.continuation != nil })
         #expect(h.stopWord.isRunning == false)
         h.recognizer.fake.hear(.final("add a minute"))
         await h.loop.conversation.waitUntilFinished()
+        await h.loop.settled()
         #expect(h.stopWord.isRunning)
         #expect(h.wake?.isRunning == false)
+    }
+
+    // MARK: - A wedged audio session never blocks (the alarm froze the app)
+
+    @Test func hungActivationDoesNotBlockAlarmRingingChanged() async {
+        let h = Harness(wakeWord: false)
+        await h.loop.start()
+        await h.loop.settled()
+        h.session.hangs = true
+
+        h.loop.alarmRingingChanged(true)
+        // Returned at once, and the main actor keeps running other work meanwhile.
+        #expect(await waitUntil { h.session.hungCount == 1 })
+        var otherMainActorWork = false
+        await MainActor.run { otherMainActorWork = true }
+        #expect(otherMainActorWork)
+        // The stop word only starts once the session is active.
+        #expect(h.stopWord.isRunning == false)
+
+        h.session.release()
+        #expect(await waitUntil { h.stopWord.isRunning })
+        await h.loop.settled()
+    }
+
+    @Test func activationTimeoutGivesUpOnTheListenerAndRetries() async {
+        let h = Harness()
+        h.session.hangs = true
+        await h.loop.start()
+        #expect(await waitUntil { h.sleeper.pending == [.seconds(3)] })
+        #expect(h.loop.wakeWord == .paused)
+
+        h.sleeper.fire(.seconds(3))
+        #expect(await waitUntil { h.loop.wakeWord == .retrying(after: .seconds(2)) })
+        await h.loop.settled()
+        #expect(h.wake?.isRunning == false)
+        #expect(h.loop.state == .idle(armed: false))
+        #expect(h.sleeper.pending == [.seconds(2)])
+
+        // The session comes unstuck: the retry joins the same activation and arms.
+        h.session.release()
+        h.sleeper.fire(.seconds(2))
+        #expect(await waitUntil { h.loop.wakeWord == .armed })
+        #expect(h.wake?.isRunning == true)
+        await h.loop.settled()
+    }
+
+    @Test func stopWordActivationTimeoutLeavesStandbyOff() async {
+        let h = Harness(wakeWord: false)
+        await h.loop.start()
+        h.session.hangs = true
+        h.loop.alarmRingingChanged(true)
+        #expect(await waitUntil { h.sleeper.pending == [.seconds(3)] })
+        h.sleeper.fire(.seconds(3))
+        #expect(await waitUntil { h.sleeper.pending == [.seconds(2)] })
+        await h.loop.settled()
+        #expect(h.stopWord.isRunning == false)
+        #expect(h.loop.stopWordActive == false)
+        h.session.release()
+    }
+
+    @Test func rapidRingingChangesCoalesceToTheFinalState() async {
+        let h = Harness(wakeWord: false)
+        await h.loop.start()
+        await h.loop.settled()
+        h.session.hangs = true
+        h.loop.alarmRingingChanged(true)
+        #expect(await waitUntil { h.session.hungCount == 1 })
+        h.loop.alarmRingingChanged(false)
+        h.loop.alarmRingingChanged(true)
+        h.loop.alarmRingingChanged(false)
+        h.loop.alarmRingingChanged(true)
+
+        h.session.release()
+        await h.loop.settled()
+        #expect(h.stopWord.isRunning)
+        #expect(h.stopWord.startCount == 1)
+        #expect(h.session.activationCalls == 1)
+    }
+
+    @Test func ringingThatStopsDuringActivationNeverStartsTheStopWord() async {
+        let h = Harness(wakeWord: false)
+        await h.loop.start()
+        await h.loop.settled()
+        h.session.hangs = true
+        h.loop.alarmRingingChanged(true)
+        #expect(await waitUntil { h.session.hungCount == 1 })
+        h.loop.alarmRingingChanged(false)
+
+        h.session.release()
+        await h.loop.settled()
+        #expect(h.stopWord.startCount == 0)
+        #expect(h.log.entries.last == "session:off")
+    }
+
+    @Test func synchronousChangesCoalesceIntoOnePass() async {
+        let h = Harness(wakeWord: false)
+        await h.loop.start()
+        await h.loop.settled()
+        h.loop.alarmRingingChanged(true)
+        h.loop.alarmRingingChanged(false)
+        h.loop.alarmRingingChanged(true)
+        await h.loop.settled()
+        #expect(h.stopWord.startCount == 1)
+        #expect(h.session.activationCalls == 1)
+    }
+
+    @Test func swapIsStopThenActivateThenStart() async {
+        let h = Harness()
+        await h.loop.start()
+        await h.loop.settled()
+        h.session.hangs = true
+        h.loop.alarmRingingChanged(true)
+        // The old listener lets go of the mic at once, before any await.
+        #expect(h.wake?.isRunning == false)
+        #expect(await waitUntil { h.session.hungCount == 1 })
+        #expect(h.stopWord.isRunning == false)
+
+        h.session.release()
+        await h.loop.settled()
+        #expect(h.entries(after: "wake:start") == ["wake:stop", "session:standby(hung)", "stopword:start"])
     }
 }

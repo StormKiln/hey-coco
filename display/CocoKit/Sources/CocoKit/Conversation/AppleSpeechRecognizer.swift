@@ -44,6 +44,14 @@ public final class AppleSpeechRecognizer: SpeechRecognizer {
         return Locale(identifier: "en-US")
     }
 
+    /// `SFSpeechRecognizer.supportsOnDeviceRecognition` for `locale` (`nil`: no recognizer for
+    /// it). `start()` uses on-device recognition exactly when this is true.
+    public static func supportsOnDeviceRecognition(
+        locale: Locale = AppleSpeechRecognizer.preferredLocale()
+    ) -> Bool? {
+        SFSpeechRecognizer(locale: locale)?.supportsOnDeviceRecognition
+    }
+
     public func requestPermission() async -> SpeechPermission {
         switch await Self.requestSpeechAuthorization() {
         case .authorized: break

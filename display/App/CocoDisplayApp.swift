@@ -16,6 +16,10 @@ struct CocoDisplayApp: App {
                     model.installLiveMusic()  // Apple Music (#42) + Spotify wake (#5)
                     model.start()
                 }
+                // A new network path may mean the Hub has a new address: look for it again.
+                .task {
+                    for await _ in NetworkPathChanges.updates() { model.networkChanged() }
+                }
         }
         .onChange(of: scenePhase, initial: true) { _, phase in
             // Kitchen display: keep the screen on whenever Coco is in front. Not on a Mac
@@ -24,7 +28,10 @@ struct CocoDisplayApp: App {
                 UIApplication.shared.isIdleTimerDisabled = phase == .active
             }
             // Ring anything that came due while the app was suspended.
-            if phase == .active { model.timerStore.fireDueAlarms() }
+            if phase == .active {
+                model.timerStore.fireDueAlarms()
+                model.appBecameActive()
+            }
         }
     }
 }

@@ -94,7 +94,16 @@ Service type `_coco._tcp`, on the Hub's port. TXT record:
 | `fp` | short fingerprint; absent without TLS |
 
 TXT records are unauthenticated (anyone on the LAN can advertise `_coco._tcp` with any TXT), so
-they are advisory only: the Display decides trust from the certificate, never from TXT.
+they are advisory only: the Display decides trust from the certificate, never from TXT. Once
+paired, the Display skips (does not even probe) a service whose TXT `id` differs from the pinned
+Hub ID; a matching `id` still has to pass the pinned `/healthz` probe.
+
+**Rediscovery (Display).** A Hub found with Bonjour that stops answering (5 failed attempts in a
+row, or 30 s since the first failure, before or after connecting) is assumed to have moved (e.g.
+a new DHCP address): the Display browses again and reconnects to the service with the pinned Hub
+ID. It also browses again when it returns to the foreground or the network path changes while it
+isn't connected. A manually entered host is never rediscovered: it keeps retrying and the banner
+says "Can't reach <host> — check the Mac".
 
 ## UtteranceRequest
 

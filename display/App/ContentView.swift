@@ -19,7 +19,7 @@ struct ContentView: View {
                 .onLongPressGesture(minimumDuration: 1.5) { showingSettings = true }
         }
         .overlay(alignment: .top) {
-            ConnectionBanner(state: model.connection) {
+            ConnectionBanner(state: model.connection, unreachableManualHost: model.unreachableManualHost) {
                 if case .needsPairing(let candidate) = model.connection {
                     pairing = candidate
                 } else {
@@ -115,6 +115,8 @@ struct ScreenView: View {
 /// Non-blocking status pill: hidden when connected, tappable to open Settings otherwise.
 struct ConnectionBanner: View {
     let state: ConnectionState
+    /// Set while a manually entered host doesn't answer (`AppModel.unreachableManualHost`).
+    var unreachableManualHost: String? = nil
     let openSettings: () -> Void
 
     var body: some View {
@@ -132,7 +134,10 @@ struct ConnectionBanner: View {
     }
 
     private var message: (icon: String, text: String)? {
-        switch state {
+        if let host = unreachableManualHost {
+            return ("wifi.exclamationmark", ConnectionState.manualHostUnreachableMessage(host: host))
+        }
+        return switch state {
         case .connected: nil
         case .searching: ("magnifyingglass", "Looking for Coco Hub…")
         case .connecting: ("antenna.radiowaves.left.and.right", "Connecting to Coco Hub…")

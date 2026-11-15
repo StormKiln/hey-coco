@@ -54,6 +54,8 @@ public final class ConversationController {
     public static let oneMomentDelay: Duration = .milliseconds(1500)
 
     public private(set) var state: ConversationState = .idle
+    /// Called at each step of a turn (the voice test listens here).
+    @ObservationIgnored public var onEvent: (@MainActor (ConversationEvent) -> Void)?
 
     @ObservationIgnored private let host: any ConversationHost
     @ObservationIgnored private let recognizer: any SpeechRecognizer
@@ -76,7 +78,7 @@ public final class ConversationController {
         synthesizer: any SpeechSynthesizer,
         audio: any ConversationAudio = SilentConversationAudio(),
         messageHold: Duration = .seconds(4),
-        sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
+        sleep: @escaping @Sendable (Duration) async throws -> Void = cocoRealSleep
     ) {
         self.host = host
         self.recognizer = recognizer
@@ -115,7 +117,10 @@ public final class ConversationController {
         let wasRunning = run != nil || state != .idle
         stopRun()
         state = .idle
-        if wasRunning { audio.endConversation() }
+        if wasRunning {
+            audio.endConversation()
+            onEvent?(.ended)
+        }
     }
 
     /// Waits for the current run to end (tests, and callers that need to sequence after it).
@@ -147,10 +152,12 @@ public final class ConversationController {
         guard isCurrent(id) else { return }
         guard permission == .granted else {
             state = .permissionNeeded(permission)
+            onEvent?(.ended)
             return
         }
 
         let transcript: String
+        onEvent?(.started)
         do {
             try audio.beginConversation()
             state = .listening(partial: "")
@@ -160,6 +167,9 @@ public final class ConversationController {
             var heard = ""
             for try await update in stream {
                 guard isCurrent(id) else { return }
+                if !update.isFinal, !update.text.isEmpty, update.text != heard {
+                    onEvent?(.heardSpeech)
+                }
                 heard = update.text
                 if update.isFinal { break }
                 state = .listening(partial: update.text)
@@ -168,9 +178,11 @@ public final class ConversationController {
             transcript = heard.trimmingCharacters(in: .whitespacesAndNewlines)
         } catch {
             guard isCurrent(id) else { return }
+            onEvent?(.recognitionFailed)
             await fail(id, message: Self.didNotHearMessage, speak: false)
             return
         }
+        onEvent?(.finalTranscript(transcript))
 
         guard !transcript.isEmpty else {
             finish(id)
@@ -184,12 +196,27 @@ public final class ConversationController {
                 view: host.currentView.viewType ?? .idle, alarmRinging: host.alarmRinging,
                 mediaPlaying: host.mediaPlaying))
         startOneMoment(id)
-        let action: Action
+        // Keep the typed-throws block to the call alone: older Swift runtimes (Xcode 26.x) crash
+        // with "freed pointer was not the last allocation" when more async work sits inside it.
+        let outcome: Result<Action, HubError>
         do throws(HubError) {
-            action = try await host.postUtterance(request)
-            await endOneMoment(id)
+            outcome = .success(try await host.postUtterance(request))
         } catch {
-            await endOneMoment(id)
+            outcome = .failure(error)
+        }
+        if isCurrent(id) {
+            if case .success = outcome {
+                onEvent?(.hubReplied(succeeded: true))
+            } else {
+                onEvent?(.hubReplied(succeeded: false))
+            }
+        }
+        await endOneMoment(id)
+        let action: Action
+        switch outcome {
+        case .success(let reply):
+            action = reply
+        case .failure(let error):
             guard isCurrent(id) else { return }
             await fail(id, message: Self.message(for: error), speak: true)
             return
@@ -246,6 +273,7 @@ public final class ConversationController {
         guard isCurrent(id) else { return }
         state = .idle
         audio.endConversation()
+        onEvent?(.ended)
     }
 
     static func message(for error: HubError) -> String {

@@ -228,7 +228,9 @@ Display and switch the permission on.
    it when tapped.)
 2. **Hub host:** leave it blank and Coco finds the Mac with Bonjour (service `_coco._tcp`). If it
    can't find it, type the Mac's IP address, for example `192.168.1.20`. Leave the port at `8765`
-   unless you changed it on the Hub.
+   unless you changed it on the Hub. Prefer blank: with Bonjour, Coco finds the Mac again on its
+   own if its IP address changes; a typed address is only ever retried, and if the Mac moves the
+   pill says "Can't reach <address> — check the Mac" until you fix it in Settings.
 3. **Token:** paste the token from `hub/config.local.toml`.
 4. Tap **Save**.
 5. **Pair.** Coco finds the Hub and asks **"Pair with Coco Hub?"** with a fingerprint like

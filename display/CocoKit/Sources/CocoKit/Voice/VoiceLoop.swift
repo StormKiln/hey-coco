@@ -43,7 +43,11 @@ public final class VoiceLoop {
 
     /// The request loop; the UI drives tap-to-talk and shows its state.
     public let conversation: ConversationController
-    public private(set) var wakeWord: WakeWordStatus
+    public private(set) var wakeWord: WakeWordStatus {
+        didSet { voiceTest.wakeWordStatusChanged(wakeWord) }
+    }
+    /// Voice test mode (#6): off until started from Diagnostics.
+    public let voiceTest: VoiceTestRecorder
     /// True while the bare-"stop" listener has the mic (only ever while an alarm rings).
     public private(set) var stopWordActive = false
     /// True from wake until the reply has been spoken: media players lower their volume.
@@ -94,8 +98,10 @@ public final class VoiceLoop {
         requestMicPermission: @escaping @MainActor () async -> Bool,
         retryBackoff: Duration = .seconds(2),
         maxBackoff: Duration = .seconds(60),
-        sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
+        sleep: @escaping @Sendable (Duration) async throws -> Void = cocoRealSleep,
+        voiceTest: VoiceTestRecorder? = nil
     ) {
+        self.voiceTest = voiceTest ?? VoiceTestRecorder()
         switch wakeWord {
         case .available(let engine):
             self.engine = engine
@@ -121,6 +127,7 @@ public final class VoiceLoop {
             host: host, recognizer: handoff, synthesizer: synthesizer, audio: audio)
         audio.loop = self
         handoff.loop = self
+        conversation.onEvent = { [recorder = self.voiceTest] event in recorder.record(event) }
     }
 
     // MARK: - Lifecycle
@@ -260,6 +267,7 @@ public final class VoiceLoop {
 
     private func wakeWordHeard() {
         guard standby == .wakeWord else { return }
+        voiceTest.wakeWordDetected()
         conversation.wakeWordDetected()
     }
 

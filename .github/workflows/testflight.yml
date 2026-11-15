@@ -110,9 +110,29 @@ jobs:
       - name: Unsigned Release archive
         if: ${{ inputs.dry_run }}
         run: make display-archive-unsigned
+      # The repo is public, so artifacts are downloadable by others: the rehearsal archive must
+      # never contain the Picovoice AccessKey or keyword file (it has no secrets; assert it).
+      # Matches our files by name only: Porcupine's own bundle ships public built-in keyword .ppns.
+      - name: The rehearsal archive holds no wake-word secrets
+        if: ${{ inputs.dry_run }}
+        run: |
+          found=$(find display/build/CocoDisplay-unsigned.xcarchive \( -name PicovoiceAccessKey.txt -o -name 'hey-coco*.ppn' \) -print)
+          if [ -n "$found" ]; then
+            echo "::error::The unsigned archive contains wake-word secrets and must not be published:"
+            echo "$found"
+            exit 1
+          fi
       - name: Package the unsigned archive
         if: ${{ inputs.dry_run }}
         run: make display-artifact ARCHIVE=build/CocoDisplay-unsigned.xcarchive
+      - name: Keep the unsigned archive (zip + SHA256SUMS + commit.txt)
+        if: ${{ inputs.dry_run }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coco-display-unsigned-${{ github.run_number }}-${{ github.run_attempt }}
+          path: display/build/artifact/
+          if-no-files-found: error
+          retention-days: 14
 
       # ---- Real upload ----
       - name: Write signing config, API key and wake-word files
@@ -167,13 +187,17 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: make display-testflight-upload
 
-      # Kept even if the upload or processing check fails, so the exact bits can be inspected.
-      - name: Keep the archive (zip + SHA256SUMS + commit.txt)
-        if: ${{ !cancelled() && hashFiles('display/build/artifact/SHA256SUMS') != '' }}
+      # Provenance only: the repo is public and the signed archive bundles the Picovoice
+      # AccessKey and keyword file, so it is never uploaded as an artifact. SHA256SUMS records
+      # the signed archive's hash. Kept even if the upload or processing check fails.
+      - name: Keep the provenance (SHA256SUMS + commit.txt, no archive)
+        if: ${{ !cancelled() && !inputs.dry_run && hashFiles('display/build/artifact/SHA256SUMS') != '' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: coco-display-${{ inputs.dry_run && 'unsigned' || 'signed' }}-${{ github.run_number }}-${{ github.run_attempt }}
-          path: display/build/artifact/
+          name: coco-display-signed-provenance-${{ github.run_number }}-${{ github.run_attempt }}
+          path: |
+            display/build/artifact/SHA256SUMS
+            display/build/artifact/commit.txt
           if-no-files-found: error
           retention-days: 14
 

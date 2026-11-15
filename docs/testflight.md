@@ -194,13 +194,18 @@ never runs on pull requests. Runs queue one at a time and are never cancelled mi
 - **`dry_run` ticked (default): rehearsal.** Any branch. `make lint`, `make hub-test`,
   `make kit-test`, then an unsigned Release archive, kept 14 days as an artifact
   (`coco-display-unsigned-*`: zipped `.xcarchive`, `SHA256SUMS`, `commit.txt`). No secrets
-  needed, nothing uploaded.
+  needed, nothing uploaded. The run fails if the archive contains `PicovoiceAccessKey.txt` or
+  `hey-coco*.ppn`, because the repo is public and anyone can download its artifacts.
 - **`dry_run` unticked: real upload.** In order, failing at the first problem: Preflight lists
   every missing required secret; HEAD must be on `main`'s history; the same lint and tests;
   `make display-testflight-check`; the App Store Connect build-number preflight; then the
-  signed archive (kept 14 days as `coco-display-signed-*`), the upload, and up to 20 minutes
+  signed archive, the upload, and up to 20 minutes
   waiting for Apple's processing (fails if Apple marks it INVALID; still processing is only a
   notice). The API key file is deleted at the end whatever happened.
+
+  **The signed archive is never kept as an artifact**: it bundles the Picovoice AccessKey and
+  keyword file, and this repo's artifacts are public. Only `SHA256SUMS` (the signed archive's
+  hash) and `commit.txt` are kept, 14 days, as `coco-display-signed-provenance-*`.
 
 To check processing later: Actions, then **TestFlight status**, then Run workflow with the
 version and build number the upload printed. Read-only.

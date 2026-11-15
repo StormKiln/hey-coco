@@ -154,7 +154,8 @@ display-archive-unsigned: display-gen ## Archive an UNSIGNED Release build (Test
 	@echo "Archived unsigned build $(BUILD_NUMBER) to display/$(UNSIGNED_ARCHIVE_PATH)"
 
 # Zip an archive (ARCHIVE=, relative to display/) with SHA256SUMS and commit.txt into
-# display/build/artifact, which the TestFlight workflow keeps for 14 days.
+# display/build/artifact. The TestFlight workflow publishes the zip only for unsigned rehearsals
+# (signed archives bundle the wake-word key; artifacts are public): see docs/testflight.md.
 ARCHIVE ?= $(ARCHIVE_PATH)
 ARTIFACT_DIR := display/build/artifact
 display-artifact: ## Package an archive (ARCHIVE=, under display/) as zip + SHA256SUMS + commit.txt in display/build/artifact

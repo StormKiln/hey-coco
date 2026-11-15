@@ -20,6 +20,10 @@ struct CocoDisplayApp: App {
                 .task {
                     for await _ in NetworkPathChanges.updates() { model.networkChanged() }
                 }
+                #if DEBUG
+                // Simulator end-to-end runs (docs/simulator-testing.md). Not in release builds.
+                .task { await DebugHarness.run(model: model) }
+                #endif
         }
         .onChange(of: scenePhase, initial: true) { _, phase in
             // Kitchen display: keep the screen on whenever Coco is in front. Not on a Mac

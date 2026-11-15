@@ -15,6 +15,7 @@ pytestmark = pytest.mark.anyio
 T0 = datetime(2026, 11, 14, 15, 0, tzinfo=UTC)
 QUIET = UtteranceContext(view="idle", alarm_ringing=False, media_playing=None)
 RINGING = UtteranceContext(view="timers", alarm_ringing=True, media_playing=None)
+RINGING_MUSIC = UtteranceContext(view="timers", alarm_ringing=True, media_playing="music")
 
 
 class FakeClock:
@@ -54,6 +55,21 @@ PHRASES: list[tuple[str, UtteranceContext, str | None, dict[str, str]]] = [
     ("hey coco start a timer for 90 seconds", QUIET, "timer.create", {}),
     ("set a timer for a quarter of an hour", QUIET, "timer.create", {}),
     ("a quarter of an hour on the lasagna", QUIET, "timer.create", {"name": "lasagna"}),
+    (
+        "can I get a quarter of an hour on the lasagna",
+        QUIET,
+        "timer.create",
+        {"name": "lasagna", "duration": "0.25 hour"},
+    ),
+    ("give me 10 minutes for the eggs", QUIET, "timer.create", {"name": "eggs"}),
+    ("I need 20 minutes on the roast", QUIET, "timer.create", {"name": "roast"}),
+    (
+        "pasta needs eleven minutes",
+        QUIET,
+        "timer.create",
+        {"name": "pasta", "duration": "11 minutes"},
+    ),
+    ("the rice takes 18 minutes", QUIET, "timer.create", {"name": "rice"}),
     ("can you set a timer for half an hour please", QUIET, "timer.create", {}),
     ("make a cookies timer for 12 minutes", QUIET, "timer.create", {"name": "cookies"}),
     ("set another timer for 2 minutes", QUIET, "timer.create", {}),
@@ -113,6 +129,20 @@ PHRASES: list[tuple[str, UtteranceContext, str | None, dict[str, str]]] = [
     ("turn it off", RINGING, "alarm.stop", {}),
     ("I got it", RINGING, "alarm.stop", {}),
     ("Hey Coco, stop!", RINGING, "alarm.stop", {}),
+    ("stop the music", RINGING, "alarm.stop", {}),
+    ("stop the music", RINGING_MUSIC, "alarm.stop", {}),
+    ("turn it off", RINGING_MUSIC, "alarm.stop", {}),
+    ("turn the music off", RINGING_MUSIC, "alarm.stop", {}),
+    ("make it stop", RINGING, "alarm.stop", {}),
+    ("please make it stop", RINGING, "alarm.stop", {}),
+    ("make that noise stop", RINGING, "alarm.stop", {}),
+    ("be quiet", RINGING, "alarm.stop", {}),
+    ("be quiet please", RINGING_MUSIC, "alarm.stop", {}),
+    ("ugh that noise make it be quiet", RINGING, "alarm.stop", {}),
+    ("ugh, that noise, make it be quiet", RINGING, "alarm.stop", {}),
+    ("make it shut up", RINGING, "alarm.stop", {}),
+    ("stop that noise", RINGING, "alarm.stop", {}),
+    ("stop everything", RINGING_MUSIC, "alarm.stop", {}),
     ("stop", QUIET, None, {}),
     ("ok", QUIET, None, {}),
     ("dismiss", QUIET, None, {}),
@@ -194,6 +224,14 @@ async def test_create_variants_table(say, service):
     for phrase, expected, _ in cases:
         assert (await say(phrase)).say == expected, phrase
     assert sorted(t.duration_s for t in service.list_active()) == sorted(c[2] for c in cases)
+
+
+async def test_create_a_quarter_of_an_hour_by_rules(say, service):
+    """The spike's Qwen read "a quarter of an hour" as 1800 s; the rules path says 900."""
+    action = await say("can I get a quarter of an hour on the lasagna")
+    assert (action.say, action.matched_by) == ("Lasagna timer set for 15 minutes.", "rules")
+    [timer] = service.list_active()
+    assert timer.duration_s == 900
 
 
 async def test_create_rejects_too_long(say, service):
@@ -376,3 +414,27 @@ async def test_alarm_stop_dismisses_ringing_only(say, service, clock):
 
 async def test_alarm_stop_ignored_when_not_ringing(registry):
     assert registry.match(normalize("stop"), QUIET) is None
+
+
+async def test_stop_the_music_while_ringing_silences_the_alarm(say, service, clock):
+    pasta = service.create("pasta", M)
+    clock.advance(minutes=1)
+    service.tick()
+    action = await say("stop the music", RINGING_MUSIC)
+    assert action.intent == "alarm.stop"
+    assert [c.type for c in action.commands] == ["alarm.stop"]
+    assert service.get(pasta.id).state == "dismissed"
+
+
+@pytest.mark.parametrize(
+    "text", ["stop the music", "turn it off", "make it stop", "be quiet", "turn the music off"]
+)
+def test_stop_phrases_are_not_alarm_stop_after_the_alarm(text):
+    """Once nothing rings, stop-ish phrases go back to media (or nowhere), never the alarm."""
+    from coco_hub.intents import build_registry
+
+    after = UtteranceContext(view="now_playing", alarm_ringing=False, media_playing="music")
+    match = build_registry().match(normalize(text), after)
+    assert match is None or match.intent != "alarm.stop", match
+    if text in ("stop the music", "turn it off", "turn the music off"):
+        assert match is not None and match.intent == "media.stop"

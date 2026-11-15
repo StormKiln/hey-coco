@@ -59,6 +59,11 @@ PHRASES: list[tuple[str, UtteranceContext, str | None, str | None]] = [
     ("nee naw nee naw", IDLE, "sound.play", "nee naw nee naw"),
     ("vroom vroom", IDLE, "sound.play", "vroom vroom"),
     ("what does a cow say", SOUND, "sound.play", "cow"),
+    ("show me a cow sound", IDLE, "sound.play", "cow"),
+    ("show me a fire truck noise", IDLE, "sound.play", "fire truck"),
+    ("show me what a lion sounds like", IDLE, "sound.play", "lion"),
+    ("show me what the pig says", IDLE, "sound.play", "pig"),
+    ("show us the sound of a duck", IDLE, "sound.play", "duck"),
     # sound.again — only while a sound is on screen
     ("again", SOUND, "sound.again", None),
     ("play it again", SOUND, "sound.again", None),
@@ -77,6 +82,8 @@ PHRASES: list[tuple[str, UtteranceContext, str | None, str | None]] = [
     ("stop the noise", IDLE, None, None),
     ("what time is it", IDLE, "time.now", None),
     ("play some music", IDLE, None, None),
+    ("what does the clock say", IDLE, "time.now", None),
+    ("what does the clock say now", IDLE, "time.now", None),
 ]
 
 

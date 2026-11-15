@@ -181,6 +181,15 @@ public struct TimersList: Codable, Sendable, Equatable {
     }
 }
 
+/// `POST /v1/timers/{id}/add`: time to add to a running (or ringing) Hub timer.
+public struct TimerAddRequest: Codable, Sendable, Equatable {
+    public var seconds: Int
+
+    public init(seconds: Int) {
+        self.seconds = seconds
+    }
+}
+
 public struct TimerCreateRequest: Codable, Sendable, Equatable {
     public var name: String?
     public var durationS: Int

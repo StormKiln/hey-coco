@@ -44,6 +44,15 @@ PHRASES = [
     ("how cold is it outside", CUR, {}),
     ("how warm is it", CUR, {}),
     ("current weather", CUR, {}),
+    ("how chilly is it outside", CUR, {}),
+    ("how cold is it", CUR, {}),
+    ("how freezing is it out there", CUR, {}),
+    ("is it warm enough for shorts", CUR, {}),
+    ("is it warm enough to go out without a coat", CUR, {}),
+    ("is it cold enough for a hat", CUR, {}),
+    ("do I need a coat", CUR, {}),
+    ("do I need a jacket right now", CUR, {}),
+    ("should I wear a sweater", CUR, {}),
     # weather.forecast
     ("what's the weather today", FC, {"when": "today"}),
     ("what's the weather like tomorrow", FC, {"when": "tomorrow"}),
@@ -58,6 +67,7 @@ PHRASES = [
     ("will it be nice this weekend", FC, {"when": "this weekend"}),
     ("weather tomorrow", FC, {"when": "tomorrow"}),
     ("forecast for tomorrow morning", FC, {"when": "tomorrow morning"}),
+    ("do I need a jacket today", FC, {"when": "today"}),
     # weather.rain
     ("will it rain today", RAIN, {"when": "today"}),
     ("will it rain this afternoon", RAIN, {"when": "this afternoon"}),
@@ -79,12 +89,14 @@ PHRASES = [
     ("what's the high and low for today", HL, {"which": "high and low", "when": "today"}),
     ("how cold is it going to get tonight", HL, {"which": "cold", "when": "tonight"}),
     ("how warm will it get today", HL, {"which": "warm", "when": "today"}),
+    ("how cold is it supposed to get tonight", HL, {"which": "cold", "when": "tonight"}),
     # not weather
     ("what's the weather in paris", None, None),
     ("set a timer for ten minutes", None, None),
     ("play some rain sounds", None, None),
     ("what's the date", None, None),
     ("how cold is the fridge", None, None),
+    ("do I need a coat of paint", None, None),
     ("what time is it", None, None),
 ]
 
@@ -210,6 +222,9 @@ SAYS = [
     ("what's the high and low for today", "ottawa_metric", "Today, a high of 4 and a low of 0."),
     ("how cold is it going to get tonight", "ottawa_metric", "Tonight's low is 0 degrees."),
     ("what's the low", "subzero", "Today's low is minus 10 degrees."),
+    # current conditions for "what to wear right now" questions
+    ("is it warm enough for shorts", "ottawa_metric", "It's 4 degrees and overcast. Feels like 0."),
+    ("do I need a coat", "subzero", "It's minus 6 degrees and overcast. Feels like minus 10."),
 ]
 
 
@@ -263,3 +278,59 @@ async def test_beyond_the_forecast(ask, clock):
     clock.advance(days=6)  # tomorrow is past the 7-day recording
     action = await ask("what's the forecast for tomorrow")
     assert action.say == "I don't have a forecast for tomorrow yet."
+
+
+# --- periods that are over, or partly over -------------------------------------------------
+
+
+async def test_rain_for_a_part_of_today_that_is_over(ask, clock):
+    clock.advance(hours=8)  # 18:20 Saturday: the afternoon's rain (12:00-17:00) is past
+    action = await ask("will it rain this afternoon", "rain_afternoon")
+    assert action.say == "This afternoon's over — no rain expected tonight."
+
+
+async def test_morning_over_answers_for_later_today(ask, clock):
+    clock.advance(hours=1)  # 11:20 Saturday: the morning is still on
+    action = await ask("will it rain this morning", "rain_afternoon")
+    assert action.say == "No rain expected this morning."
+    clock.advance(hours=1)  # 12:20: the morning is over; rain is on now
+    action = await ask("will it rain this morning", "rain_afternoon")
+    assert action.say == (
+        "This morning's over — yes, rain is likely later today. About a 90 percent chance."
+    )
+
+
+async def test_forecast_for_an_evening_that_is_over(ask, clock):
+    clock.advance(hours=11)  # 21:20 Saturday
+    action = await ask("what's the weather like this evening")
+    assert action.say.startswith("This evening's over — tonight, expect ")
+
+
+async def test_high_for_an_afternoon_that_is_over(ask, clock):
+    clock.advance(hours=8)
+    action = await ask("what's the high this afternoon")
+    assert action.say.startswith("This afternoon's over — tonight's high is ")
+
+
+async def test_weekend_on_saturday_evening_is_tonight_and_sunday(ask, clock):
+    clock.advance(hours=8)  # 18:20 Saturday
+    action = await ask("what's the weather like this weekend")
+    assert action.say.startswith("Tonight, expect ")
+    assert action.say.endswith("Tomorrow, expect overcast skies, with a high of 5 and a low of 0.")
+    assert "Today" not in action.say
+
+
+async def test_weekend_on_saturday_morning_is_both_days(ask):
+    action = await ask("what's the weather like this weekend")
+    assert action.say.startswith("Today, expect ")
+
+
+async def test_resolve_period_weekend_on_saturday_evening():
+    from zoneinfo import ZoneInfo
+
+    tz = ZoneInfo("America/Toronto")
+    saturday_evening = datetime(2026, 11, 14, 18, 20, tzinfo=tz)
+    period = weather_intents.resolve_period("this weekend", saturday_evening)
+    assert [d.isoformat() for d in period.dates] == ["2026-11-15"]
+    assert period.lead is not None and period.lead.label == "tonight"
+    assert period.start == datetime(2026, 11, 14, 18, 20, tzinfo=tz).replace(minute=0)

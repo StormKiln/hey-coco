@@ -262,6 +262,14 @@ _LLM_NAME = LlmSlot(
 _CANCEL = r"(?:cancel|stop|delete|remove|clear|kill|end|turn off|switch off|get rid of|scrap)"
 _DROP = r"(?:cancel|delete|scrap|get rid of)"
 _THANKS = r"(?: (?:thanks|thank you|coco|i got it|got it))*"
+# While the alarm rings, "stop the music" / "make that noise stop" mean the alarm: whatever
+# is making noise, the person wants quiet. Media intents step aside while ringing.
+_RACKET = (
+    r"(?:alarm|alarms|timer|timers|ringing|beeping|noise|sound|racket|music|song|video|"
+    r"everything|all)"
+)
+_UGH = r"(?:(?:ugh|argh|oh|oh no|god|come on) )*"
+_THAT_NOISE = rf"(?:(?:that|this|the) {_RACKET} )?"
 
 
 def register(registry: IntentRegistry) -> None:
@@ -279,7 +287,9 @@ def register(registry: IntentRegistry) -> None:
                 rf"remind me (?:in|after) (?P<duration>{_D})",
                 rf"remind me (?:in|after) (?P<duration>{_D}) (?:about|to check(?: on)?) "
                 rf"{_THE}(?P<name>{_NAME})",
-                rf"(?P<duration>{_D}) (?:on|for) {_THE}(?P<name>{_NAME})",
+                rf"(?:(?:can i|could i|can we|could we) (?:get|have) |give me |i need )?"
+                rf"(?:another )?(?P<duration>{_D}) (?:on|for) {_THE}(?P<name>{_NAME})",
+                rf"{_THE}(?P<name>{_NAME}) (?:needs|takes|wants) (?P<duration>{_D})",
             ],
             handler=create,
             description='start a countdown for a length of time, including "remind me in X to Y"',
@@ -368,12 +378,13 @@ def register(registry: IntentRegistry) -> None:
             "alarm.stop",
             patterns=[
                 "",  # a bare "ok" / "okay" normalises to nothing
-                r"(?:stop|dismiss|silence|cancel|turn off|shut off|switch off)"
+                _UGH + r"(?:stop|dismiss|silence|cancel|turn off|shut off|switch off)"
                 r"(?: it| that| this)?(?: the)?"
-                r"(?: (?:alarm|alarms|timer|timers|ringing|beeping|noise|sound))?(?: now)?"
-                + _THANKS,
-                r"(?:turn|shut|switch) (?:it|that|the alarm|the timer) off" + _THANKS,
-                r"(?:ok|okay|alright|all right|yes|yep|thanks|thank you|got it|i got it|"
+                rf"(?: {_RACKET})?(?: now)?" + _THANKS,
+                _UGH + rf"(?:turn|shut|switch) (?:it|that|this|the {_RACKET}) off" + _THANKS,
+                _UGH + rf"{_THAT_NOISE}make (?:it|that|this|the {_RACKET}|that {_RACKET}) "
+                r"(?:stop|be quiet|shut up|go away|stop ringing|stop beeping)(?: now)?" + _THANKS,
+                _UGH + r"(?:ok|okay|alright|all right|yes|yep|thanks|thank you|got it|i got it|"
                 r"i heard|i hear you|i am coming|coming|enough|done|quiet|be quiet|shut up|"
                 r"shush|hush)" + _THANKS,
             ],
@@ -382,6 +393,9 @@ def register(registry: IntentRegistry) -> None:
             applies=lambda c: c.alarm_ringing,
             # Offered to Qwen ("please make it stop" while ringing); the fallback refuses it
             # when nothing is ringing.
-            description="silence a ringing timer alarm or beeping",
+            description=(
+                "silence a ringing timer alarm or beeping; while an alarm is ringing, also any "
+                'stop/quiet/turn-it-off request ("stop the music", "make it stop")'
+            ),
         )
     )

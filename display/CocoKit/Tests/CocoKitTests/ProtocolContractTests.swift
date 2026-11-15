@@ -44,6 +44,7 @@ private func checkRoundTrip(_ name: String) throws -> Bool {
         ("idle_info", { try roundTrip(IdleInfo.self) }),
         ("timers_list", { try roundTrip(TimersList.self) }),
         ("timer_create_request", { try roundTrip(TimerCreateRequest.self) }),
+        ("timer_add_request", { try roundTrip(TimerAddRequest.self) }),
         ("timer_", { try roundTrip(TimerInfo.self) }),
         ("event_", { try roundTrip(Event.self) }),
         ("error", { try roundTrip(ErrorResponse.self) }),

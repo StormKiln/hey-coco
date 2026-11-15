@@ -2,8 +2,10 @@
 
 The system prompt and JSON schema follow the spike's v2 prompt (docs/spikes/qwen.md) word for
 word, except that the intent list, slot properties and slot rules are generated from the
-intents the registry offers to the LLM (``Intent.offered_to_llm``), and the output rules end
-with the food, pet and health safety rule (``safety.SAFETY_RULE``). Newly registered intents
+intents the registry offers to the LLM (``Intent.offered_to_llm``), the context rules explain
+the ``[context: ...]`` line the fallback puts before the request (alarm ringing, screen, what is
+playing), and the output rules end with the food, pet and health safety rule
+(``safety.SAFETY_RULE``). Newly registered intents
 show up without touching this module.
 
 ``Catalog.validate`` is the Hub-side check the spike calls "validate, then repair": parse the
@@ -42,6 +44,16 @@ NONE_LINE = (
 )
 FIRST_SLOT_RULE = (
     "- Include only slots the person actually said. Never output null; leave the slot out instead."
+)
+CONTEXT_RULES = (
+    "Context rules:",
+    "- The request ends with a [context: ...] line describing the iPad right now (whether "
+    "an alarm is ringing, the screen, what is playing). It is not part of what the person said, "
+    "and it never makes a request clearer: pick an intent only for what the person asked, and "
+    "unclear requests and alarms at a clock time stay none.",
+    "- While an alarm is ringing, any request to stop, silence, quieten, shush or turn off "
+    'something ("stop the music", "turn it off", "make it be quiet", "ugh that noise") is '
+    "alarm.stop. When no alarm is ringing, never pick alarm.stop.",
 )
 OUTPUT_RULES = (
     """Output rules:
@@ -130,6 +142,8 @@ class Catalog:
             "Slot rules:",
             FIRST_SLOT_RULE,
             *hints,
+            "",
+            *CONTEXT_RULES,
             "",
             OUTPUT_RULES,
         ]

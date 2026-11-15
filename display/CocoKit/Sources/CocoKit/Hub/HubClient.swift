@@ -24,11 +24,18 @@ public protocol HubAPI: Sendable {
     func createTimer(_ request: TimerCreateRequest) async throws(HubError) -> TimerInfo
     func dismissTimer(id: String) async throws(HubError) -> TimerInfo
     func cancelTimer(id: String) async throws(HubError) -> TimerInfo
+    /// `POST /v1/timers/{id}/add` (touch "+1 min").
+    func addTime(id: String, seconds: Int) async throws(HubError) -> TimerInfo
     /// `GET /v1/diagnostics`, for the hidden diagnostics screen (#45).
     func diagnostics() async throws(HubError) -> HubDiagnostics
 }
 
 extension HubAPI {
+    /// Fakes that never add time need not implement it.
+    public func addTime(id: String, seconds: Int) async throws(HubError) -> TimerInfo {
+        throw .server(code: "unsupported", message: "Adding time is not available.")
+    }
+
     /// Fakes that never open the diagnostics screen need not implement it.
     public func diagnostics() async throws(HubError) -> HubDiagnostics {
         throw .server(code: "unsupported", message: "Diagnostics are not available.")
@@ -70,6 +77,10 @@ public struct HubClient: HubAPI {
 
     public func cancelTimer(id: String) async throws(HubError) -> TimerInfo {
         try await send("DELETE", "/v1/timers/\(id)")
+    }
+
+    public func addTime(id: String, seconds: Int) async throws(HubError) -> TimerInfo {
+        try await send("POST", "/v1/timers/\(id)/add", body: TimerAddRequest(seconds: seconds))
     }
 
     public func diagnostics() async throws(HubError) -> HubDiagnostics {

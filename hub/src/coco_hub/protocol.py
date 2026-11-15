@@ -262,6 +262,12 @@ class TimerCreateRequest(Message):
     duration_s: Annotated[int, Field(gt=0)]
 
 
+class TimerAddRequest(Message):
+    """``POST /v1/timers/{id}/add``: extend a running timer, or restart a ringing one."""
+
+    seconds: Annotated[int, Field(gt=0)]
+
+
 # --- Events -----------------------------------------------------------------------------
 
 

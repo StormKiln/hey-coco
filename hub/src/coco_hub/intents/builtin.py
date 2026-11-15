@@ -100,6 +100,7 @@ def register(registry: IntentRegistry) -> None:
                 rf"(?:tell me )?what time it is{_NOW}",
                 rf"what is the time{_NOW}",
                 rf"(?:tell me |what )?(?:the )?time{_NOW}",
+                rf"what does the clock say{_NOW}",
             ],
             handler=time_now,
             description="the current time",

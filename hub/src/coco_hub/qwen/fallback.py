@@ -28,7 +28,7 @@ from coco_hub.intents.engine import (
     no_fallback,
 )
 from coco_hub.intents.normalize import normalize
-from coco_hub.protocol import Action, AnswerView, UtteranceRequest
+from coco_hub.protocol import Action, AnswerView, UtteranceContext, UtteranceRequest
 from coco_hub.qwen.catalog import GENERAL, NONE, Catalog, Interpretation, InvalidOutput
 from coco_hub.qwen.client import OllamaClient, OllamaError
 from coco_hub.qwen.safety import SAFETY_RULE, fixed_safety_answer, pet_food_answer
@@ -62,6 +62,21 @@ _QUESTION_WORDS = frozenset(
     "what who whom whose when where why how which is are was were do does did can could "
     "will would should shall may might have has am explain".split()
 )
+
+
+def context_note(context: UtteranceContext) -> str:
+    """The ``[context: ...]`` line put after the request (see ``catalog.CONTEXT_RULES``),
+    e.g. ``[context: alarm ringing; screen: timers; playing: music]``.
+
+    Empty on the idle screen with nothing ringing or playing: ``make hub-eval`` showed an
+    always-on line ("screen: idle; playing: nothing") made qwen3:8b answer or act on requests
+    it should refuse ("wake me up at seven tomorrow" became a timer).
+    """
+    if not context.alarm_ringing and context.view == "idle" and context.media_playing is None:
+        return ""
+    parts = ["alarm ringing"] if context.alarm_ringing else []
+    parts += [f"screen: {context.view}", f"playing: {context.media_playing or 'nothing'}"]
+    return f"[context: {'; '.join(parts)}]"
 
 
 def looks_like_question(raw: str) -> bool:
@@ -189,8 +204,10 @@ class QwenFallback:
             )
             return Interpretation(GENERAL, answer=safe)
         catalog = self.catalog
+        note = context_note(request.context)
+        message = f"{utterance}\n{note}" if note else utterance
         reply = await self.client.chat_json(
-            catalog.system_prompt, utterance, catalog.schema, self.timeout_s
+            catalog.system_prompt, message, catalog.schema, self.timeout_s
         )
         try:
             return catalog.validate(reply)
@@ -201,7 +218,7 @@ class QwenFallback:
                 {"role": "user", "content": REPAIR_REQUEST.format(error=exc)},
             ]
         reply = await self.client.chat_json(
-            catalog.system_prompt, utterance, catalog.schema, self.timeout_s, history=history
+            catalog.system_prompt, message, catalog.schema, self.timeout_s, history=history
         )
         try:
             return catalog.validate(reply)

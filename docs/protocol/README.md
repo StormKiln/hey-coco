@@ -66,6 +66,7 @@ in the same PR. Fixtures are mapped to models by filename prefix (`action_*` →
 | `GET /v1/timers` | – | `{"timers": [Timer], "server_time": ts}` |
 | `POST /v1/timers` | `{"name": str \| null, "duration_s": int}` | `Timer` (touch-created timer) |
 | `POST /v1/timers/{id}/dismiss` | – | `Timer` |
+| `POST /v1/timers/{id}/add` | `{"seconds": int}` | `Timer` (time added; touch "+1 min") |
 | `DELETE /v1/timers/{id}` | – | `Timer` (state `cancelled`) |
 | `GET /v1/diagnostics` | – | `Diagnostics` |
 | `WS /v1/events` | – | stream of `Event` |
@@ -210,6 +211,13 @@ always `ends_at − created_at` (adding time grows it). A timer rings for at mos
 `not_found` for an unknown id and 409 `conflict` for an invalid transition (dismissing a
 running timer, cancelling a dismissed one); dismissing a dismissed or cancelling a cancelled
 timer is a no-op that returns it.
+
+`POST /v1/timers/{id}/add` (`fixtures/timer_add_request.json`) follows the same rules as the
+spoken "add N minutes": a `running` timer's `ends_at` moves out by `seconds`; a `ringing` one
+restarts `seconds` from now (state back to `running`; the Hub sends `timer.updated`). `seconds`
+must be > 0 (422 `invalid_request`), and the timer may not end more than 24 hours from now (422
+`invalid_timer`). 404 `not_found` for an unknown id; 409 `conflict` for a dismissed or cancelled
+timer.
 
 ## Events (WebSocket)
 

@@ -5,7 +5,7 @@ without a unit) and the ``weather`` view. They need the ``weather`` service and 
 """
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime, time, timedelta, tzinfo
 from statistics import fmean
 
@@ -60,6 +60,12 @@ class Period:
     end: datetime
     dates: tuple[date, ...] = ()
     """Whole days covered (today, tomorrow, the weekend); empty for part of a day."""
+    lead: "Period | None" = None
+    """Part of a day to answer for before ``dates`` (the rest of tonight, for the weekend
+    asked on Saturday evening)."""
+    over: str | None = None
+    """The period asked about, when it was already over and this is the rest of today
+    instead (``this afternoon`` asked at 6 PM): answers start "This afternoon's over — "."""
 
 
 def _midnight(d: date, tz: tzinfo) -> datetime:
@@ -78,8 +84,26 @@ def _days(days: list[date], label: str, tz: tzinfo) -> Period:
     )
 
 
+# On Saturday from this hour on, "this weekend" means the rest of tonight and Sunday.
+WEEKEND_EVENING_HOUR = 17
+
+
+def _rest_of_today(now: datetime, tz: tzinfo) -> Period:
+    """From the current hour to the end of tonight (from 5 PM) or of today."""
+    start = floor_hour(now)
+    if now.hour >= _PARTS["evening"][0]:
+        night = _part(now.date(), "night", "tonight", tz)
+        return Period("tonight", start, night.end)
+    return Period("later today", start, _midnight(now.date() + timedelta(days=1), tz))
+
+
 def resolve_period(when: str | None, now: datetime) -> Period:
-    """``when`` slot (or None for today) → the stretch of time it means, Hub-local."""
+    """``when`` slot (or None for today) → the stretch of time it means, Hub-local.
+
+    A part of today that is already over ("this afternoon" at 6 PM) becomes the rest of
+    today, marked ``over``; "this weekend" on Saturday evening is tonight (``lead``) and
+    Sunday.
+    """
     tz = now.tzinfo
     assert tz is not None
     today = now.date()
@@ -92,7 +116,10 @@ def resolve_period(when: str | None, now: datetime) -> Period:
         night_of = today - timedelta(days=1) if now.hour < 5 else today
         return _part(night_of, "night", "tonight", tz)
     if when in ("morning", "afternoon", "evening"):
-        return _part(today, when, f"this {when}", tz)
+        part = _part(today, when, f"this {when}", tz)
+        if now >= part.end:
+            return replace(_rest_of_today(now, tz), over=part.label)
+        return part
     if when == "tomorrow":
         return _days([tomorrow], "tomorrow", tz)
     if when.startswith("tomorrow "):
@@ -101,6 +128,16 @@ def resolve_period(when: str | None, now: datetime) -> Period:
         weekday = today.weekday()  # Monday 0 … Sunday 6
         if weekday == 6:
             return _days([today], "this weekend", tz)
+        if weekday == 5 and now.hour >= WEEKEND_EVENING_HOUR:
+            sunday = today + timedelta(days=1)
+            lead = _rest_of_today(now, tz)
+            return Period(
+                "this weekend",
+                lead.start,
+                _midnight(sunday + timedelta(days=1), tz),
+                (sunday,),
+                lead=lead,
+            )
         saturday = today + timedelta(days=(5 - weekday) % 7)
         return _days([saturday, saturday + timedelta(days=1)], "this weekend", tz)
     raise ValueError(f"unknown period {when!r}")
@@ -122,6 +159,17 @@ def day_label(d: date, today: date) -> str:
 
 def _cap(text: str) -> str:
     return text[:1].upper() + text[1:]
+
+
+def _lower(text: str) -> str:
+    return text[:1].lower() + text[1:]
+
+
+def _over(period: Period, text: str) -> str:
+    """Say that the period asked about is over before answering for the rest of today."""
+    if period.over is None:
+        return text
+    return f"{_cap(period.over)}'s over — {_lower(text)}"
 
 
 def _no_forecast(label: str) -> str:
@@ -203,12 +251,20 @@ def say_forecast(match: Match, forecast: Forecast, now: datetime) -> str:
         days = [(d, day) for d, day in found if day is not None]
         if not days:
             return _no_forecast(period.label)
-        return " ".join(_say_day(forecast, day, day_label(d, now.date()), tz) for d, day in days)
+        sentences = [_say_day(forecast, day, day_label(d, now.date()), tz) for d, day in days]
+        if period.lead is not None and (lead := _say_part(forecast, period.lead, now)):
+            sentences.insert(0, lead)
+        return " ".join(sentences)
+    text = _say_part(forecast, period, now)
+    return _over(period, text) if text else _no_forecast(period.label)
 
+
+def _say_part(forecast: Forecast, period: Period, now: datetime) -> str | None:
+    """Forecast for part of a day, or None without hourly data for it."""
     hours = _period_hours(forecast, period, now)
     code = representative_code(hours)
     if code is None:
-        return _no_forecast(period.label)
+        return None
     if period.label.endswith(("tonight", "night")):
         temps = f"with a low of {spoken_temp(min(h.temp for h in hours))}"
     else:
@@ -235,10 +291,12 @@ def say_rain(match: Match, forecast: Forecast, now: datetime) -> str:
         text = f"Yes, {kind} is likely {period.label}"
         if first.time > now:
             text += f", starting around {spoken_hour(first.time.astimezone(now.tzinfo))}"
-        return f"{text}. About {a_or_an(p)} {p} percent chance."
+        return _over(period, f"{text}. About {a_or_an(p)} {p} percent chance.")
     if p >= POSSIBLE_PERCENT:
-        return f"Maybe. There's {a_or_an(p)} {p} percent chance of {kind} {period.label}."
-    return f"No {asked} expected {period.label}."
+        return _over(
+            period, f"Maybe. There's {a_or_an(p)} {p} percent chance of {kind} {period.label}."
+        )
+    return _over(period, f"No {asked} expected {period.label}.")
 
 
 _HIGH_WORDS = {"high", "warm", "hot"}
@@ -252,6 +310,9 @@ def say_high_low(match: Match, forecast: Forecast, now: datetime) -> str:
     period = resolve_period(match.slots.get("when"), now)
 
     ranges: list[tuple[str, float, float]] = []  # (label, high, low)
+    if period.lead is not None and (lead_hours := _period_hours(forecast, period.lead, now)):
+        temps = [h.temp for h in lead_hours]
+        ranges.append((period.lead.label, max(temps), min(temps)))
     if period.dates:
         for d in period.dates:
             day = forecast.day(d)
@@ -274,7 +335,7 @@ def say_high_low(match: Match, forecast: Forecast, now: datetime) -> str:
         else:
             name, value = ("high", high) if want_high else ("low", low)
             sentences.append(f"{_cap(label)}'s {name} is {degrees(value)}.")
-    return " ".join(sentences)
+    return _over(period, " ".join(sentences))
 
 
 # --- Patterns --------------------------------------------------------------------------
@@ -285,6 +346,12 @@ _FEEL = r"(?:cold|warm|hot|chilly|freezing|nice|cool)"
 _WILL = r"(?:will it|is it going to|is it gonna|it is going to)"
 _PRECIP = r"(?:rain|snow|pour|drizzle|be raining|be snowing)"
 _WHICH = r"(?P<which>high and low|high|low)"
+_WEAR = (
+    r"(?:do i|will i|should i|do we|will we|should we|does he|does she) "
+    r"(?:need|wear|bring|take|put on) (?:a |an |my |our |some )?"
+    r"(?:coat|jacket|winter coat|warm coat|sweater|jumper|hoodie|hat|toque|gloves|mittens|"
+    r"scarf|boots|shorts|sunscreen|sun screen|sunhat|sun hat)"
+)
 
 CURRENT_PATTERNS = [
     rf"(?:what is |how is )?(?:the )?(?:current )?weather(?: like)?{_OUT}{_NOW}",
@@ -293,7 +360,10 @@ CURRENT_PATTERNS = [
     rf"what is it like{_OUT}{_NOW}",
     rf"is it {_FEEL}{_OUT}{_NOW}",
     rf"(?:what is )?(?:the )?(?:current )?(?:temperature|temp){_OUT}{_NOW}",
-    rf"how (?:cold|warm|hot) is it{_OUT}{_NOW}",
+    rf"how {_FEEL} is it{_OUT}{_NOW}",
+    # "is it warm enough for shorts", "is it cold enough for a hat": answered with conditions now
+    rf"is it {_FEEL} enough(?: (?:for|to) [a-z0-9 ]+?)?{_OUT}{_NOW}",
+    rf"{_WEAR}{_OUT}{_NOW}",
 ]
 FORECAST_PATTERNS = [
     rf"(?:what is |how is )?the (?:weather|forecast)"
@@ -305,6 +375,7 @@ FORECAST_PATTERNS = [
     rf"how does {WHEN} look",
     rf"how is {WHEN} looking",
     rf"{_WILL} be (?:cold|warm|hot|chilly|freezing|nice|cool|sunny|cloudy) {WHEN}",
+    rf"{_WEAR} {WHEN}",
 ]
 RAIN_PATTERNS = [
     rf"{_WILL} {_PRECIP}(?: {WHEN})?",
@@ -320,6 +391,8 @@ HIGH_LOW_PATTERNS = [
     rf"(?:what is )?the {_WHICH}(?: temperature)?(?: (?:for )?{WHEN})?",
     rf"(?:what is )?(?P<when>today|tomorrow|tonight)s {_WHICH}(?: temperature)?",
     rf"how (?P<which>cold|warm|hot) {_WILL} (?:get|be)(?: {WHEN})?",
+    rf"how (?P<which>cold|warm|hot) is it (?:supposed|meant|expected|going) to (?:get|be)"
+    rf"(?: {WHEN})?",
 ]
 
 
@@ -357,7 +430,10 @@ def register(registry: IntentRegistry) -> None:
             "weather.current",
             patterns=CURRENT_PATTERNS,
             handler=_handler(say_current),
-            description="weather or temperature outside right now",
+            description=(
+                "weather or temperature outside right now, including how cold, chilly or warm "
+                "it is now"
+            ),
         )
     )
     registry.register(

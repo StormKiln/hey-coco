@@ -116,6 +116,8 @@ _NAME = (
 )
 _NOISE = r"(?:sound|noise|sounds|noises)"
 _HEAR = r"(?:let me|let us|can i|can we|could i|could we|i want to) hear"
+# "show me a cow sound" / "show me what a lion sounds like" are sounds, not pictures.
+_SHOW = r"(?:show|tell)(?: me| us)?"
 _WORD = "|".join(re.escape(w) for w in sorted(SOUND_WORDS, key=len, reverse=True))
 
 _PLAY_PATTERNS = [
@@ -130,6 +132,9 @@ _PLAY_PATTERNS = [
     rf"{_HEAR} (?:a|an) {_NAME}(?: {_NOISE})?",
     rf"{_HEAR} {_ART}{_NAME} {_NOISE}",
     rf"{_ART}{_NAME} {_NOISE}",
+    rf"{_SHOW} {_ART}{_NAME} {_NOISE}",
+    rf"{_SHOW} what {_ART}{_NAME} (?:says?|sounds? like|goes like)",
+    rf"{_SHOW} the {_NOISE} (?:of|from) {_ART}{_NAME}",
     rf"(?P<name>(?:{_WORD})(?: (?:{_WORD}))*)",
 ]
 _AGAIN_PATTERNS = [

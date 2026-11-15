@@ -10,7 +10,7 @@ PLIST_DEST := $(HOME)/Library/LaunchAgents/$(SERVICE_LABEL).plist
 HUB_LOG_DIR := $(HOME)/Library/Logs/CocoHub
 LAUNCH_DOMAIN = gui/$$(id -u)
 
-.PHONY: help hub-setup hub-sync hub-run hub-test hub-resilience hub-lint hub-fingerprint hub-eval hub-fmt hub-render-plist hub-install-service hub-uninstall-service hub-logs hub-logs-launchd hub-diag spotify-login spotify-spike sounds-build display-gen display-build display-testflight-check display-archive display-testflight display-icon display-build-mac display-run-mac display-test kit-test test lint
+.PHONY: help hub-setup hub-sync hub-run hub-test hub-resilience hub-lint hub-fingerprint hub-eval hub-fmt hub-render-plist hub-install-service hub-uninstall-service hub-logs hub-logs-launchd hub-diag spotify-login spotify-spike sounds-build display-gen display-build display-testflight-check display-testflight-preflight display-archive display-archive-unsigned display-artifact display-testflight-upload display-testflight testflight-status display-icon display-build-mac display-run-mac display-test kit-test test lint repo-check check-workflows ci-xcode
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-18s %s\n", $$1, $$2}'
@@ -18,8 +18,10 @@ help: ## List targets
 hub-setup: ## Bootstrap the Hub's Mac: uv, Ollama + model, hub/config.local.toml, fingerprint (re-runnable)
 	python3 hub/deploy/setup.py $(ARGS)
 
-hub-sync: ## Install Hub dependencies
-	cd hub && uv sync
+# Under CI (CI=true) the lockfile must already match pyproject.toml: --locked fails instead of
+# re-locking. Locally a plain sync may update uv.lock; commit that.
+hub-sync: ## Install Hub dependencies (--locked under CI)
+	cd hub && uv sync $(if $(CI),--locked,)
 
 hub-run: hub-sync ## Run the Hub locally with reload (hub/config.local.toml + COCO_* env)
 	cd hub && uv run python -m coco_hub --reload
@@ -107,14 +109,27 @@ display-build: display-gen ## Build Coco Display for the iOS simulator (unsigned
 # (env DEVELOPMENT_TEAM overrides the team); the upload authenticates with an App Store Connect API
 # key from env ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_PATH. The build number must grow with every
 # upload: by default it is the commit count, so upload from main (or pass BUILD_NUMBER=...).
+# display-testflight-preflight refuses a build number App Store Connect already has.
 TESTFLIGHT := display/tools/testflight.sh
 ARCHIVE_PATH := build/CocoDisplay.xcarchive
+UNSIGNED_ARCHIVE_PATH := build/CocoDisplay-unsigned.xcarchive
 EXPORT_OPTIONS := build/ExportOptions.plist
 BUILD_NUMBER ?= $(shell git rev-list --count HEAD)
+MARKETING_VERSION = $(shell $(TESTFLIGHT) marketing-version)
 ASC_AUTH = $(if $(and $(ASC_KEY_PATH),$(ASC_KEY_ID),$(ASC_ISSUER_ID)),-authenticationKeyPath "$(abspath $(ASC_KEY_PATH))" -authenticationKeyID "$(ASC_KEY_ID)" -authenticationKeyIssuerID "$(ASC_ISSUER_ID)",)
+# Read-only App Store Connect queries (display/tools/asc.py). Runs in the Hub's locked
+# environment for `cryptography` (ES256 token signing): no second dependency pin to keep current.
+ASC := uv run --quiet --project hub --locked python display/tools/asc.py
+# testflight-status: VERSION defaults to MARKETING_VERSION; BUILD is required.
+VERSION ?= $(MARKETING_VERSION)
+WAIT_MINUTES ?= 20
+PENDING_EXIT ?= 2
 
 display-testflight-check: ## Check the TestFlight config (team, bundle ID, ASC key env) without building
 	@BUILD_NUMBER=$(BUILD_NUMBER) $(TESTFLIGHT) check upload
+
+display-testflight-preflight: ## Refuse unless HEAD is on origin/main and BUILD_NUMBER beats App Store Connect's highest
+	$(ASC) preflight --bundle-id "$$($(TESTFLIGHT) bundle-id)" --version "$(MARKETING_VERSION)" --build "$(BUILD_NUMBER)"
 
 display-archive: display-gen ## Archive a signed Release build to display/build/CocoDisplay.xcarchive
 	@BUILD_NUMBER=$(BUILD_NUMBER) $(TESTFLIGHT) check archive
@@ -126,11 +141,42 @@ display-archive: display-gen ## Archive a signed Release build to display/build/
 		DEVELOPMENT_TEAM=$$(cd .. && $(TESTFLIGHT) team) CURRENT_PROJECT_VERSION=$(BUILD_NUMBER)
 	@echo "Archived build $(BUILD_NUMBER) to display/$(ARCHIVE_PATH)"
 
-display-testflight: display-testflight-check display-archive ## Archive and upload Coco Display to TestFlight
+# The TestFlight rehearsal (dry_run): the same Release archive for devices, unsigned, so it needs
+# no team, no API key and no secrets. Proves the Release build compiles and links.
+display-archive-unsigned: display-gen ## Archive an UNSIGNED Release build (TestFlight rehearsal; no secrets)
+	rm -rf display/$(UNSIGNED_ARCHIVE_PATH)
+	cd display && xcodebuild -project CocoDisplay.xcodeproj -scheme CocoDisplay -configuration Release \
+		-destination 'generic/platform=iOS' -clonedSourcePackagesDirPath .spm \
+		-archivePath $(UNSIGNED_ARCHIVE_PATH) archive -quiet \
+		CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= \
+		CURRENT_PROJECT_VERSION=$(BUILD_NUMBER)
+	@test -d display/$(UNSIGNED_ARCHIVE_PATH)/Products/Applications/CocoDisplay.app || { echo "No CocoDisplay.app in the archive" >&2; exit 1; }
+	@echo "Archived unsigned build $(BUILD_NUMBER) to display/$(UNSIGNED_ARCHIVE_PATH)"
+
+# Zip an archive (ARCHIVE=, relative to display/) with SHA256SUMS and commit.txt into
+# display/build/artifact, which the TestFlight workflow keeps for 14 days.
+ARCHIVE ?= $(ARCHIVE_PATH)
+ARTIFACT_DIR := display/build/artifact
+display-artifact: ## Package an archive (ARCHIVE=, under display/) as zip + SHA256SUMS + commit.txt in display/build/artifact
+	@test -d display/$(ARCHIVE) || { echo "No archive at display/$(ARCHIVE)" >&2; exit 1; }
+	rm -rf $(ARTIFACT_DIR)
+	mkdir -p $(ARTIFACT_DIR)
+	ditto -c -k --keepParent display/$(ARCHIVE) $(ARTIFACT_DIR)/$(basename $(notdir $(ARCHIVE)))-$(MARKETING_VERSION)-$(BUILD_NUMBER).xcarchive.zip
+	printf 'commit %s\nversion %s\nbuild %s\n' "$$(git rev-parse HEAD)" "$(MARKETING_VERSION)" "$(BUILD_NUMBER)" > $(ARTIFACT_DIR)/commit.txt
+	cd $(ARTIFACT_DIR) && shasum -a 256 *.zip commit.txt > SHA256SUMS && cat SHA256SUMS
+
+display-testflight-upload: ## Export + upload display/build/CocoDisplay.xcarchive (display-testflight runs the checks first)
 	$(TESTFLIGHT) export-options display/$(EXPORT_OPTIONS)
 	cd display && xcodebuild -exportArchive -archivePath $(ARCHIVE_PATH) \
 		-exportOptionsPlist $(EXPORT_OPTIONS) -exportPath build/export -allowProvisioningUpdates $(ASC_AUTH)
-	@echo "Uploaded build $(BUILD_NUMBER). It appears in App Store Connect, TestFlight after processing (10-30 min)."
+	@echo "Uploaded $(MARKETING_VERSION) ($(BUILD_NUMBER)). Apple processes it (10-30 min); follow it with:"
+	@echo "  make testflight-status BUILD=$(BUILD_NUMBER)"
+
+display-testflight: display-testflight-check display-testflight-preflight display-archive display-testflight-upload ## Check, preflight, archive and upload Coco Display to TestFlight
+
+testflight-status: ## Wait (read-only) for Apple to process BUILD=<n> [VERSION=x.y.z WAIT_MINUTES=20]
+	@test -n "$(BUILD)" || { echo "Pass BUILD=<build number> (and VERSION= if not $(MARKETING_VERSION))" >&2; exit 1; }
+	$(ASC) status --bundle-id "$$($(TESTFLIGHT) bundle-id)" --version "$(VERSION)" --build "$(BUILD)" --wait-minutes "$(WAIT_MINUTES)" --pending-exit-code "$(PENDING_EXIT)"
 
 display-icon: ## Redraw the app icon PNG (display/tools/make-app-icon.swift)
 	swift display/tools/make-app-icon.swift display/App/Assets.xcassets/AppIcon.appiconset/AppIcon.png
@@ -156,3 +202,31 @@ display-test: kit-test display-build ## Test CocoKit and build the app
 test: hub-test display-test ## Everything CI runs (tests)
 
 lint: hub-lint ## Everything CI runs (lint)
+
+# CI and supply-chain guards (.github/CLAUDE.md): the required `ci-gate` context still exists and
+# needs every job; every action is SHA-pinned; plus the unit tests of those guards and asc.py.
+repo-check: ## Check CI wiring (ci-gate, action pins) and run the CI/TestFlight script tests
+	python3 scripts/check-required-contexts.py
+	python3 scripts/check-action-pins.py
+	@grep -q 'xcode: "$(XCODE_PRIMARY)"' .github/workflows/ci.yml || { echo "ci.yml has no display leg on XCODE_PRIMARY $(XCODE_PRIMARY): CI would not build what TestFlight ships" >&2; exit 1; }
+	cd hub && uv run --locked ruff check --config pyproject.toml ../scripts ../display/tools && uv run --locked ruff format --config pyproject.toml --check ../scripts ../display/tools
+	python3 -m unittest discover -s scripts -p 'test_*.py'
+	uv run --quiet --project hub --locked python -m unittest discover -s display/tools -p 'test_*.py'
+
+check-workflows: ## Lint .github/workflows with actionlint (skipped if it is not installed)
+	@if command -v actionlint >/dev/null 2>&1; then actionlint && echo "actionlint OK"; \
+	else echo "actionlint not installed: skipping (CI runs it)"; fi
+
+# Xcode on GitHub's macOS runners is pinned, never the image default, so an image update cannot
+# change the compiler under us. XCODE_PRIMARY builds what ships (CI's display-build and the
+# TestFlight workflow); keep it equal to the primary leg in .github/workflows/ci.yml.
+XCODE_PRIMARY := 26.6
+XCODE_VERSION ?= $(XCODE_PRIMARY)
+ci-xcode: ## (CI) Select Xcode XCODE_VERSION= (default XCODE_PRIMARY) via DEVELOPER_DIR; fail if this runner lacks it
+	@dir=/Applications/Xcode_$(XCODE_VERSION).app/Contents/Developer; \
+	if [ ! -d "$$dir" ]; then \
+		echo "::error::Xcode $(XCODE_VERSION) is not installed on this runner ($$dir). Installed:" >&2; \
+		ls -d /Applications/Xcode* >&2; exit 1; \
+	fi; \
+	echo "DEVELOPER_DIR=$$dir" >> "$${GITHUB_ENV:-/dev/null}"; \
+	DEVELOPER_DIR=$$dir xcodebuild -version

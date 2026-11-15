@@ -1,0 +1,62 @@
+# Check Apple's processing of a build the TestFlight workflow already uploaded, without uploading
+# anything (read-only App Store Connect queries). Use it when the upload run stopped waiting
+# before Apple finished. Same as `make testflight-status VERSION=... BUILD=...` locally.
+name: TestFlight status
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Marketing version (e.g. 0.1.0)
+        required: true
+        type: string
+      build:
+        description: Build number the TestFlight workflow uploaded
+        required: true
+        type: string
+      wait_minutes:
+        description: Maximum minutes to wait (1-60)
+        required: true
+        type: string
+        default: "20"
+
+permissions:
+  contents: read
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    # Up to 60 min of polling plus setup.
+    timeout-minutes: 75
+    env:
+      UV_LOCKED: "1"
+      BUNDLE_ID: ${{ vars.BUNDLE_ID }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - name: Write the API key
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          if [ -z "$ASC_KEY_ID" ] || [ -z "$ASC_KEY_P8" ]; then
+            echo "::error::Missing repository secrets ASC_KEY_ID and/or ASC_KEY_P8 (docs/testflight.md)"
+            exit 1
+          fi
+          key="$RUNNER_TEMP/AuthKey_$ASC_KEY_ID.p8"
+          (umask 077 && echo "$ASC_KEY_P8" | base64 --decode > "$key")
+          echo "ASC_KEY_PATH=$key" >> "$GITHUB_ENV"
+      - name: Processing status (read-only)
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          VERSION: ${{ inputs.version }}
+          BUILD: ${{ inputs.build }}
+          WAIT_MINUTES: ${{ inputs.wait_minutes }}
+        # asc.py validates all three before any request.
+        run: make testflight-status VERSION="$VERSION" BUILD="$BUILD" WAIT_MINUTES="$WAIT_MINUTES"
+      - name: Remove the API key
+        if: always()
+        run: rm -f "$RUNNER_TEMP"/AuthKey_*.p8

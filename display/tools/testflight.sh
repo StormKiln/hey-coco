@@ -3,6 +3,8 @@
 #
 #   testflight.sh check [archive|upload]   validate config, list everything missing, exit 1 if any
 #   testflight.sh team                     print the team ID (env DEVELOPMENT_TEAM, else local xcconfig)
+#   testflight.sh bundle-id                print the bundle ID (env BUNDLE_ID, local xcconfig, default)
+#   testflight.sh marketing-version        print MARKETING_VERSION from display/project.yml
 #   testflight.sh export-options <out>     write ExportOptions.plist for an App Store Connect upload
 #
 # Config comes from display/Signing.local.xcconfig (DEVELOPMENT_TEAM, optional
@@ -53,8 +55,8 @@ check() {
 
     command -v xcodegen >/dev/null 2>&1 || add "xcodegen (brew install xcodegen)"
 
-    bundle=$(xcconfig_value PRODUCT_BUNDLE_IDENTIFIER)
-    echo "Bundle ID:    ${bundle:-$DEFAULT_BUNDLE_ID}${bundle:+ (Signing.local.xcconfig)}"
+    echo "Bundle ID:    $(bundle_id)"
+    echo "Version:      $(marketing_version)"
     echo "Team:         ${t:-<missing>}"
     echo "Build number: ${BUILD_NUMBER:-<from git>}"
 
@@ -102,9 +104,26 @@ EOF
     plutil -lint "$out" >/dev/null
 }
 
+# Bundle ID: env BUNDLE_ID (the workflows' repository variable), else the local xcconfig, else
+# the committed default.
+bundle_id() {
+    if [ -n "${BUNDLE_ID:-}" ]; then echo "$BUNDLE_ID"; return; fi
+    b=$(xcconfig_value PRODUCT_BUNDLE_IDENTIFIER)
+    echo "${b:-$DEFAULT_BUNDLE_ID}"
+}
+
+# MARKETING_VERSION from display/project.yml (the version testers see).
+marketing_version() {
+    v=$(sed -nE 's/^[[:space:]]*MARKETING_VERSION:[[:space:]]*"?([0-9.]+)"?.*/\1/p' display/project.yml | head -n 1)
+    [ -n "$v" ] || { echo "No MARKETING_VERSION in display/project.yml" >&2; exit 1; }
+    echo "$v"
+}
+
 case "${1:-}" in
     check) check "${2:-upload}" ;;
     team) team ;;
+    bundle-id) bundle_id ;;
+    marketing-version) marketing_version ;;
     export-options) export_options "${2:?output path}" ;;
-    *) echo "usage: $0 check [archive|upload] | team | export-options <out>" >&2; exit 2 ;;
+    *) echo "usage: $0 check [archive|upload] | team | bundle-id | marketing-version | export-options <out>" >&2; exit 2 ;;
 esac

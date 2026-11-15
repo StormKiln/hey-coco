@@ -1,6 +1,10 @@
 # Archive Coco Display and upload it to TestFlight (#4). Manual only: Actions, TestFlight, Run
 # workflow. Never runs on pull requests or pushes. See docs/testflight.md, "Uploading from GitHub".
 #
+# dry_run (the default) is a REHEARSAL: every check plus an UNSIGNED Release archive, kept as an
+# artifact. It needs no secrets and uploads nothing, so run it first on any branch. Untick
+# dry_run for the real upload, which must come from main's history and needs every secret below.
+#
 # Signing is automatic and cloud-managed: xcodebuild -allowProvisioningUpdates authenticates with
 # the App Store Connect API key, creates or fetches the provisioning profile, and signs with Apple's
 # cloud-managed distribution certificate. No certificate or profile is stored here. That needs an
@@ -18,7 +22,14 @@ name: TestFlight
 
 on:
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Rehearsal only (checks + unsigned archive, no secrets, no upload)
+        type: boolean
+        default: true
 
+# One at a time, never cancelled: a later build number must not upload before an earlier one,
+# and cancelling mid-upload leaves App Store Connect holding a half-seen build number.
 concurrency:
   group: testflight
   cancel-in-progress: false
@@ -28,24 +39,86 @@ permissions:
 
 jobs:
   upload:
-    runs-on: macos-latest
-    timeout-minutes: 60
+    name: ${{ inputs.dry_run && 'Rehearsal (unsigned, no upload)' || 'Archive and upload' }}
+    runs-on: macos-26
+    # Checks ~6 min + cold Release archive ~15 min + upload + 20 min processing wait. Generous
+    # so only a hang trips it.
+    timeout-minutes: 90
+    env:
+      DRY_RUN: ${{ inputs.dry_run }}
+      UV_LOCKED: "1"
+      BUNDLE_ID: ${{ vars.BUNDLE_ID }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # The build number is the commit count (make display-testflight), so fetch all history.
+          # The build number is the commit count, and the provenance check needs origin/main.
           fetch-depth: 0
+          persist-credentials: false
+
+      # Before anything slow: a real upload with a missing secret fails here, naming each one.
+      - name: Preflight (secrets)
+        if: ${{ !inputs.dry_run }}
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          DEVELOPMENT_TEAM: ${{ secrets.DEVELOPMENT_TEAM }}
+          PICOVOICE_ACCESS_KEY: ${{ secrets.PICOVOICE_ACCESS_KEY }}
+          HEY_COCO_PPN_B64: ${{ secrets.HEY_COCO_PPN_B64 }}
+        run: |
+          missing=""
+          for name in ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8 DEVELOPMENT_TEAM; do
+            [ -n "$(printenv "$name")" ] || missing="$missing $name"
+          done
+          for name in PICOVOICE_ACCESS_KEY HEY_COCO_PPN_B64; do
+            [ -n "$(printenv "$name")" ] || echo "::warning::$name is not set: the build ships without the wake word"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secrets:$missing. Add them (docs/testflight.md), or run with dry_run for a rehearsal."
+            exit 1
+          fi
+
+      - name: Provenance (HEAD is on main's history)
+        run: |
+          echo "commit $(git rev-parse HEAD), ref $GITHUB_REF_NAME, build number $(git rev-list --count HEAD)"
+          if git merge-base --is-ancestor HEAD origin/main; then
+            echo "HEAD is on origin/main."
+          elif [ "$DRY_RUN" = true ]; then
+            echo "::notice::HEAD is not on origin/main. Fine for a rehearsal; a real upload would stop here."
+          else
+            echo "::error::HEAD is not on origin/main's history. TestFlight builds come from main: merge first, then run from main."
+            exit 1
+          fi
+
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - name: Select Xcode (XCODE_PRIMARY in the Makefile, same as CI's display-build)
+        run: make ci-xcode
       - run: brew install xcodegen
       - name: Cache Swift packages (Porcupine is a large clone)
-        uses: actions/cache@v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: display/.spm
-          key: spm-${{ runner.os }}-${{ hashFiles('display/project.yml') }}
-          restore-keys: spm-${{ runner.os }}-
+          key: spm-${{ runner.os }}-testflight-${{ hashFiles('display/project.yml', 'Makefile') }}
+          restore-keys: spm-${{ runner.os }}-testflight-
+
+      # Nothing gets signed until the same checks CI runs have passed on this exact commit.
+      - run: make lint
+      - run: make hub-test
+      - run: make kit-test
+
+      # ---- Rehearsal ----
+      - name: Unsigned Release archive
+        if: ${{ inputs.dry_run }}
+        run: make display-archive-unsigned
+      - name: Package the unsigned archive
+        if: ${{ inputs.dry_run }}
+        run: make display-artifact ARCHIVE=build/CocoDisplay-unsigned.xcarchive
+
+      # ---- Real upload ----
       - name: Write signing config, API key and wake-word files
+        if: ${{ !inputs.dry_run }}
         env:
           DEVELOPMENT_TEAM: ${{ secrets.DEVELOPMENT_TEAM }}
-          BUNDLE_ID: ${{ vars.BUNDLE_ID }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
           PICOVOICE_ACCESS_KEY: ${{ secrets.PICOVOICE_ACCESS_KEY }}
@@ -57,7 +130,7 @@ jobs:
             if [ -n "$BUNDLE_ID" ]; then echo "PRODUCT_BUNDLE_IDENTIFIER = $BUNDLE_ID"; fi
           } > display/Signing.local.xcconfig
           key="$RUNNER_TEMP/AuthKey_$ASC_KEY_ID.p8"
-          echo "$ASC_KEY_P8" | base64 --decode > "$key"
+          (umask 077 && echo "$ASC_KEY_P8" | base64 --decode > "$key")
           echo "ASC_KEY_PATH=$key" >> "$GITHUB_ENV"
           if [ -n "$PICOVOICE_ACCESS_KEY" ]; then
             printf '%s\n' "$PICOVOICE_ACCESS_KEY" > display/WakeWord/PicovoiceAccessKey.txt
@@ -65,12 +138,54 @@ jobs:
           if [ -n "$HEY_COCO_PPN_B64" ]; then
             echo "$HEY_COCO_PPN_B64" | base64 --decode > display/WakeWord/hey-coco_ios.ppn
           fi
-      - run: xcodebuild -version
-      - name: Archive and upload
+      - name: Check config
+        if: ${{ !inputs.dry_run }}
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-        run: make display-testflight
+        run: make display-testflight-check
+      # Read-only: refuses (before signing) a build number App Store Connect already has.
+      - name: Build number is new to App Store Connect
+        if: ${{ !inputs.dry_run }}
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: make display-testflight-preflight
+      - name: Signed Release archive
+        if: ${{ !inputs.dry_run }}
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: make display-archive
+      - name: Package the signed archive
+        if: ${{ !inputs.dry_run }}
+        run: make display-artifact
+      - name: Upload to App Store Connect
+        if: ${{ !inputs.dry_run }}
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: make display-testflight-upload
+
+      # Kept even if the upload or processing check fails, so the exact bits can be inspected.
+      - name: Keep the archive (zip + SHA256SUMS + commit.txt)
+        if: ${{ !cancelled() && hashFiles('display/build/artifact/SHA256SUMS') != '' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coco-display-${{ inputs.dry_run && 'unsigned' || 'signed' }}-${{ github.run_number }}-${{ github.run_attempt }}
+          path: display/build/artifact/
+          if-no-files-found: error
+          retention-days: 14
+
+      # Fails if Apple marks the build FAILED/INVALID. Still processing after 20 min is not a
+      # failure: check later with the "TestFlight status" workflow.
+      - name: Wait for Apple's processing (read-only)
+        if: ${{ !inputs.dry_run }}
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: make testflight-status BUILD="$(git rev-list --count HEAD)" PENDING_EXIT=0
+
       - name: Remove the API key
         if: always()
         run: rm -f "$RUNNER_TEMP"/AuthKey_*.p8

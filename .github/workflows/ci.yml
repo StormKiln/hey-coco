@@ -1,5 +1,10 @@
 name: CI
 
+# The `main` ruleset requires ONE check: `ci-gate`, the last job below. It needs every other
+# job and passes only if all of them succeeded, so adding or renaming a job here never needs a
+# ruleset edit -- but renaming `ci-gate` itself locks every merge (.github/CLAUDE.md).
+# `make repo-check` (scripts/check-required-contexts.py) guards both.
+
 on:
   pull_request:
   push:
@@ -9,27 +14,100 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Least privilege by default; a job that needs more says so itself.
+permissions:
+  contents: read
+
+# Third-party actions are pinned to full commit SHAs, not tags: a tag can be repointed at new
+# code that then runs with this job's token. The trailing comment records the release;
+# Dependabot updates both. `make repo-check` (scripts/check-action-pins.py) enforces it.
+
 jobs:
   hub:
+    # ~1 min measured. Generous so only a hang trips it, not a slow runner.
+    timeout-minutes: 15
     runs-on: ubuntu-latest
+    env:
+      # Every `uv sync` and `uv run` refuses a uv.lock that pyproject.toml has moved past,
+      # instead of silently re-locking: CI tests exactly what is committed.
+      UV_LOCKED: "1"
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - name: Install actionlint (pinned release, checksum verified)
+        env:
+          ACTIONLINT_VERSION: 1.7.12
+          ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+        run: |
+          tarball="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl -fsSL -o "$RUNNER_TEMP/$tarball" \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/$tarball"
+          echo "$ACTIONLINT_SHA256  $RUNNER_TEMP/$tarball" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/bin"
+          tar -xzf "$RUNNER_TEMP/$tarball" -C "$RUNNER_TEMP/bin" actionlint
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - run: make check-workflows
+      - run: make repo-check
       - run: make hub-lint
       - run: make hub-test
       - run: make hub-resilience
 
   display:
-    runs-on: macos-latest
+    name: display (Xcode ${{ matrix.xcode }})
+    # 4.5-7 min measured for kit-test + display-build (cold Porcupine clone is the slow part).
+    timeout-minutes: 30
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Oldest Xcode with the iOS 18 SDK and Swift 6: the kitchen iPad runs iPadOS 18, and an
+          # old-toolchain-only crash (default-argument async closures, see
+          # CocoKit/Sources/CocoKit/Concurrency/CocoSleep.swift) already bit us once.
+          - xcode: "16.0"
+            runner: macos-15
+            build: false
+          # Primary: newest generally available Xcode. Keep equal to XCODE_PRIMARY in the
+          # Makefile, which the TestFlight workflow uses, so CI builds what we ship.
+          - xcode: "26.6"
+            runner: macos-26
+            build: true
     steps:
-      - uses: actions/checkout@v4
-      - run: brew install xcodegen
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Select Xcode ${{ matrix.xcode }}
+        run: make ci-xcode XCODE_VERSION=${{ matrix.xcode }}
+      - run: swift --version
+      - run: make kit-test
+      - if: matrix.build
+        run: brew install xcodegen
       - name: Cache Swift packages (Porcupine is a large clone)
-        uses: actions/cache@v4
+        if: matrix.build
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: display/.spm
-          key: spm-${{ runner.os }}-${{ hashFiles('display/project.yml') }}
-          restore-keys: spm-${{ runner.os }}-
-      - run: xcodebuild -version && swift --version
-      - run: make kit-test
-      - run: make display-build
+          key: spm-${{ runner.os }}-xcode${{ matrix.xcode }}-${{ hashFiles('display/project.yml') }}
+          restore-keys: spm-${{ runner.os }}-xcode${{ matrix.xcode }}-
+      - if: matrix.build
+        run: make display-build
+
+  ci-gate:
+    # The only required check. `always()` so it reports even when a dependency failed or was
+    # skipped: a SKIPPED required check counts as passing, so a gate that skips with its
+    # dependencies would wave a red run through. And only `success` passes here: `skipped`
+    # and `cancelled` fail (headstate lost a release to treating skipped as fine).
+    if: always()
+    needs: [hub, display]
+    # Seconds of work.
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every needed job succeeded
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          echo "$NEEDS" | jq -e 'length > 0 and all(.[]; .result == "success")' > /dev/null

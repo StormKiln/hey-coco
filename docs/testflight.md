@@ -210,19 +210,26 @@ never runs on pull requests. Runs queue one at a time and are never cancelled mi
 To check processing later: Actions, then **TestFlight status**, then Run workflow with the
 version and build number the upload printed. Read-only.
 
-Add these under Settings, then Secrets and variables, then Actions:
+Values every StormKiln app shares go on the **org** (github.com/organizations/StormKiln/settings,
+then Secrets and variables, then Actions), with repository access set to the repos that use them.
+The org is on the Free plan, where org secrets reach public repositories only; hey-coco is public.
+A repository secret or variable of the same name overrides the org's.
 
-| Secret | Value |
-|---|---|
-| `ASC_KEY_ID` | Key ID from step 4 |
-| `ASC_ISSUER_ID` | Issuer ID from step 4 |
-| `ASC_KEY_P8` | `base64 -i AuthKey_XXXXXXXXXX.p8 \| pbcopy`, then paste |
-| `DEVELOPMENT_TEAM` | Team ID from step 1 |
-| `PICOVOICE_ACCESS_KEY` | Optional: the Picovoice AccessKey |
-| `HEY_COCO_PPN_B64` | Optional: `base64 -i display/WakeWord/hey-coco_ios.ppn \| pbcopy` |
+| Org | Kind | Value |
+|---|---|---|
+| `APPLE_TEAM_ID` | variable | Team ID from step 1 |
+| `ASC_KEY_ID` | secret | Key ID from step 4 |
+| `ASC_ISSUER_ID` | secret | Issuer ID from step 4 |
+| `ASC_KEY_P8` | secret | `base64 -i AuthKey_XXXXXXXXXX.p8 \| gh secret set ASC_KEY_P8 --org StormKiln --visibility selected --repos hey-coco` |
+| `PICOVOICE_ACCESS_KEY` | secret | Optional: the Picovoice AccessKey (one per Picovoice account) |
 
-And a repository **variable** `BUNDLE_ID` only if you are not using
-`com.stormkiln.heycoco.display`.
+| hey-coco repository | Kind | Value |
+|---|---|---|
+| `HEY_COCO_PPN_B64` | secret | Optional: `base64 -i display/WakeWord/hey-coco_ios.ppn \| gh secret set HEY_COCO_PPN_B64 -R StormKiln/hey-coco` |
+| `BUNDLE_ID` | variable | Only if you are not using `com.stormkiln.heycoco.display` |
+
+Spotify and YouTube values are not here: the Hub uses them at run time on the Mac, from
+`hub/config.local.toml`, and CI never needs them.
 
 The runner has no Apple ID and no certificates. Automatic signing still works because
 `-allowProvisioningUpdates` with the API key lets Xcode fetch the profile and sign with Apple's

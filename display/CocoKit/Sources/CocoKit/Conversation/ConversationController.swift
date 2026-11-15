@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import os
 
 /// Where the conversation is, for the listening overlay and mic button.
 public enum ConversationState: Sendable, Equatable {
@@ -49,6 +50,7 @@ public final class ConversationController {
     static let hubFailedMessage = "Sorry, something went wrong at the Coco Hub."
     static let untrustedHubMessage = "That isn't the Coco Hub I paired with. Check Settings."
     static let didNotHearMessage = "Sorry, I couldn't hear that."
+    private static let log = Logger(subsystem: "com.stormkiln.heycoco", category: "conversation")
     /// Spoken once if the Hub hasn't answered `oneMomentDelay` after the transcript was sent.
     public static let oneMomentMessage = "One moment."
     public static let oneMomentDelay: Duration = .milliseconds(1500)
@@ -179,6 +181,8 @@ public final class ConversationController {
             transcript = heard.trimmingCharacters(in: .whitespacesAndNewlines)
         } catch {
             guard isCurrent(id) else { return }
+            // The message is the framework's error (no transcript), so it is safe to log publicly.
+            Self.log.error("listening failed: \(String(describing: error), privacy: .public)")
             onEvent?(.recognitionFailed)
             await fail(id, message: Self.didNotHearMessage, speak: false)
             return

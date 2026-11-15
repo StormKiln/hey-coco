@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Coco Display's privacy manifest (#4). Keep it in step with the code:
+  - UserDefaults: the Hub host and port (CocoKit UserDefaultsHubConfigStore).
+    CA92.1: read and written by this app only.
+  - File timestamps: MediaCache sets and reads the modification dates of its own files in
+    Caches/CocoMedia to evict the oldest (CocoKit Media/HubMediaLoader.swift).
+    C617.1: files inside the app container.
+  No system boot time, disk space or active keyboard APIs. No tracking. The developer collects
+  nothing: audio and requests go only to the owner's own Coco Hub on the home network.
+-->
+<plist version="1.0">
+<dict>
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>C617.1</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

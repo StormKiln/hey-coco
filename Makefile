@@ -10,7 +10,7 @@ PLIST_DEST := $(HOME)/Library/LaunchAgents/$(SERVICE_LABEL).plist
 HUB_LOG_DIR := $(HOME)/Library/Logs/CocoHub
 LAUNCH_DOMAIN = gui/$$(id -u)
 
-.PHONY: help hub-sync hub-run hub-test hub-resilience hub-lint hub-fingerprint hub-eval hub-fmt hub-render-plist hub-install-service hub-uninstall-service hub-logs hub-logs-launchd hub-diag spotify-login sounds-build display-gen display-build display-build-mac display-run-mac display-test kit-test test lint
+.PHONY: help hub-sync hub-run hub-test hub-resilience hub-lint hub-fingerprint hub-eval hub-fmt hub-render-plist hub-install-service hub-uninstall-service hub-logs hub-logs-launchd hub-diag spotify-login sounds-build display-gen display-build display-testflight-check display-archive display-testflight display-icon display-build-mac display-run-mac display-test kit-test test lint
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-18s %s\n", $$1, $$2}'
@@ -94,8 +94,40 @@ display-gen: ## Generate the Xcode project from display/project.yml
 kit-test: ## Run CocoKit (Display logic) tests on macOS
 	cd display/CocoKit && swift test
 
-display-build: display-gen ## Build Coco Display for the iOS simulator
-	cd display && xcodebuild -project CocoDisplay.xcodeproj -scheme CocoDisplay -destination '$(SIM_DEST)' -clonedSourcePackagesDirPath .spm build -quiet
+display-build: display-gen ## Build Coco Display for the iOS simulator (unsigned)
+	cd display && xcodebuild -project CocoDisplay.xcodeproj -scheme CocoDisplay -destination '$(SIM_DEST)' -clonedSourcePackagesDirPath .spm build -quiet CODE_SIGNING_ALLOWED=NO
+
+# TestFlight (#4, docs/testflight.md). Team ID and bundle ID come from display/Signing.local.xcconfig
+# (env DEVELOPMENT_TEAM overrides the team); the upload authenticates with an App Store Connect API
+# key from env ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_PATH. The build number must grow with every
+# upload: by default it is the commit count, so upload from main (or pass BUILD_NUMBER=...).
+TESTFLIGHT := display/tools/testflight.sh
+ARCHIVE_PATH := build/CocoDisplay.xcarchive
+EXPORT_OPTIONS := build/ExportOptions.plist
+BUILD_NUMBER ?= $(shell git rev-list --count HEAD)
+ASC_AUTH = $(if $(and $(ASC_KEY_PATH),$(ASC_KEY_ID),$(ASC_ISSUER_ID)),-authenticationKeyPath "$(abspath $(ASC_KEY_PATH))" -authenticationKeyID "$(ASC_KEY_ID)" -authenticationKeyIssuerID "$(ASC_ISSUER_ID)",)
+
+display-testflight-check: ## Check the TestFlight config (team, bundle ID, ASC key env) without building
+	@BUILD_NUMBER=$(BUILD_NUMBER) $(TESTFLIGHT) check upload
+
+display-archive: display-gen ## Archive a signed Release build to display/build/CocoDisplay.xcarchive
+	@BUILD_NUMBER=$(BUILD_NUMBER) $(TESTFLIGHT) check archive
+	rm -rf display/$(ARCHIVE_PATH)
+	cd display && xcodebuild -project CocoDisplay.xcodeproj -scheme CocoDisplay -configuration Release \
+		-destination 'generic/platform=iOS' -clonedSourcePackagesDirPath .spm \
+		-archivePath $(ARCHIVE_PATH) archive -quiet -allowProvisioningUpdates $(ASC_AUTH) \
+		CODE_SIGNING_ALLOWED=YES CODE_SIGN_STYLE=Automatic \
+		DEVELOPMENT_TEAM=$$(cd .. && $(TESTFLIGHT) team) CURRENT_PROJECT_VERSION=$(BUILD_NUMBER)
+	@echo "Archived build $(BUILD_NUMBER) to display/$(ARCHIVE_PATH)"
+
+display-testflight: display-testflight-check display-archive ## Archive and upload Coco Display to TestFlight
+	$(TESTFLIGHT) export-options display/$(EXPORT_OPTIONS)
+	cd display && xcodebuild -exportArchive -archivePath $(ARCHIVE_PATH) \
+		-exportOptionsPlist $(EXPORT_OPTIONS) -exportPath build/export -allowProvisioningUpdates $(ASC_AUTH)
+	@echo "Uploaded build $(BUILD_NUMBER). It appears in App Store Connect, TestFlight after processing (10-30 min)."
+
+display-icon: ## Redraw the app icon PNG (display/tools/make-app-icon.swift)
+	swift display/tools/make-app-icon.swift display/App/Assets.xcassets/AppIcon.appiconset/AppIcon.png
 
 # Coco Display on an Apple silicon Mac as "Designed for iPad" (#25). Launching it needs a signed
 # build: pass your Apple Developer team, e.g. `make display-run-mac DEVELOPMENT_TEAM=ABCDE12345`.
@@ -103,7 +135,7 @@ MAC_DEST ?= platform=macOS,arch=arm64,variant=Designed for iPad
 MAC_DERIVED := DerivedData/mac
 MAC_APP := display/$(MAC_DERIVED)/Build/Products/Debug-iphoneos/CocoDisplay.app
 DEVELOPMENT_TEAM ?=
-MAC_SIGNING = $(if $(DEVELOPMENT_TEAM),CODE_SIGNING_ALLOWED=YES CODE_SIGN_STYLE=Automatic DEVELOPMENT_TEAM=$(DEVELOPMENT_TEAM) -allowProvisioningUpdates,)
+MAC_SIGNING = $(if $(DEVELOPMENT_TEAM),CODE_SIGNING_ALLOWED=YES CODE_SIGN_STYLE=Automatic DEVELOPMENT_TEAM=$(DEVELOPMENT_TEAM) -allowProvisioningUpdates,CODE_SIGNING_ALLOWED=NO)
 
 display-build-mac: display-gen ## Build Coco Display for this Mac ("Designed for iPad"; unsigned without DEVELOPMENT_TEAM)
 	cd display && xcodebuild -project CocoDisplay.xcodeproj -scheme CocoDisplay -destination '$(MAC_DEST)' -clonedSourcePackagesDirPath .spm -derivedDataPath $(MAC_DERIVED) build -quiet $(MAC_SIGNING)

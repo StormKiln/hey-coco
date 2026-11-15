@@ -172,9 +172,13 @@ Skip these for now. The Hub works without them, and the sections stay commented 
 3. Open the invitation email (or the TestFlight link) on the iPad, tap **Accept**, then
    **Install** next to Coco Display.
 
-The TestFlight pipeline is pending in #4 (Apple Developer setup and TestFlight pipeline), so until
-that lands there is no build to install this way. TestFlight builds expire after 90 days, so
-install each new build when TestFlight offers it.
+The builds come from the Mac (or GitHub Actions) with `make display-testflight`. The one-time
+Apple Developer and App Store Connect setup, and adding the iPad's Apple ID as a tester, are in
+[`docs/testflight.md`](testflight.md). TestFlight builds expire after 90 days, so install each
+new build when TestFlight offers it.
+
+On the Home Screen the app is called **Coco**. TestFlight shows the name of its App Store Connect
+record (for example "Coco Kitchen").
 
 ### 2.2 First launch: say Allow to everything
 

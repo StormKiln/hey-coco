@@ -78,7 +78,7 @@ public final class ConversationController {
         synthesizer: any SpeechSynthesizer,
         audio: any ConversationAudio = SilentConversationAudio(),
         messageHold: Duration = .seconds(4),
-        sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
+        sleep: @escaping @Sendable (Duration) async throws -> Void = cocoRealSleep
     ) {
         self.host = host
         self.recognizer = recognizer

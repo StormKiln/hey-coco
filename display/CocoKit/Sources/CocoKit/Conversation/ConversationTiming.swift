@@ -31,7 +31,7 @@ public final class UtteranceEndpointer {
 
     public init(
         policy: Policy = Policy(),
-        sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) },
+        sleep: @escaping @Sendable (Duration) async throws -> Void = cocoRealSleep,
         onEnd: @escaping @MainActor () -> Void
     ) {
         self.policy = policy
@@ -92,7 +92,7 @@ public final class AutoReturnTimer {
     public init(
         timeout: Duration = .seconds(20),
         views: Set<ViewType> = [.answer],
-        sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) },
+        sleep: @escaping @Sendable (Duration) async throws -> Void = cocoRealSleep,
         onTimeout: @escaping @MainActor () -> Void
     ) {
         self.timeout = timeout

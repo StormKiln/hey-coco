@@ -103,7 +103,7 @@ public final class VoiceTestRecorder {
     public init(
         conditions: (any DeviceConditionsSource)? = nil,
         now: @escaping @Sendable () -> Date = { Date() },
-        sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) },
+        sleep: @escaping @Sendable (Duration) async throws -> Void = cocoRealSleep,
         sampleInterval: Duration = .seconds(60),
         timeZone: TimeZone = .current
     ) {

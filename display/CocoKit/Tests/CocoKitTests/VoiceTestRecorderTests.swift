@@ -297,3 +297,15 @@ private func makeRecorder(
         #expect(h.loop.voiceTest.summary.wakeDetections == 0)
     }
 }
+
+/// Regression: a default-constructed recorder (real sleep) started and stopped must not abort.
+/// It did on the Xcode 26.x toolchain while the sleep closure was an inline default argument.
+@MainActor
+@Test func defaultRecorderStartStopWithRealSleepDoesNotCrash() async {
+    let recorder = VoiceTestRecorder(conditions: FakeDeviceConditions())
+    recorder.start(onDeviceRecognition: true, wakeWord: .armed)
+    try? await Task.sleep(nanoseconds: 50_000_000)
+    recorder.stop()
+    try? await Task.sleep(nanoseconds: 50_000_000)
+    #expect(!recorder.isRecording)
+}

@@ -104,7 +104,7 @@ public final class NightModeController {
         dimBrightness: Double = 0.3,
         darkBrightness: Double = 0,
         tickInterval: Duration = .seconds(15),
-        sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) },
+        sleep: @escaping @Sendable (Duration) async throws -> Void = cocoRealSleep,
         now: @escaping @MainActor () -> Date = Date.init
     ) {
         self.brightness = brightness

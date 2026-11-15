@@ -98,7 +98,7 @@ public final class VoiceLoop {
         requestMicPermission: @escaping @MainActor () async -> Bool,
         retryBackoff: Duration = .seconds(2),
         maxBackoff: Duration = .seconds(60),
-        sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) },
+        sleep: @escaping @Sendable (Duration) async throws -> Void = cocoRealSleep,
         voiceTest: VoiceTestRecorder? = nil
     ) {
         self.voiceTest = voiceTest ?? VoiceTestRecorder()

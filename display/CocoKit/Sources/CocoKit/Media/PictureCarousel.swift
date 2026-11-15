@@ -15,7 +15,7 @@ public final class IdleCountdown {
 
     public init(
         timeout: Duration,
-        sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) },
+        sleep: @escaping @Sendable (Duration) async throws -> Void = cocoRealSleep,
         onTimeout: @escaping @MainActor () -> Void
     ) {
         self.timeout = timeout
@@ -62,7 +62,7 @@ public final class PictureCarousel {
 
     public init(
         idleAfter: Duration = .seconds(60),
-        sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
+        sleep: @escaping @Sendable (Duration) async throws -> Void = cocoRealSleep
     ) {
         countdown = IdleCountdown(timeout: idleAfter, sleep: sleep) { [weak self] in self?.onIdle?() }
     }

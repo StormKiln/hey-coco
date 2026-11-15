@@ -48,9 +48,9 @@ import Testing
         timer.update(view: .answer(text: "42"), busy: false)
         #expect(await waitUntil { sleeper.pending.count == 1 })
         timer.noteInteraction()
-        // The old countdown is cancelled and a fresh one is waiting.
-        try? await Task.sleep(for: .milliseconds(30))
-        #expect(sleeper.pending == [.seconds(20)])
+        // The old countdown is cancelled and a fresh one is waiting. Wait for that state rather
+        // than a fixed delay: on a slow CI runner the new task may not have reached its sleep yet.
+        #expect(await waitUntil { sleeper.pending == [.seconds(20)] })
         #expect(counter.count == 0)
         sleeper.fire()
         #expect(await waitUntil { counter.count == 1 })

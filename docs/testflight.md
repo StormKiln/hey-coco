@@ -6,9 +6,43 @@ Issue #4. Once the one-time setup below is done, every new build is one command:
 make display-testflight
 ```
 
-It checks the config, archives a signed Release build (`display/build/CocoDisplay.xcarchive`)
-and uploads it to App Store Connect. The build appears in TestFlight after Apple's processing
-(usually 10 to 30 minutes) and the iPad's TestFlight app offers it.
+It checks the config, runs the preflight (below), archives a signed Release build
+(`display/build/CocoDisplay.xcarchive`) and uploads it to App Store Connect. The build appears
+in TestFlight after Apple's processing (usually 10 to 30 minutes) and the iPad's TestFlight app
+offers it. Follow the processing with `make testflight-status BUILD=<n>`.
+
+The usual order, from GitHub (see "Uploading from GitHub Actions"):
+
+1. **Rehearse**: run the TestFlight workflow with `dry_run` ticked (the default). It runs the
+   checks and an unsigned Release archive, needs no secrets, uploads nothing, and keeps the
+   archive as an artifact. Locally: `make display-archive-unsigned`.
+2. **Upload**: run it again from `main` with `dry_run` unticked.
+3. **Status**: the upload waits up to 20 minutes for Apple's processing. If Apple is slower,
+   run the **TestFlight status** workflow (or `make testflight-status`) later.
+
+### Preflight: provenance and build number
+
+`make display-testflight-preflight` (run by `make display-testflight` and by the workflow,
+before anything is signed) refuses to continue unless:
+
+- HEAD is on `origin/main`'s history (`git fetch origin main` first if it says otherwise), and
+- the build number is greater than every build App Store Connect already has for the current
+  `MARKETING_VERSION`. Apple refuses a build number it has seen; this finds out before a
+  20-minute archive rather than after. Fix with an up-to-date `main` or `BUILD_NUMBER=<higher>`.
+
+It only reads from App Store Connect (`display/tools/asc.py`, with the same `ASC_*` env as the
+upload). If App Store Connect cannot be reached, the preflight fails: it never treats "could
+not check" as "no builds".
+
+### Processing status
+
+```sh
+make testflight-status BUILD=123                 # VERSION defaults to MARKETING_VERSION
+make testflight-status VERSION=0.1.0 BUILD=123 WAIT_MINUTES=5
+```
+
+Read-only. Exits 0 when Apple marks the build VALID, 1 if Apple marks it FAILED or INVALID (check
+Apple's email), 2 if it is still processing when the wait ends. Do not re-upload just to check.
 
 What lives where:
 
@@ -143,14 +177,38 @@ TestFlight builds expire after 90 days. Upload a new build before then.
 
 - `make display-archive`: archive only (needs the team ID; uses the API key if the env vars are
   set, otherwise the Apple ID signed in to Xcode).
+- `make display-archive-unsigned`: the rehearsal archive, `display/build/CocoDisplay-unsigned.xcarchive`.
+  Same Release configuration for devices, unsigned; needs no team or key.
+- `make display-artifact [ARCHIVE=build/CocoDisplay-unsigned.xcarchive]`: zip an archive with
+  `SHA256SUMS` and `commit.txt` into `display/build/artifact/` (what the workflow keeps).
 - `make display-icon`: redraw the app icon from `display/tools/make-app-icon.swift`.
 - `make display-build`: the simulator build CI runs. Always unsigned, needs none of the above.
 
 ## Uploading from GitHub Actions
 
-`.github/workflows/testflight.yml` runs the same `make display-testflight` on a GitHub macOS
-runner. It only runs when you start it: Actions, then TestFlight, then **Run workflow**. It never
-runs on pull requests.
+`.github/workflows/testflight.yml` runs the same steps as `make display-testflight` on a GitHub
+macOS runner, with the same pinned Xcode as CI's `display-build` (`XCODE_PRIMARY` in the
+Makefile). It only runs when you start it: Actions, then TestFlight, then **Run workflow**. It
+never runs on pull requests. Runs queue one at a time and are never cancelled mid-upload.
+
+- **`dry_run` ticked (default): rehearsal.** Any branch. `make lint`, `make hub-test`,
+  `make kit-test`, then an unsigned Release archive, kept 14 days as an artifact
+  (`coco-display-unsigned-*`: zipped `.xcarchive`, `SHA256SUMS`, `commit.txt`). No secrets
+  needed, nothing uploaded. The run fails if the archive contains `PicovoiceAccessKey.txt` or
+  `hey-coco*.ppn`, because the repo is public and anyone can download its artifacts.
+- **`dry_run` unticked: real upload.** In order, failing at the first problem: Preflight lists
+  every missing required secret; HEAD must be on `main`'s history; the same lint and tests;
+  `make display-testflight-check`; the App Store Connect build-number preflight; then the
+  signed archive, the upload, and up to 20 minutes
+  waiting for Apple's processing (fails if Apple marks it INVALID; still processing is only a
+  notice). The API key file is deleted at the end whatever happened.
+
+  **The signed archive is never kept as an artifact**: it bundles the Picovoice AccessKey and
+  keyword file, and this repo's artifacts are public. Only `SHA256SUMS` (the signed archive's
+  hash) and `commit.txt` are kept, 14 days, as `coco-display-signed-provenance-*`.
+
+To check processing later: Actions, then **TestFlight status**, then Run workflow with the
+version and build number the upload printed. Read-only.
 
 Add these under Settings, then Secrets and variables, then Actions:
 
@@ -190,6 +248,7 @@ permissions error, that is the setting to check.
 |---|---|
 | `No Accounts` / `No signing certificate "iOS Distribution" found` | Set the `ASC_*` env vars (the archive then authenticates with the API key), or sign in to Xcode with your Apple ID (Xcode, Settings, Accounts). |
 | `No profiles for '...' were found` | The bundle ID in `Signing.local.xcconfig` doesn't match one registered to your team (step 2), or `DEVELOPMENT_TEAM` is wrong. |
-| `The bundle version must be higher than the previously uploaded version` | Build number already used: pull `main`, or pass `BUILD_NUMBER=` higher than the last upload. |
+| `The bundle version must be higher than the previously uploaded version` | Build number already used: pull `main`, or pass `BUILD_NUMBER=` higher than the last upload. The preflight normally catches this before archiving. |
+| `HEAD is not on origin/main's history` | Merge first, then `git fetch origin main` and upload from `main`. Rehearsals (`dry_run`) are allowed from any branch. |
 | `Missing required icon file` / `CFBundleIconName` | Run `make display-gen` so the project includes `Assets.xcassets`. |
 | Upload succeeds but no build in TestFlight | Wait for processing; check the email Apple sends if processing failed (often a privacy manifest or usage-description issue). |

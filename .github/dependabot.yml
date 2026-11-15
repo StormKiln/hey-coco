@@ -1,0 +1,26 @@
+version: 2
+updates:
+  # Workflow actions are pinned to full commit SHAs with a trailing `# vX.Y.Z` comment
+  # (scripts/check-action-pins.py). Dependabot updates the SHA and rewrites the comment; that is
+  # the intended diff. One grouped PR a week.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # The Hub's uv.lock. CI syncs with --locked, so a bump PR is tested against exactly the lock it
+  # proposes. The cooldown skips versions younger than a week: a poisoned release is usually
+  # pulled within days. Minor and patch bumps come as one PR; majors one each.
+  # (asc.py's `cryptography` comes from this lock too.)
+  - package-ecosystem: uv
+    directory: /hub
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]

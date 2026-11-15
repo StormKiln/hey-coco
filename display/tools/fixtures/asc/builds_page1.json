@@ -1,0 +1,32 @@
+{
+  "data": [
+    {
+      "type": "builds",
+      "id": "b-41",
+      "attributes": {
+        "version": "41",
+        "processingState": "VALID",
+        "uploadedDate": "2026-11-10T10:00:00-08:00"
+      }
+    },
+    {
+      "type": "builds",
+      "id": "b-9",
+      "attributes": {
+        "version": "9",
+        "processingState": "VALID",
+        "uploadedDate": "2026-11-01T10:00:00-08:00"
+      }
+    }
+  ],
+  "links": {
+    "self": "https://api.appstoreconnect.apple.com/v1/builds?limit=2",
+    "next": "https://api.appstoreconnect.apple.com/v1/builds?cursor=Ag&limit=2"
+  },
+  "meta": {
+    "paging": {
+      "total": 3,
+      "limit": 2
+    }
+  }
+}

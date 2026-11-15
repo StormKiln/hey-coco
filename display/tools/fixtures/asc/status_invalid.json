@@ -1,0 +1,34 @@
+{
+  "data": [
+    {
+      "type": "builds",
+      "id": "b-120",
+      "attributes": {
+        "version": "120",
+        "processingState": "INVALID",
+        "uploadedDate": "2026-11-15T10:00:00-08:00"
+      },
+      "relationships": {
+        "preReleaseVersion": {
+          "data": {
+            "type": "preReleaseVersions",
+            "id": "pre-010"
+          }
+        }
+      }
+    }
+  ],
+  "included": [
+    {
+      "type": "preReleaseVersions",
+      "id": "pre-010",
+      "attributes": {
+        "version": "0.1.0",
+        "platform": "IOS"
+      }
+    }
+  ],
+  "links": {
+    "self": "https://api.appstoreconnect.apple.com/v1/builds"
+  }
+}

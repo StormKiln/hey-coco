@@ -126,8 +126,7 @@ private final class FakeNotifications: AlarmNotifications {
         let timers = TaskOneShotTimers()
         var fired = false
         timers.schedule(id: "a", at: Date().addingTimeInterval(0.05)) { fired = true }
-        try await Task.sleep(for: .milliseconds(300))
-        #expect(fired)
+        #expect(await waitUntil { fired })
     }
 
     @Test func cancelledNeverFires() async throws {
@@ -143,8 +142,7 @@ private final class FakeNotifications: AlarmNotifications {
         let timers = TaskOneShotTimers()
         var fired = false
         timers.schedule(id: "a", at: Date().addingTimeInterval(-10)) { fired = true }
-        try await Task.sleep(for: .milliseconds(100))
-        #expect(fired)
+        #expect(await waitUntil { fired })
     }
 }
 

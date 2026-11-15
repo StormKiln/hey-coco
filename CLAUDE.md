@@ -17,6 +17,16 @@ Kitchen assistant replacing a Google Home. Read the design first:
 Always use the Makefile (`make help`). CI runs `make hub-lint`, `make hub-test`, `make hub-resilience`,
 `make kit-test`, `make display-build`.
 
+## CI
+- The ruleset requires one check, `ci-gate`: it needs every CI job and passes only if all
+  succeeded (`skipped` fails). Never rename it; add new jobs to its `needs`. See `.github/CLAUDE.md`.
+- `make repo-check` (in CI's hub job) guards that wiring, SHA-pinned actions, and the
+  TestFlight scripts' tests. `make check-workflows` runs actionlint.
+- Xcode is pinned via `DEVELOPER_DIR` (`make ci-xcode`), never the runner default. `kit-test` runs
+  on the oldest that compiles CocoKit (16.3) and the primary (`XCODE_PRIMARY`, 26.6);
+  `display-build` and TestFlight use the primary. CI uses `uv --locked`: commit `hub/uv.lock` changes.
+- TestFlight: rehearse with the workflow's `dry_run` first; see `docs/testflight.md`.
+
 ## Rules
 - Never work on `main`; one branch + PR per issue, title prefixed with the issue (`#12: ...`), body `Closes #12`.
 - TDD: write the failing test first. Hub tests never hit the live network (use recorded responses).

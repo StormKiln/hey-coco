@@ -1,0 +1,22 @@
+{
+  "data": [
+    {
+      "type": "builds",
+      "id": "b-100",
+      "attributes": {
+        "version": "100",
+        "processingState": "INVALID",
+        "uploadedDate": "2026-11-12T10:00:00-08:00"
+      }
+    }
+  ],
+  "links": {
+    "self": "https://api.appstoreconnect.apple.com/v1/builds?cursor=Ag&limit=2"
+  },
+  "meta": {
+    "paging": {
+      "total": 3,
+      "limit": 2
+    }
+  }
+}

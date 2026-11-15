@@ -196,14 +196,27 @@ public final class ConversationController {
                 view: host.currentView.viewType ?? .idle, alarmRinging: host.alarmRinging,
                 mediaPlaying: host.mediaPlaying))
         startOneMoment(id)
-        let action: Action
+        // Keep the typed-throws block to the call alone: older Swift runtimes (Xcode 26.x) crash
+        // with "freed pointer was not the last allocation" when more async work sits inside it.
+        let outcome: Result<Action, HubError>
         do throws(HubError) {
-            action = try await host.postUtterance(request)
-            if isCurrent(id) { onEvent?(.hubReplied(succeeded: true)) }
-            await endOneMoment(id)
+            outcome = .success(try await host.postUtterance(request))
         } catch {
-            if isCurrent(id) { onEvent?(.hubReplied(succeeded: false)) }
-            await endOneMoment(id)
+            outcome = .failure(error)
+        }
+        if isCurrent(id) {
+            if case .success = outcome {
+                onEvent?(.hubReplied(succeeded: true))
+            } else {
+                onEvent?(.hubReplied(succeeded: false))
+            }
+        }
+        await endOneMoment(id)
+        let action: Action
+        switch outcome {
+        case .success(let reply):
+            action = reply
+        case .failure(let error):
             guard isCurrent(id) else { return }
             await fail(id, message: Self.message(for: error), speak: true)
             return

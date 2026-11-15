@@ -96,6 +96,8 @@ struct ScreenView: View {
             TimersScreen()
         case .answer(let text):
             AnswerScreen(text: text)
+        case .weather(let payload):
+            WeatherScreen(payload: payload)
         case .picture(let payload):
             PictureScreen(payload: payload)
         case .sound(let payload):

@@ -35,11 +35,17 @@ public final class AppleSpeechSynthesizer: NSObject, SpeechSynthesizer {
         self.language = language
         super.init()
         synthesizer.delegate = self
-        Task.detached(priority: .utility) { [weak self] in
-            let best = Self.bestVoice(
-                in: AVSpeechSynthesisVoice.speechVoices().map(VoiceInfo.init), language: language)
-            await MainActor.run { self?.voiceIdentifier = best }
+        // Inherits the main actor; only the voice listing runs off it, so `self` is never sent.
+        Task { [weak self] in
+            let best = await Self.loadBestVoice(language: language)
+            self?.voiceIdentifier = best
         }
+    }
+
+    private nonisolated static func loadBestVoice(language: String) async -> String? {
+        await Task.detached(priority: .utility) {
+            bestVoice(in: AVSpeechSynthesisVoice.speechVoices().map(VoiceInfo.init), language: language)
+        }.value
     }
 
     /// The device's first language if it's English with a region (en-CA), else en-US.

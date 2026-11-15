@@ -63,25 +63,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Oldest Xcode with the iOS 18 SDK and Swift 6: the kitchen iPad runs iPadOS 18, and an
-          # old-toolchain-only crash (default-argument async closures, see
+          # Oldest Xcode with the iOS 18 SDK that compiles CocoKit: the kitchen iPad runs iPadOS 18,
+          # and an old-toolchain-only crash (default-argument async closures, see
           # CocoKit/Sources/CocoKit/Concurrency/CocoSleep.swift) already bit us once.
-          - xcode: "16.1"
-            runner: macos-15
-            build: false
-          - xcode: "16.2"
-            runner: macos-15
-            build: false
+          # 16.0-16.2 (Swift 6.0.x) reject TimerStore.swift's `sorted(by: Self.soonestFirst)`
+          # with a spurious actor-isolation error that Swift 6.1 fixed (probed 2026-11-15).
           - xcode: "16.3"
-            runner: macos-15
-            build: false
-          - xcode: "16.4"
-            runner: macos-15
-            build: false
-          - xcode: "26.0.1"
-            runner: macos-26
-            build: false
-          - xcode: "16.0"
             runner: macos-15
             build: false
           # Primary: newest generally available Xcode. Keep equal to XCODE_PRIMARY in the

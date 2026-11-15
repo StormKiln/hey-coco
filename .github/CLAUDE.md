@@ -20,7 +20,7 @@ passes only if every needed job's result is `success`.
 - **Adding or renaming any other job needs no ruleset edit**: add it to `ci-gate`'s `needs`.
   `make repo-check` fails if a job is missing from `needs`, if `ci-gate` disappears, or if it
   loses `if: always()`.
-- Matrix legs report as `display (Xcode 16.0)` etc. Never require those directly; the gate
+- Matrix legs report as `display (Xcode 16.3)` etc. Never require those directly; the gate
   covers them.
 
 ## Supply chain
@@ -42,7 +42,8 @@ Runners are explicit images (`macos-15`, `macos-26`), and Xcode is chosen with `
 by `make ci-xcode XCODE_VERSION=...`, which fails naming the installed versions if the path is
 missing. Never rely on the image default: an image update would silently change the compiler.
 
-- `kit-test` runs on the oldest (16.0 on `macos-15`) and the primary (26.6 on `macos-26`).
+- `kit-test` runs on the oldest that compiles CocoKit (16.3 on `macos-15`; 16.0-16.2, Swift 6.0.x, reject
+  `TimerStore.swift` with a spurious actor-isolation error) and the primary (26.6 on `macos-26`).
 - `display-build` and the TestFlight workflow use the primary, `XCODE_PRIMARY` in the Makefile.
   `make repo-check` fails if `ci.yml` has no leg on `XCODE_PRIMARY`.
 - When GitHub drops an Xcode from an image, `ci-xcode` fails with the list of what is there:

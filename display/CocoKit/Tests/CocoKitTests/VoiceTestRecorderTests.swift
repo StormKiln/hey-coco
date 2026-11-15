@@ -246,6 +246,7 @@ private func makeRecorder(
     @Test func wakeRequestAndReplyAreRecorded() async {
         let h = Harness()
         await h.loop.start()
+        await h.loop.settled()
         h.loop.voiceTest.start(onDeviceRecognition: true, wakeWord: h.loop.wakeWord)
         h.host.result = .success(Action(say: nil, view: nil, commands: [], intent: "t", matchedBy: .rules))
         h.wake.detect()
@@ -265,6 +266,7 @@ private func makeRecorder(
     @Test func wakeWithNothingSaidIsAProbableFalseWake() async {
         let h = Harness()
         await h.loop.start()
+        await h.loop.settled()
         h.loop.voiceTest.start(onDeviceRecognition: true, wakeWord: h.loop.wakeWord)
         h.wake.detect()
         #expect(await waitUntil { h.recognizer.fake.continuation != nil })
@@ -277,6 +279,7 @@ private func makeRecorder(
     @Test func statusChangesReachTheRecorder() async {
         let h = Harness()
         await h.loop.start()
+        await h.loop.settled()
         h.loop.voiceTest.start(onDeviceRecognition: true, wakeWord: h.loop.wakeWord)
         h.wake.detect()
         #expect(await waitUntil { h.recognizer.fake.continuation != nil })
@@ -289,6 +292,7 @@ private func makeRecorder(
     @Test func nothingIsRecordedUnlessStarted() async {
         let h = Harness()
         await h.loop.start()
+        await h.loop.settled()
         h.wake.detect()
         #expect(await waitUntil { h.recognizer.fake.continuation != nil })
         h.recognizer.fake.finish()

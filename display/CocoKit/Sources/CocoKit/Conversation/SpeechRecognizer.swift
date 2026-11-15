@@ -55,7 +55,8 @@ public protocol SpeechSynthesizer: AnyObject {
 /// and the "I'm listening" chime.
 @MainActor
 public protocol ConversationAudio: AnyObject {
-    func beginConversation() throws
+    /// Claims the mic and speaker. The audio-session work behind it runs off the main actor.
+    func beginConversation() async throws
     /// Plays the listening chime and returns when it has finished (so the mic doesn't hear it).
     func playListeningChime() async
     func endConversation()
@@ -65,7 +66,7 @@ public protocol ConversationAudio: AnyObject {
 @MainActor
 public final class SilentConversationAudio: ConversationAudio {
     public init() {}
-    public func beginConversation() throws {}
+    public func beginConversation() async throws {}
     public func playListeningChime() async {}
     public func endConversation() {}
 }

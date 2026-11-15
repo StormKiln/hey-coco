@@ -16,17 +16,22 @@ public enum AudioSessionEvent: Sendable, Equatable {
 ///
 /// Modes: inactive; standby (mic available for the wake / stop word, other audio untouched);
 /// conversation (other audio ducked while Coco listens and talks).
+///
+/// The session work behind `activateStandby()` / `beginConversation()` may block for a long time
+/// (or, seen in the simulator, forever), so it never runs on the main actor: callers await it,
+/// with a timeout where waiting matters. `deactivate()` returns at once.
 @MainActor
 public protocol VoiceAudioSession: AnyObject {
     var onEvent: (@MainActor (AudioSessionEvent) -> Void)? { get set }
     /// Play-and-record with echo cancellation, mixing with (not ducking) other audio.
-    /// Idempotent.
-    func activateStandby() throws
+    /// Idempotent: while an activation is in flight, joins it rather than starting another.
+    func activateStandby() async throws
     /// Like standby, but ducks other audio. Called with the mic engines stopped.
-    func beginConversation() throws
+    func beginConversation() async throws
     /// Plays the listening chime and returns when it has finished (so the mic doesn't hear it).
     func playListeningChime() async
-    /// Releases the session so other audio un-ducks. Called with the mic engines stopped.
+    /// Releases the session so other audio un-ducks. Called with the mic engines stopped. Does
+    /// not wait for the session work.
     func deactivate()
 }
 
@@ -35,8 +40,8 @@ public protocol VoiceAudioSession: AnyObject {
 public final class SilentVoiceAudioSession: VoiceAudioSession {
     public var onEvent: (@MainActor (AudioSessionEvent) -> Void)?
     public init() {}
-    public func activateStandby() throws {}
-    public func beginConversation() throws {}
+    public func activateStandby() async throws {}
+    public func beginConversation() async throws {}
     public func playListeningChime() async {}
     public func deactivate() {}
 }

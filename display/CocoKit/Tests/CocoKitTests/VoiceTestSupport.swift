@@ -30,19 +30,39 @@ final class LoggingRecognizer: SpeechRecognizer {
 final class FakeVoiceAudioSession: VoiceAudioSession {
     let log: CallLog
     var standbyError: (any Error)?
+    /// Activation never returns (like the wedged `setActive` seen in the simulator) until
+    /// `release()`.
+    var hangs = false
     var onEvent: (@MainActor (AudioSessionEvent) -> Void)?
     private(set) var mode = "inactive"
+    private(set) var activationCalls = 0
+    private var hung: [CheckedContinuation<Void, Never>] = []
 
     init(log: CallLog) { self.log = log }
 
-    func activateStandby() throws {
+    var hungCount: Int { hung.count }
+
+    func activateStandby() async throws {
+        activationCalls += 1
+        if hangs {
+            log.record("session:standby(hung)")
+            await withCheckedContinuation { hung.append($0) }
+        }
         if let standbyError { throw standbyError }
         guard mode != "standby" else { return }
         mode = "standby"
         log.record("session:standby")
     }
 
-    func beginConversation() throws {
+    /// Lets every hung activation finish.
+    func release() {
+        hangs = false
+        let waiting = hung
+        hung = []
+        for continuation in waiting { continuation.resume() }
+    }
+
+    func beginConversation() async throws {
         mode = "conversation"
         log.record("session:duck")
     }

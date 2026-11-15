@@ -159,7 +159,8 @@ public final class ConversationController {
         let transcript: String
         onEvent?(.started)
         do {
-            try audio.beginConversation()
+            try await audio.beginConversation()
+            guard isCurrent(id) else { return }
             state = .listening(partial: "")
             await audio.playListeningChime()
             guard isCurrent(id) else { return }

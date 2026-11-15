@@ -60,9 +60,12 @@ interruption just run it again. Data goes to `WAKEWORD_WORK` (default
 | uv environment (torch, Piper, ...) | ~1.1 GB on disk |
 
 Disk: about 25 GB free (downloads, the decoded background audio and ~20,000 clips with their
-features). Time, an estimate for an M-series Mac on CPU (the smoke run measured the per-clip
-costs, not the full run): clip generation 1-2 h, augmentation and features ~1 h, training 1-3 h,
-so **3-6 hours**, plus the 19 GB download.
+features). Time on an M-series Mac (CPU), extrapolated from a measured 1,100-clip run
+(`ARGS="--samples 500 --steps 2000"` with `SMOKE=1`: generation 2.4 min, augmentation and
+features 0.3 min, 2,000 steps 0.4 min): generation of the ~24,000 clips ~50 min, augmentation and
+features ~10-15 min, 50,000 training steps on full-size batches from the 17 GB feature file
+30-90 min, so **roughly 1.5-3 hours** plus the 19 GB download. The full run has not been timed.
+Each stage logs how long it took.
 
 **If it fails on macOS** (openWakeWord only supports training on Linux; this works around its two
 known issues, macOS's `spawn` multiprocessing and a missing `pkg_resources`): use openWakeWord's

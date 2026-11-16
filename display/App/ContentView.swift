@@ -19,7 +19,10 @@ struct ContentView: View {
                 .onLongPressGesture(minimumDuration: 1.5) { showingSettings = true }
         }
         .overlay(alignment: .top) {
-            ConnectionBanner(state: model.connection, unreachableManualHost: model.unreachableManualHost) {
+            ConnectionBanner(
+                state: model.connection, unreachableManualHost: model.unreachableManualHost,
+                searchTakingLong: model.searchTakingLong
+            ) {
                 if case .needsPairing(let candidate) = model.connection {
                     pairing = candidate
                 } else {
@@ -28,6 +31,7 @@ struct ContentView: View {
             }
                 .padding(.top, 12)
                 .animation(.default, value: model.connection)
+                .animation(.default, value: model.searchTakingLong)
         }
         .overlay(alignment: .topTrailing) {
             Button {
@@ -128,6 +132,8 @@ struct ConnectionBanner: View {
     let state: ConnectionState
     /// Set while a manually entered host doesn't answer (`AppModel.unreachableManualHost`).
     var unreachableManualHost: String? = nil
+    /// Searching has gone on too long (`AppModel.searchTakingLong`): say what to check (#91).
+    var searchTakingLong = false
     let openSettings: () -> Void
 
     var body: some View {
@@ -135,11 +141,15 @@ struct ConnectionBanner: View {
             Button(action: openSettings) {
                 Label(message.text, systemImage: message.icon)
                     .font(.title3.weight(.medium))
+                    .multilineTextAlignment(.leading)
                     .padding(.horizontal, 20)
                     .padding(.vertical, 10)
-                    .background(.thinMaterial, in: Capsule())
+                    // A capsule while it fits on one line; long messages wrap into a rounded box.
+                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
             }
             .buttonStyle(.plain)
+            // Clear of the wake-word hint (top left) and the gear (top right).
+            .padding(.horizontal, 124)
             .transition(.move(edge: .top).combined(with: .opacity))
         }
     }
@@ -150,6 +160,8 @@ struct ConnectionBanner: View {
         }
         return switch state {
         case .connected: nil
+        case .searching where searchTakingLong:
+            ("questionmark.circle", ConnectionState.searchTakingLongMessage)
         case .searching: ("magnifyingglass", "Looking for Coco Hub…")
         case .connecting: ("antenna.radiowaves.left.and.right", "Connecting to Coco Hub…")
         case .unreachable(let reason): ("wifi.exclamationmark", "Can't reach Coco Hub. \(reason)")
@@ -273,8 +285,9 @@ struct PairingView: View {
 }
 
 /// Never shows the saved token (anyone at the kitchen counter can open Settings): the field
-/// starts empty, empty keeps the saved token, and changing the host or port requires re-entering
-/// it so the saved token is never sent to a different Hub.
+/// starts empty and empty keeps the saved token. Changing the host or port keeps it too while a
+/// Hub is pinned (only the pinned certificate ever gets it); with nothing pinned it must be
+/// re-entered (`HubSettings.applyingEdit`, #91).
 struct SettingsView: View {
     let saved: HubSettings
     let save: (HubSettings) throws -> Void
@@ -361,7 +374,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Hub host")
                 } footer: {
-                    Text("Leave the host empty to find Coco Hub with Bonjour. The port is used with a manual host.")
+                    Text("Leave the host empty to find Coco Hub with Bonjour (Coco also tries where it last found the paired Hub). The port is used with a manual host.")
                 }
                 Section {
                     SecureField(

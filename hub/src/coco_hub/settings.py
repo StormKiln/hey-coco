@@ -91,8 +91,9 @@ class Spotify(BaseModel):
     ``https://127.0.0.1:<port>/spotify/callback`` (``http://`` with ``tls.enabled = false``;
     Spotify wants a loopback IP literal, not ``localhost``)."""
     device_name: str | None = None
-    """The Spotify Connect device to play on, e.g. "Kitchen iPad" (as the Spotify app names
-    it). Unset: the active device, or the only one."""
+    """The Spotify Connect device to play on, as the Spotify app names it: an iPad is always
+    "iPad" (iPadOS hides custom device names from apps). Unset: the active device, or the only
+    one."""
     wake_wait_s: Annotated[float, Field(ge=0, le=30)] = 4.0
     """When the iPad is missing from Spotify's device list, the Hub asks the Display to open
     the Spotify app (``spotify.wake_requested``) and waits this long before listing devices

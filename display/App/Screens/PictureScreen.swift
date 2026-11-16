@@ -3,7 +3,8 @@ import SwiftUI
 
 /// `ViewSpec.picture` (#33): the image full screen with its title and attribution. Swipe for the
 /// next or previous result; the Hub's "next one" sends a new picture view (images rotated), which
-/// starts again at its first image. Back to idle after a minute without a swipe.
+/// starts again at its first image. The Close (X) button or a minute without a swipe goes back
+/// to idle.
 struct PictureScreen: View {
     let payload: ViewSpec.PicturePayload
     @Environment(AppModel.self) private var model
@@ -39,6 +40,7 @@ struct PictureScreen: View {
             carousel.show(payload.images)
         }
         .onDisappear { carousel.stop() }
+        .closeButton()
     }
 
     private func caption(for image: PictureImage) -> some View {

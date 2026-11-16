@@ -41,7 +41,7 @@ from coco_hub.settings import Settings
 
 HERE = Path(__file__).resolve().parent
 DEFAULT_SET = HERE / "utterances.jsonl"
-LOOSE = {"name", "query", "word"}
+LOOSE = {"name", "query", "word", "place"}
 
 
 def _loose(s: Any) -> str:

@@ -28,7 +28,13 @@ public final class AppModel {
     public private(set) var currentView: ViewSpec = .idle
     /// `say` from the most recent Action.
     public private(set) var lastSay: String?
-    public private(set) var connection: ConnectionState = .searching
+    public private(set) var connection: ConnectionState = .searching {
+        didSet { searchStateChanged() }
+    }
+    /// True once the Display has been `.searching` for `searchHelpAfter` without a break (#91):
+    /// it keeps searching, but the banner says what to check
+    /// (`ConnectionState.searchTakingLongMessage`). Cleared as soon as it stops searching.
+    public private(set) var searchTakingLong = false
     public private(set) var endpoint: HubEndpoint?
     /// The idle screen's forecast, kept fresh by `idleModel`.
     public var idleInfo: IdleInfo? { idleModel.info }
@@ -64,6 +70,17 @@ public final class AppModel {
     @ObservationIgnored private let now: @Sendable () -> Date
     /// `POST /v1/pair` over TLS pinned to the candidate Hub (#89).
     @ObservationIgnored private let redeemer: any PairingCodeRedeemer
+    /// Times the search guidance and the last-known-address retries (#91).
+    @ObservationIgnored private let searchSleep: @Sendable (Duration) async throws -> Void
+    @ObservationIgnored private let searchHelpAfter: Duration
+    @ObservationIgnored private var searchTimer: Task<Void, Never>?
+    /// The address whose event stream last dropped and hasn't come back (#91). If it is the
+    /// last known address, Bonjour gets `lastKnownGrace` to find the Hub's new address first.
+    @ObservationIgnored private var failingAddress: HubAddress?
+
+    /// How long Bonjour gets on its own before the last known address is probed, when that
+    /// address is the one that just stopped answering (say the Hub's IP changed).
+    static let lastKnownGrace: Duration = .seconds(5)
 
     public init(
         config: any HubConfigStore,
@@ -79,9 +96,14 @@ public final class AppModel {
         night: NightModeController? = nil,
         rediscovery: RediscoveryPolicy = RediscoveryPolicy(),
         now: @escaping @Sendable () -> Date = { Date() },
-        redeemer: any PairingCodeRedeemer = PinnedPairingCodeRedeemer()
+        redeemer: any PairingCodeRedeemer = PinnedPairingCodeRedeemer(),
+        // Never an inline closure here: see `cocoRealSleep`.
+        searchSleep: @escaping @Sendable (Duration) async throws -> Void = cocoRealSleep,
+        searchHelpAfter: Duration = .seconds(30)
     ) {
         self.redeemer = redeemer
+        self.searchSleep = searchSleep
+        self.searchHelpAfter = searchHelpAfter
         self.rediscovery = rediscovery
         self.now = now
         self.config = config
@@ -137,6 +159,9 @@ public final class AppModel {
     public func stop() {
         runTask?.cancel()
         runTask = nil
+        searchTimer?.cancel()
+        searchTimer = nil
+        searchTakingLong = false
         timerStore.hubDisconnected()
         idleModel.disconnect()
     }
@@ -153,6 +178,7 @@ public final class AppModel {
     public func pair(with candidate: PairingCandidate) throws {
         var settings = config.load()
         settings.pin = candidate.pin
+        settings.lastKnownAddress = candidate.address.withoutAdvertisedID
         try saveSettings(settings)
     }
 
@@ -167,14 +193,14 @@ public final class AppModel {
         } catch {
             throw .hub(error)
         }
-        try savePairing(pin: candidate.pin, token: token)
+        try savePairing(pin: candidate.pin, token: token, at: candidate.address)
     }
 
     /// "Scan QR code" (#89): pairs with the Hub presenting exactly the scanned certificate. The
     /// QR code's address is tried first, then the Hub found on the network and the manual host
     /// (the address is only a hint; the certificate decides). Nothing is saved, and the token
-    /// goes nowhere, unless a Hub presenting that certificate answers. How the Display finds
-    /// the Hub (Bonjour or the manual host) is unchanged.
+    /// goes nowhere, unless a Hub presenting that certificate answers. The address that answered
+    /// becomes the last known address (#91); the manual host setting is unchanged.
     public func pair(scanned uri: PairingURI) async throws(PairingError) {
         let saved = config.load()
         var addresses = [uri.address]
@@ -186,7 +212,7 @@ public final class AppModel {
         for address in addresses where tried.insert("\(address.host):\(address.port)").inserted {
             switch await probe.identify(address) {
             case .success(let presented) where presented.certSHA256 == uri.certSHA256:
-                try savePairing(pin: presented, token: uri.token)
+                try savePairing(pin: presented, token: uri.token, at: address)
                 return
             case .success:
                 mismatch = mismatch ?? .certificateMismatch(host: address.host)
@@ -197,10 +223,13 @@ public final class AppModel {
         throw mismatch ?? unreachable ?? .unreachable("No Coco Hub found.")
     }
 
-    private func savePairing(pin: HubPin, token: String) throws(PairingError) {
+    /// Saves the pin and token, and `address` (where that certificate just answered) as the
+    /// last known address (#91).
+    private func savePairing(pin: HubPin, token: String, at address: HubAddress) throws(PairingError) {
         var settings = config.load()
         settings.pin = pin
         settings.token = token
+        settings.lastKnownAddress = address.withoutAdvertisedID
         do {
             try saveSettings(settings)
         } catch {
@@ -338,11 +367,62 @@ public final class AppModel {
         case rediscover
     }
 
-    /// The address of the paired Hub: the manual host, or the first discovered Hub whose
-    /// certificate matches the pin. Sets `connection` and returns `nil` when pairing is needed,
-    /// the manual host is someone else, or discovery ends; `.rediscover` when a discovered
-    /// address stays unreachable (see `RediscoveryPolicy`). Never sends the token.
+    /// The address of the paired Hub. With no manual host and a last known address (#91), Bonjour
+    /// and that address are tried side by side: whichever presents the pinned certificate first
+    /// wins. The last known address is probed at once (the probe sends nothing secret, and
+    /// waiting would only delay the case where Bonjour is broken, e.g. every launch), unless it
+    /// is the address whose connection just dropped: then only after `lastKnownGrace`, so
+    /// Bonjour can find the Hub's new address first. It keeps being retried if Bonjour gives up.
+    /// Never sends the token.
     private func trustedHub(_ settings: HubSettings) async -> HubSearch? {
+        guard settings.manualHost == nil, let pin = settings.pin,
+            let lastKnown = settings.lastKnownAddress
+        else { return await searchHub(settings) }
+        let initialDelay: Duration? = lastKnown == failingAddress ? Self.lastKnownGrace : nil
+        return await withTaskGroup(of: HubSearch?.self) { group in
+            group.addTask { await self.searchHub(settings) }
+            group.addTask {
+                await self.retryLastKnown(lastKnown, pin: pin, initialDelay: initialDelay)
+            }
+            var outcome: HubSearch?
+            // `nil` from Bonjour (it ended) leaves the last known address trying; `nil` from
+            // both means cancelled.
+            while let next = await group.next() {
+                if let next {
+                    outcome = next
+                    break
+                }
+            }
+            group.cancelAll()
+            return outcome
+        }
+    }
+
+    /// Probes `address` until it presents `pin`, waiting (`searchSleep`) up to 30 s between
+    /// tries. Any other
+    /// answer (unreachable, another certificate) is a stale hint: it changes no state and never
+    /// gets the token. `nil` only when cancelled.
+    private func retryLastKnown(
+        _ address: HubAddress, pin: HubPin, initialDelay: Duration?
+    ) async -> HubSearch? {
+        if let initialDelay {
+            do { try await searchSleep(initialDelay) } catch { return nil }
+        }
+        var backoff = Backoff(base: .seconds(2), cap: .seconds(30))
+        while !Task.isCancelled {
+            if case .trusted = HubAssessment.assess(await probe.identify(address), pin: pin) {
+                return Task.isCancelled ? nil : .found(address)
+            }
+            do { try await searchSleep(backoff.nextDelay()) } catch { return nil }
+        }
+        return nil
+    }
+
+    /// The manual host, or the first discovered Hub whose certificate matches the pin. Sets
+    /// `connection` and returns `nil` when pairing is needed, the manual host is someone else,
+    /// or discovery ends; `.rediscover` when a discovered address stays unreachable (see
+    /// `RediscoveryPolicy`). Never sends the token.
+    private func searchHub(_ settings: HubSettings) async -> HubSearch? {
         let addresses: AsyncStream<HubAddress>
         let manual = settings.manualHost != nil
         if let host = settings.manualHost {
@@ -395,12 +475,48 @@ public final class AppModel {
         return nil
     }
 
+    /// The pinned event stream just opened at `endpoint`: that is where the paired Hub is (#91).
+    /// Saved on its own so the token and pin are never rewritten from a possibly failed read.
+    private func rememberWorkingAddress() {
+        guard let endpoint, settings.pin != nil else { return }
+        let address = HubAddress(host: endpoint.host, port: endpoint.port)
+        guard settings.lastKnownAddress != address else { return }
+        do {
+            try config.saveLastKnownAddress(address)
+            settings.lastKnownAddress = address
+        } catch {
+            // Best effort: Bonjour and the manual host still work without it.
+        }
+    }
+
+    /// Starts the "taking long" timer when searching begins and clears it as soon as the
+    /// Display stops searching. Repeated `.searching` assignments (each rebrowse) keep the timer
+    /// running, so it measures one unbroken search.
+    private func searchStateChanged() {
+        guard connection == .searching else {
+            searchTimer?.cancel()
+            searchTimer = nil
+            if searchTakingLong { searchTakingLong = false }
+            return
+        }
+        guard searchTimer == nil else { return }
+        let sleep = searchSleep
+        let delay = searchHelpAfter
+        searchTimer = Task { [weak self] in
+            do { try await sleep(delay) } catch { return }
+            guard !Task.isCancelled, let self, self.connection == .searching else { return }
+            self.searchTakingLong = true
+        }
+    }
+
     private func handle(_ update: EventStreamUpdate) {
         switch update {
         case .connecting(let attempt):
             if attempt == 1 { connection = .connecting }
         case .connected:
             connection = .connected
+            failingAddress = nil
+            rememberWorkingAddress()
             // Queued touch-timer work is sent after the `hello` that follows.
             if let client {
                 timerStore.hubConnected(client)
@@ -413,6 +529,7 @@ public final class AppModel {
             if case .settingsChanged(let schedule) = event.kind { night.update(night: schedule) }
         case .waiting(_, let reason):
             connection = .unreachable(reason: reason)
+            if let endpoint { failingAddress = HubAddress(host: endpoint.host, port: endpoint.port) }
             timerStore.hubDisconnected()
         case .unauthorized:
             connection = .unauthorized

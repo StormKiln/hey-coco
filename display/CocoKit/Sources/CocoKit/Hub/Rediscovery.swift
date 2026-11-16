@@ -48,4 +48,9 @@ extension ConnectionState {
     public static func manualHostUnreachableMessage(host: String) -> String {
         "Can't reach \(host) — check the Mac. Tap for Settings."
     }
+
+    /// The banner once searching has gone on too long (`AppModel.searchTakingLong`, #91). The
+    /// search continues; this says what to check. Tapping opens Settings.
+    public static let searchTakingLongMessage =
+        "Can't find Coco Hub. Check it's running on the Mac (and that the Mac allows Local Network for it), or set its address in Settings."
 }

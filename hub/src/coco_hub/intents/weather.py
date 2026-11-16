@@ -1,13 +1,20 @@
-"""Weather intents: current conditions, forecasts, rain, and highs/lows for home.
+"""Weather intents: current conditions, forecasts, rain, and highs/lows for home, or for a
+place the person names ("what's the forecast today in Portland", #93).
 
 All answer with a spoken summary (rounded temperatures, "minus" for negatives, "degrees"
-without a unit) and the ``weather`` view. They need the ``weather`` service and a home location.
+without a unit) and the ``weather`` view. They need the ``weather`` service, and a home
+location unless a place is named. A named place is geocoded (``weather.places``), its forecast
+read in its own timezone, and the answer starts by naming it ("Here's Paris, France."), or by
+saying which one it picked when the name is ambiguous ("There's more than one Portland, so
+here's Portland, Oregon.").
 """
 
-from collections.abc import Callable
+import re
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, replace
 from datetime import date, datetime, time, timedelta, tzinfo
 from statistics import fmean
+from zoneinfo import ZoneInfo
 
 from coco_hub.intents.builtin import answer
 from coco_hub.intents.engine import (
@@ -20,7 +27,9 @@ from coco_hub.intents.engine import (
 )
 from coco_hub.protocol import UtteranceRequest, WeatherView
 from coco_hub.weather import codes
+from coco_hub.weather.client import WeatherFetchError
 from coco_hub.weather.model import WET_PERCENT, Day, Forecast, Hour, representative_code
+from coco_hub.weather.places import Pick
 from coco_hub.weather.service import WeatherService
 from coco_hub.weather.spoken import (
     a_or_an,
@@ -185,19 +194,48 @@ def _chance(p: int, kind: str) -> str:
 WeatherAnswer = Callable[[Match, Forecast, datetime], str]
 
 
-def weather_view(forecast: Forecast, now: datetime) -> WeatherView:
+def weather_view(forecast: Forecast, now: datetime, place: str | None = None) -> WeatherView:
     return WeatherView(
         current=forecast.current,
         hourly=forecast.hourly_after(now, VIEW_HOURS),
         daily=forecast.daily_from(now.date(), VIEW_DAYS),
+        place=place,
     )
 
 
+def not_found(place: str) -> str:
+    return f"Sorry, I couldn't find a place called {place.title()}."
+
+
+def place_intro(pick: Pick) -> str:
+    if pick.ambiguous:
+        return f"There's more than one {pick.place.name}, so here's {pick.place.label}. "
+    return f"Here's {pick.place.label}. "
+
+
 def _handler(say: WeatherAnswer) -> Callable[..., object]:
-    """Wrap a ``(match, forecast, now) -> say`` function: fetch weather, attach the view."""
+    """Wrap a ``(match, forecast, now) -> say`` function: fetch weather for home or for the
+    named place, attach the view."""
+
+    async def at_place(
+        place: str, match: Match, ctx: IntentContext, service: WeatherService
+    ) -> Reply:
+        try:
+            pick = await service.resolve(place)
+            if pick is None:
+                return answer(not_found(place))
+            snapshot = await service.get_at(pick.place)
+        except WeatherFetchError:
+            return answer(UNREACHABLE)
+        now = ctx.clock().astimezone(ZoneInfo(pick.place.timezone))
+        text = place_intro(pick) + say(match, snapshot.forecast, now)
+        return Reply(say=text, view=weather_view(snapshot.forecast, now, pick.place.label))
 
     async def handle(match: Match, request: UtteranceRequest, ctx: IntentContext) -> Reply:
         service: WeatherService | None = ctx.services.get("weather")
+        place = match.slots.get("place", "").strip()
+        if place and service is not None:
+            return await at_place(place, match, ctx, service)
         if service is None or not service.configured:
             return answer(NO_LOCATION)
         snapshot = await service.get()
@@ -396,6 +434,57 @@ HIGH_LOW_PATTERNS = [
 ]
 
 
+# --- Places ------------------------------------------------------------------------------
+
+# "in <place>", optionally followed by when / now / outside: "what's the weather in paris
+# tomorrow", "is it cold in paris right now". A place is up to four words of letters.
+_PLACE = r"(?P<place>[a-z][a-z'.-]*(?: [a-z][a-z'.-]*){0,3}?)"
+_AFTER_PLACE = re.compile(rf"{_PLACE}(?P<rest>(?: {WHEN.replace('?P<when>', '?:')})?{_OUT}{_NOW})")
+# Words after "in" that are times or rooms, not places ("in the afternoon", "in here").
+_NOT_PLACES = frozenset(
+    "a an the here there this that my our your hour hours minute minutes second seconds "
+    "morning afternoon evening night day days week weeks forecast future while bit house "
+    "home kitchen garden yard backyard car shade sun".split()
+)
+
+
+def _is_place(text: str) -> bool:
+    words = text.split()
+    return words[0] not in _NOT_PLACES and words[-1] not in _NOT_PLACES
+
+
+def _place_markers(text: str) -> list[int]:
+    """Where " in <place>" could start, and " for <place>" right after "weather" or
+    "forecast" ("the forecast for portland"; not "a coat for school")."""
+    found = [m.start() for m in re.finditer(r"(?= in )", text)]
+    found += [m.start() for m in re.finditer(r"(?:(?<=weather)|(?<=forecast))(?= for )", text)]
+    return sorted(found)
+
+
+def with_place(pattern: str) -> Callable[[str], Mapping[str, str] | None]:
+    """A matcher for ``pattern`` with "in <place>" inserted after any prefix of it (and
+    before an optional when / now): the place goes into the ``place`` slot."""
+    compiled = re.compile(pattern)
+
+    def match(text: str) -> Mapping[str, str] | None:
+        for at in _place_markers(text):
+            tail = _AFTER_PLACE.fullmatch(text[at:].split(" ", 2)[2])
+            if tail is None or not _is_place(tail["place"]):
+                continue
+            m = compiled.fullmatch(text[:at] + tail["rest"])
+            if m is not None:
+                slots = {k: v for k, v in m.groupdict().items() if v is not None}
+                return slots | {"place": tail["place"]}
+        return None
+
+    match.__name__ = f"with_place({pattern!r})"
+    return match
+
+
+def _patterns(patterns: list[str]) -> list[str | Callable[[str], Mapping[str, str] | None]]:
+    return [*patterns, *(with_place(p) for p in patterns)]
+
+
 # --- Qwen fallback slots ----------------------------------------------------------------
 
 # Every value is a period ``resolve_period`` accepts once "_" becomes a space (a test checks).
@@ -417,6 +506,12 @@ LLM_WHEN = LlmSlot(
     to_slot=lambda v: v.replace("_", " "),
     hint=f"when is one of: {', '.join(LLM_WHEN_VALUES)}; leave it out for right now.",
 )
+LLM_PLACE = LlmSlot(
+    hint=(
+        "place is a city or town the person named, with its state, province or country if "
+        'they said it ("Portland, Oregon"); leave it out for home.'
+    ),
+)
 LLM_WHICH = LlmSlot(
     enum=("high", "low", "both"),
     to_slot=lambda v: "high and low" if v == "both" else v,
@@ -428,44 +523,45 @@ def register(registry: IntentRegistry) -> None:
     registry.register(
         Intent(
             "weather.current",
-            patterns=CURRENT_PATTERNS,
+            patterns=_patterns(CURRENT_PATTERNS),
             handler=_handler(say_current),
             description=(
                 "weather or temperature outside right now, including how cold, chilly or warm "
                 "it is now"
             ),
+            llm_slots={"place": LLM_PLACE},
         )
     )
     registry.register(
         Intent(
             "weather.forecast",
-            patterns=FORECAST_PATTERNS,
+            patterns=_patterns(FORECAST_PATTERNS),
             handler=_handler(say_forecast),
             description=(
                 "what the weather will be like later (today, tonight, tomorrow, the weekend), "
                 "including what to wear"
             ),
-            llm_slots={"when": LLM_WHEN},
+            llm_slots={"when": LLM_WHEN, "place": LLM_PLACE},
         )
     )
     registry.register(
         Intent(
             "weather.rain",
-            patterns=RAIN_PATTERNS,
+            patterns=_patterns(RAIN_PATTERNS),
             handler=_handler(say_rain),
             description="only questions about rain, snow, showers, storms or umbrellas",
-            llm_slots={"when": LLM_WHEN},
+            llm_slots={"when": LLM_WHEN, "place": LLM_PLACE},
         )
     )
     registry.register(
         Intent(
             "weather.high_low",
-            patterns=HIGH_LOW_PATTERNS,
+            patterns=_patterns(HIGH_LOW_PATTERNS),
             handler=_handler(say_high_low),
             description=(
                 "the forecast high or low temperature for a day or part of a day "
                 "(how hot or how cold it will get), not the temperature right now"
             ),
-            llm_slots={"when": LLM_WHEN, "which": LLM_WHICH},
+            llm_slots={"when": LLM_WHEN, "which": LLM_WHICH, "place": LLM_PLACE},
         )
     )

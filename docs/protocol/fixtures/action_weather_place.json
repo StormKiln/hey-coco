@@ -1,0 +1,89 @@
+{
+  "say": "There's more than one Portland, so here's Portland, Oregon. Today, expect overcast skies, with a high of 11 and a low of 6. There's a 34 percent chance of rain.",
+  "view": {
+    "type": "weather",
+    "current": {
+      "time": "2026-11-14T15:00:00Z",
+      "temp": 4.5,
+      "feels_like": 1.2,
+      "unit": "C",
+      "code": 3,
+      "description": "Overcast",
+      "is_day": true
+    },
+    "hourly": [
+      {
+        "time": "2026-11-14T16:00:00Z",
+        "temp": 4.8,
+        "unit": "C",
+        "code": 3,
+        "precip_probability": 10
+      },
+      {
+        "time": "2026-11-14T17:00:00Z",
+        "temp": 4.1,
+        "unit": "C",
+        "code": 3,
+        "precip_probability": 20
+      },
+      {
+        "time": "2026-11-14T18:00:00Z",
+        "temp": 3.2,
+        "unit": "C",
+        "code": 61,
+        "precip_probability": 55
+      },
+      {
+        "time": "2026-11-14T19:00:00Z",
+        "temp": 2.6,
+        "unit": "C",
+        "code": 61,
+        "precip_probability": 70
+      },
+      {
+        "time": "2026-11-14T20:00:00Z",
+        "temp": 2.0,
+        "unit": "C",
+        "code": 3,
+        "precip_probability": 35
+      },
+      {
+        "time": "2026-11-14T21:00:00Z",
+        "temp": 1.4,
+        "unit": "C",
+        "code": 2,
+        "precip_probability": 10
+      }
+    ],
+    "daily": [
+      {
+        "date": "2026-11-14",
+        "high": 5.0,
+        "low": -1.5,
+        "unit": "C",
+        "code": 61,
+        "precip_probability": 70
+      },
+      {
+        "date": "2026-11-15",
+        "high": 3.5,
+        "low": -3.0,
+        "unit": "C",
+        "code": 2,
+        "precip_probability": 10
+      },
+      {
+        "date": "2026-11-16",
+        "high": 6.0,
+        "low": 0.5,
+        "unit": "C",
+        "code": 3,
+        "precip_probability": 20
+      }
+    ],
+    "place": "Portland, Oregon"
+  },
+  "commands": [],
+  "intent": "weather.forecast",
+  "matched_by": "rules"
+}

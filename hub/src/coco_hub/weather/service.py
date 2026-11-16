@@ -9,6 +9,9 @@
   then answers from the cache while the fetch carries on in the background. A black-holed
   upstream (connection opens, nothing answers) would otherwise hold every caller for the
   client's full timeout. Only one fetch runs at a time; concurrent callers join it.
+- Somewhere else (#93): ``resolve`` geocodes a place name (``places.Geocoder``) and
+  ``get_at`` fetches that place's forecast in its own timezone, cached for ``ttl`` per place.
+  These don't need a home location.
 """
 
 import asyncio
@@ -23,6 +26,7 @@ import httpx
 from coco_hub.settings import Settings
 from coco_hub.weather.client import OpenMeteoClient, WeatherFetchError
 from coco_hub.weather.model import Forecast
+from coco_hub.weather.places import Geocoder, Pick, Place
 
 log = logging.getLogger(__name__)
 
@@ -50,6 +54,7 @@ class WeatherService:
         settings: Settings,
         *,
         client: OpenMeteoClient | None = None,
+        geocoder: Geocoder | None = None,
         transport: httpx.AsyncBaseTransport | None = None,
         clock: Callable[[], datetime] = _utc_now,
         ttl: timedelta = CACHE_TTL,
@@ -59,6 +64,10 @@ class WeatherService:
         self._client = client or OpenMeteoClient(
             transport=transport, url=settings.weather.forecast_url
         )
+        self._geocoder = geocoder or Geocoder(
+            transport=transport, url=settings.weather.geocoding_url
+        )
+        self._places: dict[tuple[float, float], WeatherSnapshot] = {}
         self._clock = clock
         self._ttl = ttl
         self._retry_after = retry_after
@@ -135,6 +144,25 @@ class WeatherService:
         self._snapshot = WeatherSnapshot(forecast=forecast, fetched_at=self._clock())
         return self._snapshot
 
+    async def resolve(self, query: str) -> Pick | None:
+        """The place ``query`` names, or None. Raises ``WeatherFetchError`` when offline."""
+        return await self._geocoder.resolve(query)
+
+    async def get_at(self, place: Place) -> WeatherSnapshot:
+        """``place``'s forecast, in its timezone. Raises ``WeatherFetchError``."""
+        key = (place.lat, place.lon)
+        now = self._clock()
+        cached = self._places.get(key)
+        if cached is not None and now - cached.fetched_at < self._ttl:
+            return cached
+        forecast = await self._client.forecast(
+            lat=place.lat, lon=place.lon, timezone=place.timezone, units=self._settings.units
+        )
+        snapshot = WeatherSnapshot(forecast=forecast, fetched_at=now)
+        self._places = {k: v for k, v in self._places.items() if now - v.fetched_at < self._ttl}
+        self._places[key] = snapshot
+        return snapshot
+
     async def run(self, every: timedelta = REFRESH_EVERY) -> None:
         """Keep the cache warm until cancelled."""
         while True:
@@ -151,6 +179,7 @@ class WeatherService:
                 await self._inflight
         self._inflight = None
         await self._client.aclose()
+        await self._geocoder.aclose()
 
 
 def _log_crash(task: asyncio.Task[WeatherSnapshot | None]) -> None:

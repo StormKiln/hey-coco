@@ -169,11 +169,15 @@ says "Can't reach <host> — check the Mac".
 | `idle` | – |
 | `answer` | `text` |
 | `timers` | – (Display renders from its timer state) |
-| `weather` | `current: WeatherNow`, `hourly: [WeatherHour]`, `daily: [WeatherDay]` |
+| `weather` | `current: WeatherNow`, `hourly: [WeatherHour]`, `daily: [WeatherDay]`, `place` (nullable) — see below |
 | `picture` | `query`, `images: [Image]` (first shown, "next" advances) — see below |
-| `sound` | `name`, `clip_url`, `image_url`, `attribution` — see below |
+| `sound` | `name`, `clip_url`, `image_url`, `attribution`, `caption` (nullable) — see below |
 | `youtube` | `video_id`, `title` |
 | `now_playing` | – (Display renders from now-playing events) |
+
+#### `place` in `weather` views
+
+`place` is `null` for home. For a place the person named ("what's the forecast in Portland", #93) it is how the Hub names it, e.g. `"Portland, Oregon"`, and the Display shows it as the screen's title. Its `hourly` times are instants as usual; its `daily` dates are that place's local dates. The `say` text names the place too, and says which one the Hub picked when the name was ambiguous.
 
 #### Media URLs in `picture` and `sound` views
 
@@ -196,6 +200,9 @@ Hub behaviour (not a shape change):
   `picture` view with `images` rotated so the next image is first (`say` is `null`).
 - On "again" while a `sound` view is on screen, the Hub resends the same `sound` view with
   `say: null`; receiving a `sound` view (even an identical one) plays the clip from the start.
+- A `sound` view always comes with `say: null` (#94): the clip is the answer, and speech
+  would talk over it. `caption` ("A fire truck goes nee naw!") is what the Hub used to say;
+  the Display shows it under the name and never speaks it.
 
 ### Commands (`commands[].type`)
 

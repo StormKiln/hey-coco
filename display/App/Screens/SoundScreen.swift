@@ -1,8 +1,8 @@
 import CocoKit
 import SwiftUI
 
-/// `ViewSpec.sound` (#35): a big picture and the name, the clip played once on arrival, a replay
-/// button, and the attribution. Every sound view the Hub sends plays the clip, including an
+/// `ViewSpec.sound` (#35): a big picture, the name and caption (shown, never spoken: #94), the
+/// clip played once on arrival, a replay button, and the attribution. Every sound view the Hub sends plays the clip, including an
 /// identical resend for "play it again" (`MediaCenter.soundRequestCount`). Back to idle ~10 s
 /// after the clip ends.
 struct SoundScreen: View {
@@ -24,6 +24,15 @@ struct SoundScreen: View {
                 .accessibilityHidden(true)
             Text(payload.name.capitalized)
                 .font(.system(size: 72, weight: .bold, design: .rounded))
+            // What Coco used to say over the clip (#94): shown, not spoken.
+            if let caption = payload.caption {
+                Text(caption)
+                    .font(.system(size: 40, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.7)
+            }
             Button(action: replay) {
                 Label("Play again", systemImage: "arrow.counterclockwise")
                     .font(.system(size: 32, weight: .semibold, design: .rounded))

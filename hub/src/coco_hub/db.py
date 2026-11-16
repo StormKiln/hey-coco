@@ -90,6 +90,23 @@ MIGRATIONS: list[Migration] = [
         );
         """,
     ),
+    Migration(
+        6,
+        "create home location",
+        """
+        CREATE TABLE home_location (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            name TEXT NOT NULL,
+            lat REAL NOT NULL CHECK (lat BETWEEN -90 AND 90),
+            lon REAL NOT NULL CHECK (lon BETWEEN -180 AND 180),
+            timezone TEXT NOT NULL,
+            country TEXT NOT NULL DEFAULT '',
+            country_code TEXT NOT NULL DEFAULT '',
+            admin1 TEXT NOT NULL DEFAULT '',
+            updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+        );
+        """,
+    ),
 ]
 
 _SCHEMA_MIGRATIONS = """

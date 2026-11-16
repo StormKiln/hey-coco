@@ -41,7 +41,7 @@ from coco_hub.weather.spoken import (
     spoken_temp,
 )
 
-NO_LOCATION = "I don't know where home is yet — set the location in the Hub settings."
+NO_LOCATION = "I don't know where home is yet. Set Home location in my Settings."
 UNREACHABLE = "Sorry, I can't reach the weather service right now."
 
 VIEW_HOURS = 12

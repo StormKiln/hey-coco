@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 import httpx
 from fastapi import APIRouter, Depends, FastAPI
 
-from coco_hub import db, diagnostics, discovery, events, identity
+from coco_hub import db, diagnostics, discovery, events, home, identity
 from coco_hub.auth import require_token
 from coco_hub.errors import install_error_handlers
 from coco_hub.intents import build_registry
@@ -24,7 +24,7 @@ from coco_hub.pictures.commons import PictureService
 from coco_hub.protocol import Health
 from coco_hub.qwen.client import OllamaClient
 from coco_hub.qwen.fallback import QwenFallback
-from coco_hub.routes import idle, pair, utterance
+from coco_hub.routes import idle, location, pair, utterance
 from coco_hub.settings import Settings, load_settings
 from coco_hub.sounds import SoundLibrary, media_router
 from coco_hub.timers import routes as timer_routes
@@ -49,6 +49,9 @@ def create_app(
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.db = db.open_db(settings.data_dir)
+        # A home location set from the Display (#96) overrides the config file's.
+        if (saved_home := home.load(app.state.db)) is not None:
+            weather.set_home(saved_home)
         timers = TimerService(
             app.state.db,
             clock=clock,
@@ -83,8 +86,9 @@ def create_app(
             if settings.discovery.enabled:
                 advertiser = discovery.Advertiser(settings, app.state.identity)
                 await advertiser.start()
-            if weather.configured:
-                weather_task = asyncio.create_task(weather.run(), name="weather-refresh")
+            # Always running: the Display can set a home location later (#96); until
+            # then each refresh returns at once without touching the network.
+            weather_task = asyncio.create_task(weather.run(), name="weather-refresh")
             if qwen is not None:
                 qwen.schedule_warm_up()  # in the background; failures are logged
             yield
@@ -167,6 +171,7 @@ def create_app(
     v1.include_router(timer_routes.router)
     v1.include_router(idle.router)
     v1.include_router(diagnostics.router)
+    v1.include_router(location.router)
     app.include_router(v1)
     # WebSocket routes authorize themselves (auth.authorize_websocket), so they live outside
     # the bearer-token dependency.

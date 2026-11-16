@@ -17,7 +17,8 @@ timezone = "America/Toronto"
 units = "metric"          # "metric" | "imperial"
 
 # Home location: needed for weather (Open-Meteo, no key). Without lat/lon the idle screen
-# shows no weather and weather questions say the location isn't set.
+# shows no weather and weather questions say the location isn't set. A home location set from
+# the iPad (Settings, Home location) overrides this until you choose "Use the Hub's default".
 [location]
 lat = 45.4215
 lon = -75.6972

@@ -52,6 +52,9 @@ private func checkRoundTrip(_ name: String) throws -> Bool {
         ("health", { try roundTrip(HubHealth.self) }),
         ("pair_request", { try roundTrip(PairRequest.self) }),
         ("pair_response", { try roundTrip(PairResponse.self) }),
+        ("location_settings", { try roundTrip(LocationSettings.self) }),
+        ("location_update_query", { try roundTrip(LocationQueryRequest.self) }),
+        ("location_update_place", { try roundTrip(LocationPlaceRequest.self) }),
     ]
     guard let match = table.filter({ name.hasPrefix($0.0) }).max(by: { $0.0.count < $1.0.count })
     else { return false }

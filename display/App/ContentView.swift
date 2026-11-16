@@ -414,6 +414,11 @@ struct SettingsView: View {
                     Section { Text(error).foregroundStyle(.red) }
                 }
                 Section {
+                    HomeLocationRow()
+                } header: {
+                    Text("Weather")
+                }
+                Section {
                     NavigationLink("Diagnostics…") { DiagnosticsScreen() }
                 }
             }

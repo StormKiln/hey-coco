@@ -26,6 +26,9 @@ PREFIXES: dict[str, type[BaseModel] | TypeAdapter] = {
     "health": p.Health,
     "pair_request": p.PairRequest,
     "pair_response": p.PairResponse,
+    "location_settings": p.LocationSettings,
+    "location_update_query": p.LocationQueryRequest,
+    "location_update_place": p.LocationPlaceRequest,
 }
 
 
@@ -161,3 +164,14 @@ def test_naive_datetimes_are_rejected():
             ends_at=datetime(2026, 11, 14, 15, 1, 0, tzinfo=UTC),
             state="running",
         )
+
+
+def test_location_updates_are_told_apart_by_their_keys():
+    # #96: PUT /v1/settings/location takes a name to look up, or a place the person picked.
+    adapter = TypeAdapter(p.LocationUpdate)
+    query = adapter.validate_json((FIXTURES / "location_update_query.json").read_text())
+    place = adapter.validate_json((FIXTURES / "location_update_place.json").read_text())
+    assert isinstance(query, p.LocationQueryRequest)
+    assert isinstance(place, p.LocationPlaceRequest)
+    with pytest.raises(ValidationError):
+        adapter.validate_python({"query": "Portland", "lat": 1.0})

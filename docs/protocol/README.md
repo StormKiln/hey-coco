@@ -101,6 +101,9 @@ in the same PR. Fixtures are mapped to models by filename prefix (`action_*` →
 | `POST /v1/timers/{id}/add` | `{"seconds": int}` | `Timer` (time added; touch "+1 min") |
 | `DELETE /v1/timers/{id}` | – | `Timer` (state `cancelled`) |
 | `GET /v1/diagnostics` | – | `Diagnostics` |
+| `GET /v1/settings/location` | – | `LocationSettings` (see "Home location") |
+| `PUT /v1/settings/location` | `LocationQueryRequest` \| `LocationPlaceRequest` | `LocationSettings` |
+| `DELETE /v1/settings/location` | – | `LocationSettings` (back to the config file's) |
 | `WS /v1/events` | – | stream of `Event` |
 
 ## Health
@@ -241,6 +244,55 @@ and an old value is shown.
 - `WeatherHour`: `time`, `temp`, `unit`, `code`, `precip_probability` (0–100).
 - `WeatherDay`: `date` (`YYYY-MM-DD`), `high`, `low`, `unit`, `code`, `precip_probability`.
 
+## Home location
+
+The place home weather is for (the idle screen's forecast, and weather questions that name no
+place), set from the Display's Settings (#96). A place set this way is stored in the Hub's
+database and overrides `[location]` in the Hub's config file until it is deleted. The Hub's
+`timezone` setting is not changed: home forecasts (and `WeatherDay.date`) stay Hub-local.
+
+`LocationSettings` (`fixtures/location_settings*.json`):
+
+```json
+{"source": "override",
+ "location": {"name": "Portland", "label": "Portland, Oregon", "lat": 45.52345,
+              "lon": -122.67621, "timezone": "America/Los_Angeles", "country": "United States",
+              "country_code": "US", "admin1": "Oregon"},
+ "ambiguous": true, "alternatives": [HomeLocation …]}
+```
+
+- `source`: `override` (set from the Display) | `config` (the config file's `[location]`, which
+  the Display calls "the Hub's default"). `location` is `null` when the source is `config` and
+  the config file has no coordinates.
+- `HomeLocation`: `name`, `label` (how to show it), `lat`, `lon`, `timezone` (IANA), and
+  `country`, `country_code`, `admin1` (state or province), each nullable. For `config`, `name`
+  and `label` are the config's `name` (`"Home"` when empty), `timezone` is the Hub's, and the
+  rest are `null`.
+- `ambiguous` and `alternatives` are only set in the reply to a `PUT` by name: the other matches
+  for the name, most populous first (at most 5), and whether the name fitted more than one
+  sizeable place (the same rule as "weather in Portland", #93). Otherwise `false` and `[]`.
+
+`PUT` takes one of two bodies, told apart by their keys:
+
+- `LocationQueryRequest` (`fixtures/location_update_query.json`): `{"query": "Portland, Oregon"}`.
+  The Hub geocodes it (Open-Meteo, as for a named place), saves the best match at once, and
+  answers with it and the alternatives. A comma or trailing words qualify the name by state,
+  province or country.
+- `LocationPlaceRequest` (`fixtures/location_update_place.json`): `name`, `lat`, `lon`,
+  `timezone`, `country`, `country_code`, `admin1`: an alternative the person picked, saved as
+  is. The Display sends every key; the Hub also accepts the last three missing.
+
+Refusals (error body as usual):
+
+| Status | `code` | When |
+|---|---|---|
+| 404 | `location_not_found` | nothing matches the name; the message says what to try |
+| 503 | `geocoding_unavailable` | the Hub can't reach the geocoding service |
+| 422 | `invalid_request` | a blank `query`, both bodies' keys mixed, coordinates out of range, an unknown `timezone` |
+
+A refused `PUT` changes nothing. Setting or deleting the location drops the cached home forecast;
+the next `GET /v1/idle` (or weather question) fetches the new one.
+
 ## Timer
 
 ```json
@@ -313,6 +365,7 @@ instead of failing the request.
  "utterances": [UtteranceTrace …up to 20, newest first]}
 ```
 
+- `settings.location_set` is true when the Hub has a home location from either source.
 - `version`: Hub package version. `git_sha`: short commit, best-effort (`null` if unknown).
 - Every health entry has `status` (`ok` | `warn` | `error` | `off`) and `detail`
   (nullable human text). `off` means not configured / disabled.

@@ -7,8 +7,10 @@ Change the README, the fixtures, these models and the Swift models together.
 
 from datetime import UTC, datetime
 from typing import Annotated, Literal
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import (
+    AfterValidator,
     AwareDatetime,
     BaseModel,
     ConfigDict,
@@ -366,6 +368,74 @@ class PairResponse(Message):
     """The shared LAN token, for a Display that entered the right pairing code."""
 
     token: Annotated[str, Field(min_length=1)]
+
+
+# --- Home location (#96) ----------------------------------------------------------------
+
+Latitude = Annotated[float, Field(ge=-90, le=90)]
+Longitude = Annotated[float, Field(ge=-180, le=180)]
+PlaceName = Annotated[str, Field(min_length=1, max_length=200)]
+
+
+def _known_timezone(value: str) -> str:
+    try:
+        ZoneInfo(value)
+    except (ZoneInfoNotFoundError, ValueError) as exc:
+        raise ValueError(f"unknown timezone {value!r}") from exc
+    return value
+
+
+TimezoneName = Annotated[str, AfterValidator(_known_timezone)]
+
+
+class HomeLocation(Message):
+    """Where home is, for weather. ``label`` is how to show it (``Portland, Oregon``)."""
+
+    name: PlaceName
+    label: str
+    lat: Latitude
+    lon: Longitude
+    timezone: TimezoneName
+    country: str | None
+    country_code: str | None
+    admin1: str | None
+    """State or province."""
+
+
+class LocationSettings(Message):
+    """``GET``/``PUT``/``DELETE /v1/settings/location``: the home location in use.
+
+    ``source`` is ``override`` when the Display set it, ``config`` for the config file's
+    ``[location]`` (``location`` is ``null`` when that has no coordinates). After a ``PUT`` by
+    name, ``alternatives`` lists other matches (most populous first) and ``ambiguous`` says the
+    name fitted more than one sizeable place; otherwise ``false`` and ``[]``."""
+
+    source: Literal["config", "override"]
+    location: HomeLocation | None
+    ambiguous: bool
+    alternatives: list[HomeLocation]
+
+
+class LocationQueryRequest(Message):
+    """``PUT /v1/settings/location`` by name: the Hub geocodes it and saves the best match."""
+
+    query: Annotated[str, Field(min_length=1, max_length=200, pattern=r"\S")]
+
+
+class LocationPlaceRequest(Message):
+    """``PUT /v1/settings/location`` with a place (an alternative the person picked): saved as
+    is. The Display sends every key; the Hub accepts the label fields missing."""
+
+    name: PlaceName
+    lat: Latitude
+    lon: Longitude
+    timezone: TimezoneName
+    country: str | None = None
+    country_code: str | None = None
+    admin1: str | None = None
+
+
+LocationUpdate = LocationQueryRequest | LocationPlaceRequest
 
 
 # --- Diagnostics ------------------------------------------------------------------------

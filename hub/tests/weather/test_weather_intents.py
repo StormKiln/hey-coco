@@ -285,7 +285,7 @@ async def test_weather_view(ask, text):
 
 async def test_location_not_configured(ask, settings):
     action = await ask("what's the weather", settings=settings)
-    expected = "I don't know where home is yet — set the location in the Hub settings."
+    expected = "I don't know where home is yet. Set Home location in my Settings."
     assert action.say == expected
     assert action.view == AnswerView(text=expected)
     assert action.intent == CUR

@@ -28,6 +28,14 @@ public protocol HubAPI: Sendable {
     func addTime(id: String, seconds: Int) async throws(HubError) -> TimerInfo
     /// `GET /v1/diagnostics`, for the hidden diagnostics screen (#45).
     func diagnostics() async throws(HubError) -> HubDiagnostics
+    /// `GET /v1/settings/location`: the home weather location (#96).
+    func location() async throws(HubError) -> LocationSettings
+    /// `PUT /v1/settings/location` by name: the Hub looks it up and saves the best match.
+    func setLocation(query: String) async throws(HubError) -> LocationSettings
+    /// `PUT /v1/settings/location` with a place picked from the alternatives.
+    func setLocation(place: HomeLocation) async throws(HubError) -> LocationSettings
+    /// `DELETE /v1/settings/location`: back to the location in the Hub's config file.
+    func resetLocation() async throws(HubError) -> LocationSettings
 }
 
 extension HubAPI {
@@ -39,6 +47,23 @@ extension HubAPI {
     /// Fakes that never open the diagnostics screen need not implement it.
     public func diagnostics() async throws(HubError) -> HubDiagnostics {
         throw .server(code: "unsupported", message: "Diagnostics are not available.")
+    }
+
+    // Fakes that never open the home location setting need not implement these.
+    public func location() async throws(HubError) -> LocationSettings {
+        throw .server(code: "unsupported", message: "The home location is not available.")
+    }
+
+    public func setLocation(query: String) async throws(HubError) -> LocationSettings {
+        throw .server(code: "unsupported", message: "The home location is not available.")
+    }
+
+    public func setLocation(place: HomeLocation) async throws(HubError) -> LocationSettings {
+        throw .server(code: "unsupported", message: "The home location is not available.")
+    }
+
+    public func resetLocation() async throws(HubError) -> LocationSettings {
+        throw .server(code: "unsupported", message: "The home location is not available.")
     }
 }
 
@@ -85,6 +110,25 @@ public struct HubClient: HubAPI {
 
     public func diagnostics() async throws(HubError) -> HubDiagnostics {
         try await send("GET", "/v1/diagnostics")
+    }
+
+    public func location() async throws(HubError) -> LocationSettings {
+        try await send("GET", "/v1/settings/location")
+    }
+
+    /// Looking a place up waits on the Hub's geocoding service, so it gets the longer timeout.
+    public func setLocation(query: String) async throws(HubError) -> LocationSettings {
+        try await send(
+            "PUT", "/v1/settings/location", body: LocationQueryRequest(query: query),
+            timeout: utteranceTimeout)
+    }
+
+    public func setLocation(place: HomeLocation) async throws(HubError) -> LocationSettings {
+        try await send("PUT", "/v1/settings/location", body: LocationPlaceRequest(place))
+    }
+
+    public func resetLocation() async throws(HubError) -> LocationSettings {
+        try await send("DELETE", "/v1/settings/location")
     }
 
     /// `POST /v1/pair` (#89): trades the one-time code from `make hub-pair` for the token. Sent

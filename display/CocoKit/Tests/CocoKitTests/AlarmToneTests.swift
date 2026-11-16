@@ -71,7 +71,13 @@ import Testing
         let pcm = level(AlarmTone.pcm(duration: AlarmTone.patternDuration * 2))
         let jumps = zip(pcm, pcm.dropFirst()).map { abs($1 - $0) }
         #expect((jumps.max() ?? 1) < 0.15)
-        let curvature = (1..<(pcm.count - 1)).map { abs(pcm[$0 + 1] - 2 * pcm[$0] + pcm[$0 - 1]) }
+        // Typed and split up: CI's compilers time out type-checking it as one expression.
+        let curvature: [Double] = (1..<(pcm.count - 1)).map { (i: Int) -> Double in
+            let next: Double = pcm[i + 1]
+            let here: Double = pcm[i]
+            let previous: Double = pcm[i - 1]
+            return abs(next - 2 * here + previous)
+        }
         #expect((curvature.max() ?? 1) < 0.04)
         // Looping: the pattern ends and begins in silence.
         let pattern = Int(AlarmTone.patternDuration * Double(AlarmTone.sampleRate))

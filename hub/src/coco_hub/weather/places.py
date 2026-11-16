@@ -11,11 +11,14 @@ Choosing among results (``choose``):
 - otherwise the most populous result. That pick is *ambiguous* when another result with the
   same name has at least ``RIVAL_SHARE`` of its population (Portland, Oregon vs Portland,
   Maine; not Paris, France vs Paris, Texas), and the answer then says which one it picked.
+
+Every pick also lists the other matches, most populous first (``alternatives``), so the
+Display's Settings can offer them when the home location is set by name (#96).
 """
 
 import re
 import unicodedata
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 import httpx
@@ -26,6 +29,7 @@ GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search"
 MAX_RESULTS = 10
 RIVAL_SHARE = 0.1
 """Another same-named place this big, relative to the pick, makes a bare name ambiguous."""
+MAX_ALTERNATIVES = 5
 
 # Countries whose places are usually named with their state or province.
 _BY_REGION = frozenset({"US", "CA", "AU"})
@@ -77,6 +81,13 @@ class Place:
 class Pick:
     place: Place
     ambiguous: bool
+    alternatives: tuple[Place, ...] = field(default=(), compare=False)
+    """The other matches, most populous first (at most ``MAX_ALTERNATIVES``)."""
+
+
+def _with_alternatives(pick: Place, places: list[Place], ambiguous: bool) -> Pick:
+    others = sorted((p for p in places if p is not pick), key=lambda p: -p.population)
+    return Pick(pick, ambiguous=ambiguous, alternatives=tuple(others[:MAX_ALTERNATIVES]))
 
 
 def parse_results(data: Any) -> list[Place]:
@@ -110,7 +121,8 @@ def choose(places: list[Place], qualifier: str | None) -> Pick | None:
     if qualifier:
         matching = [p for p in places if p.matches(qualifier)]
         if matching:
-            return Pick(max(matching, key=lambda p: p.population), ambiguous=False)
+            best = max(matching, key=lambda p: p.population)
+            return _with_alternatives(best, places, ambiguous=False)
     best = max(places, key=lambda p: p.population)
     rivals = [
         p
@@ -120,7 +132,7 @@ def choose(places: list[Place], qualifier: str | None) -> Pick | None:
         and p.population >= RIVAL_SHARE * best.population
     ]
     # A qualifier that matched nothing: say which one was picked.
-    return Pick(best, ambiguous=bool(rivals) or bool(qualifier))
+    return _with_alternatives(best, places, ambiguous=bool(rivals) or bool(qualifier))
 
 
 def _searches(query: str) -> list[tuple[str, str | None]]:

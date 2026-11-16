@@ -100,10 +100,15 @@ def settings_summary(settings: Settings, services: dict[str, Any]) -> Diagnostic
     spotify = services.get("spotify")
     youtube = services.get("youtube")
     loc = settings.location
+    weather = services.get("weather")
+    # The weather service also knows a home location set from the Display (#96).
+    location_set = (
+        weather.configured if weather is not None else loc.lat is not None and loc.lon is not None
+    )
     return DiagnosticsSettings(
         timezone=settings.timezone,
         units=settings.units,
-        location_set=loc.lat is not None and loc.lon is not None,
+        location_set=location_set,
         qwen=QwenSummary(enabled=settings.qwen.enabled, model=settings.qwen.model),
         youtube_configured=bool(youtube is not None and youtube.configured),
         spotify=SpotifySummary(

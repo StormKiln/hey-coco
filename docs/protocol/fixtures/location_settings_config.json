@@ -1,0 +1,15 @@
+{
+  "source": "config",
+  "location": {
+    "name": "Home",
+    "label": "Home",
+    "lat": 45.4215,
+    "lon": -75.6972,
+    "timezone": "America/Toronto",
+    "country": null,
+    "country_code": null,
+    "admin1": null
+  },
+  "ambiguous": false,
+  "alternatives": []
+}

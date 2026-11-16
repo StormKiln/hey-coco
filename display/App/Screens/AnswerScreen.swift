@@ -20,6 +20,7 @@ struct AnswerScreen: View {
         }
         .scrollBounceBehavior(.basedOnSize)
         .accessibilityLabel(text)
+        .closeButton()
     }
 }
 

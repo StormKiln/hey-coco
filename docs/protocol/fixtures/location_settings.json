@@ -1,0 +1,36 @@
+{
+  "source": "override",
+  "location": {
+    "name": "Portland",
+    "label": "Portland, Oregon",
+    "lat": 45.52345,
+    "lon": -122.67621,
+    "timezone": "America/Los_Angeles",
+    "country": "United States",
+    "country_code": "US",
+    "admin1": "Oregon"
+  },
+  "ambiguous": true,
+  "alternatives": [
+    {
+      "name": "Portland",
+      "label": "Portland, Maine",
+      "lat": 43.65737,
+      "lon": -70.2589,
+      "timezone": "America/New_York",
+      "country": "United States",
+      "country_code": "US",
+      "admin1": "Maine"
+    },
+    {
+      "name": "Portland",
+      "label": "Portland, United Kingdom",
+      "lat": 50.56748,
+      "lon": -2.44472,
+      "timezone": "Europe/London",
+      "country": "United Kingdom",
+      "country_code": "GB",
+      "admin1": "England"
+    }
+  ]
+}

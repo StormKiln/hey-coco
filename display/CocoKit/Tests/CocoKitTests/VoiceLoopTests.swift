@@ -415,7 +415,9 @@ private func action(say: String?, view: ViewSpec? = nil, commands: [Command] = [
         await h.loop.settled()
         #expect(h.wake?.isRunning == false)
         #expect(h.loop.state == .idle(armed: false))
-        #expect(h.sleeper.pending == [.seconds(2)])
+        // The retry's sleep registers just after the state flips to .retrying: wait for it, or a
+        // slow runner checks too early (#106).
+        #expect(await waitUntil { h.sleeper.pending == [.seconds(2)] })
 
         // The session comes unstuck: the retry joins the same activation and arms.
         h.session.release()

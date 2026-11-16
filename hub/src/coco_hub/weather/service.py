@@ -12,6 +12,9 @@
 - Somewhere else (#93): ``resolve`` geocodes a place name (``places.Geocoder``) and
   ``get_at`` fetches that place's forecast in its own timezone, cached for ``ttl`` per place.
   These don't need a home location.
+- Home is ``[location]`` from the config file unless the Display set one (#96): ``set_home``
+  overrides it (``None`` goes back to the config file) and drops the cached forecast. Home
+  forecasts stay in the Hub's ``timezone`` either way, like the rest of the Hub's clock.
 """
 
 import asyncio
@@ -74,11 +77,34 @@ class WeatherService:
         self._snapshot: WeatherSnapshot | None = None
         self._failed_at: datetime | None = None
         self._inflight: asyncio.Task[WeatherSnapshot | None] | None = None
+        self._home: Place | None = None
+        self._generation = 0
+        """Bumped by ``set_home``: a fetch started before it is discarded."""
+
+    @property
+    def home(self) -> Place | None:
+        """The home location set from the Display, or None (the config file's is used)."""
+        return self._home
+
+    def set_home(self, place: Place | None) -> None:
+        """Override the config file's location (``None``: stop overriding it)."""
+        self._home = place
+        self._generation += 1
+        self._snapshot = None
+        self._failed_at = None
+        self._inflight = None  # a fetch still running finishes, but for nobody
+
+    def _home_coordinates(self) -> tuple[float, float] | None:
+        if self._home is not None:
+            return self._home.lat, self._home.lon
+        loc = self._settings.location
+        if loc.lat is None or loc.lon is None:
+            return None
+        return loc.lat, loc.lon
 
     @property
     def configured(self) -> bool:
-        loc = self._settings.location
-        return loc.lat is not None and loc.lon is not None
+        return self._home_coordinates() is not None
 
     @property
     def snapshot(self) -> WeatherSnapshot | None:
@@ -120,25 +146,31 @@ class WeatherService:
 
     def _start_fetch(self) -> asyncio.Task[WeatherSnapshot | None]:
         if self._inflight is None or self._inflight.done():
-            self._inflight = asyncio.create_task(self._fetch(), name="weather-fetch")
+            self._inflight = asyncio.create_task(
+                self._fetch(self._generation), name="weather-fetch"
+            )
             self._inflight.add_done_callback(_log_crash)
         return self._inflight
 
-    async def _fetch(self) -> WeatherSnapshot | None:
-        loc = self._settings.location
-        assert loc.lat is not None and loc.lon is not None
+    async def _fetch(self, generation: int) -> WeatherSnapshot | None:
+        coordinates = self._home_coordinates()
+        assert coordinates is not None
         try:
             forecast = await self._client.forecast(
-                lat=loc.lat,
-                lon=loc.lon,
+                lat=coordinates[0],
+                lon=coordinates[1],
                 timezone=self._settings.timezone,
                 units=self._settings.units,
             )
         except WeatherFetchError as exc:
+            if generation != self._generation:
+                return self._snapshot
             log.warning("weather refresh failed: %s", exc)
             self._failed_at = self._clock()
             if self._snapshot is not None and not self._snapshot.stale:
                 self._snapshot = replace(self._snapshot, stale=True)
+            return self._snapshot
+        if generation != self._generation:  # home changed while this was in flight
             return self._snapshot
         self._failed_at = None
         self._snapshot = WeatherSnapshot(forecast=forecast, fetched_at=self._clock())

@@ -96,7 +96,8 @@ it later, re-run step 1.4.
    - `timezone`: your IANA timezone, for example `America/Toronto`.
    - `units`: `"metric"` or `"imperial"`.
    - `[location]`: your home `lat` and `lon` (right-click your house in Google Maps to copy them)
-     and a `name`. Without a location there is no forecast on the idle screen.
+     and a `name`. Without a location there is no forecast on the idle screen. You can change it
+     later from the iPad instead (section 2.6).
    - `[night]`: `start` and `end` as 24-hour `HH:MM`, for example `"21:30"` and `"06:30"`, and
      `dark_after_idle_s`, the idle seconds before the screen goes dark. At `start` the iPad dims;
      after `dark_after_idle_s` with nobody using it the screen goes black at minimum brightness.
@@ -334,6 +335,24 @@ Do these once, in the iPad's Settings app.
 5. Leave it for a day. Check that the screen is still on, Coco is still in front, and timers
    work. At bedtime it should dim, go black after the idle time, and wake on a tap.
 
+### 2.6 Change the home location
+
+The forecast on the idle screen, and "what's the weather" without a place, are for home. To
+change home without editing the Mac's config file:
+
+1. On the iPad, open Coco's Settings (the gear, top right) and tap **Home location**. It shows
+   the place in use; "(Hub default)" means the one in `hub/config.local.toml`.
+2. Type the place, with its state or country when the name is common: `Portland, Oregon`,
+   `Paris, France`. Tap **Find**.
+3. Coco saves the best match straight away and lists other places with that name. If it picked
+   the wrong Portland, tap the right one.
+4. **Use the Hub's default** goes back to the location in `hub/config.local.toml`.
+
+The Hub keeps the place in its database (in `data_dir`), so it survives restarts and
+reinstalling the service, and it wins over `[location]` in the config file until you choose
+Use the Hub's default. The Hub's `timezone` setting doesn't change: if you moved to another
+time zone, change `timezone` in `hub/config.local.toml` too and re-run `make hub-install-service`.
+
 On-device verification of this guide is still pending. If a step was wrong or unclear, please
 fix it here.
 
@@ -374,7 +393,7 @@ settings for that. Guided Access does not apply.
 | **Scan QR code: "Camera access is off" / "No camera available"** | Camera permission was refused, or the device has no camera. | Use **Enter code**, or allow the camera for Coco in the iPad's Settings app (Privacy & Security, Camera). |
 | **Enter code: "No pairing code is active" / "expired" / "Too many wrong codes"** | The code was used, is more than 2 minutes old, or was mistyped 5 times. | Run `make hub-pair` again for a new code. Make sure Coco Hub is running (it checks the code). |
 | **"Coco Hub needs a valid token"** (unauthorized) | The token on the iPad doesn't match `token` in `hub/config.local.toml`. | Open Coco's Settings, tap **Forget Hub and Re-pair…** and pair again with `make hub-pair` (2.3); or enter the exact token and Save. If you changed the token on the Mac, run `make hub-install-service` again to restart the Hub. |
-| **No forecast** ("Forecast unavailable") | The Hub has no home location, or can't reach the weather service. | Set `[location]` `lat` and `lon` in `hub/config.local.toml` and re-run `make hub-install-service`. "Forecast may be out of date" means the last fetch failed, so check the Mac's internet. |
+| **No forecast** ("Forecast unavailable") | The Hub has no home location, or can't reach the weather service. | Set the home location in Coco's Settings (section 2.6), or `[location]` `lat` and `lon` in `hub/config.local.toml` and re-run `make hub-install-service`. "Forecast may be out of date" means the last fetch failed, so check the Mac's internet. |
 | **"Hey coco" does nothing** | This build has no trained "hey coco" model (the bottom-left hint says "Wake word off"). | Use the mic button for now. Train and commit the model: `docs/wake-word.md`. |
 | **The mic does nothing**, or Coco says it needs a permission | Microphone or Speech Recognition was denied. | iPad Settings, then Coco Display, and switch both on. |
 | **No spoken answers to general questions** | Ollama isn't running, the model isn't pulled, or Qwen is disabled. | On the Mac: `brew services list` (ollama should be started), `ollama list` (should show `qwen3:8b`), and check `enabled = true` under `[qwen]` in `hub/config.local.toml`. Run `make hub-logs` and look for a Qwen unavailable message. If a question takes too long, Coco says "Sorry, that took too long." |

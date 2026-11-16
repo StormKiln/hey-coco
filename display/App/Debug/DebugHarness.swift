@@ -94,7 +94,9 @@ enum DebugHarness {
             .map { "\($0.name ?? "timer")\($0.isRinging ? "(ringing)" : "")" }.joined(separator: ",")
         let line = [
             ISO8601DateFormatter().string(from: Date()), what,
-            "connection=\(model.connection)", "view=\(model.currentView.viewType?.rawValue ?? "?")",
+            "connection=\(model.connection)",
+            "hub=\(model.endpoint.map { "\($0.host):\($0.port)" } ?? "-")",
+            "searchTakingLong=\(model.searchTakingLong)", "view=\(model.currentView.viewType?.rawValue ?? "?")",
             "say=\(model.lastSay ?? "-")", "error=\(model.lastError.map { "\($0)" } ?? "-")",
             "timers=[\(timers)]", "alarm=\(model.alarmRinging)", "night=\(model.night.phase)",
         ].joined(separator: " | ")

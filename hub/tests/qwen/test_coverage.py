@@ -126,3 +126,14 @@ def test_schema_is_consistent(catalog):
     assert slots["all"] == {"type": "boolean"}
     assert "this_weekend" in slots["when"]["enum"]
     assert slots["which"]["enum"] == ["high", "low", "both"]
+
+
+@pytest.mark.parametrize(
+    "intent", ["weather.current", "weather.forecast", "weather.rain", "weather.high_low"]
+)
+def test_weather_place_is_an_optional_string(catalog, intent):
+    # #93: "what's the forecast today in Portland" lost the place to the home forecast.
+    spec = catalog.intents[intent].llm_slots["place"]
+    assert spec.type == "string" and not spec.required
+    assert slot(catalog, intent, "place", "Portland, Oregon") == ("place", "Portland, Oregon")
+    assert "place is a city or town the person named" in catalog.system_prompt

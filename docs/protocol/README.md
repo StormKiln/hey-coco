@@ -169,11 +169,15 @@ says "Can't reach <host> — check the Mac".
 | `idle` | – |
 | `answer` | `text` |
 | `timers` | – (Display renders from its timer state) |
-| `weather` | `current: WeatherNow`, `hourly: [WeatherHour]`, `daily: [WeatherDay]` |
+| `weather` | `current: WeatherNow`, `hourly: [WeatherHour]`, `daily: [WeatherDay]`, `place` (nullable) — see below |
 | `picture` | `query`, `images: [Image]` (first shown, "next" advances) — see below |
 | `sound` | `name`, `clip_url`, `image_url`, `attribution` — see below |
 | `youtube` | `video_id`, `title` |
 | `now_playing` | – (Display renders from now-playing events) |
+
+#### `place` in `weather` views
+
+`place` is `null` for home. For a place the person named ("what's the forecast in Portland", #93) it is how the Hub names it, e.g. `"Portland, Oregon"`, and the Display shows it as the screen's title. Its `hourly` times are instants as usual; its `daily` dates are that place's local dates. The `say` text names the place too, and says which one the Hub picked when the name was ambiguous.
 
 #### Media URLs in `picture` and `sound` views
 

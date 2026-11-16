@@ -121,6 +121,8 @@ class Weather(BaseModel):
     forecast_url: str = "https://api.open-meteo.com/v1/forecast"
     """Open-Meteo forecast endpoint. Only changed by tests (pointed at a dead port to simulate
     the internet being down)."""
+    geocoding_url: str = "https://geocoding-api.open-meteo.com/v1/search"
+    """Open-Meteo geocoding endpoint, for places named in a question (#93)."""
 
 
 class Discovery(BaseModel):

@@ -80,7 +80,8 @@
         "code": 3,
         "precip_probability": 20
       }
-    ]
+    ],
+    "place": null
   },
   "commands": [],
   "intent": "weather.current",

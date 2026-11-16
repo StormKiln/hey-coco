@@ -17,6 +17,8 @@ public enum ViewSpec: Codable, Sendable, Equatable {
         public var current: WeatherNow
         public var hourly: [WeatherHour]
         public var daily: [WeatherDay]
+        /// A place the person named ("Portland, Oregon"); nil for home (#93).
+        public var place: String?
     }
 
     public struct PicturePayload: Codable, Sendable, Equatable {

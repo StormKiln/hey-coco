@@ -29,7 +29,7 @@ music requests get "Spotify isn't set up yet."
    ```toml
    [spotify]
    client_id = "your-client-id"
-   device_name = "Kitchen iPad"   # the iPad's name as shown in Spotify's device picker
+   device_name = "iPad"   # the iPad's name as shown in Spotify's device picker (always "iPad")
    # redirect_uri = "https://127.0.0.1:8765/spotify/callback"  # only if you changed it
    ```
 
@@ -53,6 +53,13 @@ music requests get "Spotify isn't set up yet."
 4. **On the iPad**, install Spotify, log in with the same account, and play something once
    so the iPad appears as a Connect device. If `device_name` isn't set, Coco uses the
    active device (or the only one).
+
+   Spotify always lists an iPad as **"iPad"**, whatever you named it in the iPad's Settings:
+   iPadOS hides the user-chosen device name from apps that don't hold a special Apple
+   entitlement. So `device_name = "iPad"`. If two
+   iPads on the same Spotify account are both listed, "iPad" is ambiguous and Coco may pick
+   the wrong one; keep Spotify signed out (or closed) on the other iPad, or leave
+   `device_name` unset so Coco uses the active device.
 
 ## Where the tokens live
 

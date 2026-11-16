@@ -106,6 +106,17 @@ func everyFixtureDecodesWithItsModel(name: String) throws {
     #expect(weather.hourly[2].precipProbability == 55)
     #expect(weather.daily[0].date == "2026-11-14")
     #expect(weather.current.time == Date(timeIntervalSince1970: 1_794_668_400))
+    #expect(weather.place == nil)
+}
+
+@Test func weatherActionForANamedPlaceCarriesThePlace() throws {
+    // #93: "what's the forecast today in Portland" answers for Portland and says so on screen.
+    let action = try Fixtures.decode(Action.self, "action_weather_place")
+    guard case .weather(let weather) = action.view else {
+        Issue.record("expected weather view, got \(String(describing: action.view))")
+        return
+    }
+    #expect(weather.place == "Portland, Oregon")
 }
 
 @Test func commandsDecodeInOrder() throws {

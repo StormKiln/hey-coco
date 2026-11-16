@@ -108,14 +108,41 @@ import Testing
         #expect(try paired.applyingEdit(host: "10.0.0.9", port: 8765, newToken: "new").get().pin == .test)
     }
 
-    @Test func changingTheHostStillRequiresTheToken() {
-        #expect(paired.applyingEdit(host: "10.0.0.9", port: 8765, newToken: "") == .failure(.tokenRequired))
+    /// #91: the token only ever goes to the pinned certificate, so a new address for the paired
+    /// Hub can't leak it. Re-entering it would only get in the way.
+    @Test func changingTheHostOrPortWhilePinnedKeepsTheToken() {
+        #expect(
+            paired.applyingEdit(host: "10.0.0.9", port: 8765, newToken: "")
+                == .success(HubSettings(manualHost: "10.0.0.9", port: 8765, token: "old", pin: .test)))
+        #expect(
+            paired.applyingEdit(host: "10.0.0.5", port: 9000, newToken: "")
+                == .success(HubSettings(manualHost: "10.0.0.5", port: 9000, token: "old", pin: .test)))
+        #expect(
+            paired.applyingEdit(host: "", port: 8765, newToken: "")
+                == .success(HubSettings(manualHost: nil, port: 8765, token: "old", pin: .test)))
+    }
+
+    @Test func editsKeepTheLastKnownAddress() throws {
+        var settings = paired
+        settings.lastKnownAddress = HubAddress(host: "192.168.4.32", port: 8765)
+        #expect(
+            try settings.applyingEdit(host: "10.0.0.9", port: 8765, newToken: "").get().lastKnownAddress
+                == HubAddress(host: "192.168.4.32", port: 8765))
+        #expect(
+            try settings.applyingEdit(host: "", port: 8765, newToken: "new").get().lastKnownAddress
+                == HubAddress(host: "192.168.4.32", port: 8765))
     }
 
     @Test func forgettingTheHubDropsPinAndTokenButKeepsTheAddress() {
         let forgotten = paired.forgettingHub()
         #expect(forgotten == HubSettings(manualHost: "10.0.0.5", port: 8765, token: nil, pin: nil))
         #expect(!forgotten.hasToken)
+    }
+
+    @Test func forgettingTheHubDropsTheLastKnownAddress() {
+        var settings = paired
+        settings.lastKnownAddress = HubAddress(host: "192.168.4.32", port: 8765)
+        #expect(settings.forgettingHub().lastKnownAddress == nil)
     }
 
     @Test func afterForgettingAnEmptyTokenLeavesItUnset() {
@@ -139,6 +166,47 @@ import Testing
         try store.save(paired.forgettingHub())
         #expect(try pins.readToken() == nil)
         #expect(store.load().pin == nil)
+    }
+
+    @Test func lastKnownAddressRoundTripsWithoutItsAdvertisedID() throws {
+        let store = UserDefaultsHubConfigStore(
+            defaults: UserDefaults(suiteName: "coco-tests-\(UUID().uuidString)")!,
+            tokens: InMemoryTokenStore(), pins: InMemoryTokenStore())
+        var settings = paired
+        settings.lastKnownAddress = HubAddress(host: "192.168.4.32", port: 8766, advertisedHubID: "x")
+        try store.save(settings)
+        #expect(store.load().lastKnownAddress == HubAddress(host: "192.168.4.32", port: 8766))
+        try store.save(settings.forgettingHub())
+        #expect(store.load().lastKnownAddress == nil)
+    }
+
+    @Test func settingsSavedBeforeLastKnownAddressExistedLoadWithoutIt() {
+        let defaults = UserDefaults(suiteName: "coco-tests-\(UUID().uuidString)")!
+        // What a build before #91 wrote: host and port only.
+        defaults.set("10.0.0.5", forKey: "hub.manualHost")
+        defaults.set(8765, forKey: "hub.port")
+        let store = UserDefaultsHubConfigStore(
+            defaults: defaults, tokens: InMemoryTokenStore(token: "t"), pins: InMemoryTokenStore())
+        #expect(store.load() == HubSettings(manualHost: "10.0.0.5", port: 8765, token: "t"))
+        defaults.set("{not json", forKey: "hub.lastKnownAddress")
+        #expect(store.load().lastKnownAddress == nil)
+    }
+
+    @Test func savingOnlyTheLastKnownAddressNeverRewritesTheToken() throws {
+        let tokens = InMemoryTokenStore()
+        let pins = InMemoryTokenStore()
+        let store = UserDefaultsHubConfigStore(
+            defaults: UserDefaults(suiteName: "coco-tests-\(UUID().uuidString)")!,
+            tokens: tokens, pins: pins)
+        try store.save(paired)
+        // As if the Keychain can't be read right now (before first unlock): load() would see no
+        // token, and a load-modify-save would delete it.
+        try tokens.writeToken(nil)
+        try store.saveLastKnownAddress(HubAddress(host: "192.168.4.32", port: 8765))
+        try tokens.writeToken("old")
+        var expected = paired
+        expected.lastKnownAddress = HubAddress(host: "192.168.4.32", port: 8765)
+        #expect(store.load() == expected)
     }
 
     @Test func unreadablePinMeansNotPaired() throws {

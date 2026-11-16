@@ -8,19 +8,22 @@ import Testing
 private final class FakeAlarmSound: AlarmSound {
     let calls = Mutex<[String]>([])
     let playing = Mutex(true)
+    let volumes = Mutex<[Float]>([])
     private let gate = DispatchSemaphore(value: 0)
     private let blocks: Bool
 
     init(blocks: Bool = false) { self.blocks = blocks }
 
-    func start(voiceOwnsSession: Bool) -> Bool {
+    func start(voiceOwnsSession: Bool, volume: Float) -> Bool {
         calls.withLock { $0.append("start(voice: \(voiceOwnsSession))") }
+        volumes.withLock { $0.append(volume) }
         if blocks { gate.wait() }
         return playing.withLock { $0 }
     }
 
-    func ensurePlaying(voiceOwnsSession: Bool) -> Bool {
+    func ensurePlaying(voiceOwnsSession: Bool, volume: Float) -> Bool {
         calls.withLock { $0.append("ensure") }
+        volumes.withLock { $0.append(volume) }
         return playing.withLock { $0 }
     }
 
@@ -41,11 +44,34 @@ private final class Alerts {
 @Suite struct AudioAlarmPlayerTests {
     private func makePlayer(
         sound: FakeAlarmSound, queue: AudioSessionQueue, sleeper: ManualSleeper, alerts: Alerts,
-        voiceOwns: Bool = false
+        voiceOwns: Bool = false, ramp: AlarmVolumeRamp = AlarmVolumeRamp()
     ) -> AudioAlarmPlayer {
         AudioAlarmPlayer(
             sound: sound, queue: queue, voiceOwnsSession: { voiceOwns },
-            alertSound: { alerts.count += 1 }, sleep: sleeper.sleep)
+            alertSound: { alerts.count += 1 }, sleep: sleeper.sleep, ramp: ramp)
+    }
+
+    /// #97: starts moderate and gets louder on every watchdog tick until full volume.
+    @Test func volumeRampsUpWhileRinging() async {
+        let sound = FakeAlarmSound()
+        let sleeper = ManualSleeper()
+        let ramp = AlarmVolumeRamp(initial: 0.25, duration: .seconds(3))
+        let player = makePlayer(
+            sound: sound, queue: AudioSessionQueue(label: "test"), sleeper: sleeper, alerts: Alerts(),
+            ramp: ramp)
+        player.start()
+        for tick in 1...4 {
+            #expect(await waitUntil { sound.volumes.withLock { $0.count } == tick })
+            try? await Task.sleep(for: .milliseconds(20))  // the report hops back to the main actor
+            #expect(await waitUntil { sleeper.pending == [.seconds(1)] })
+            sleeper.fire()
+        }
+        #expect(await waitUntil { sound.volumes.withLock { $0.count } == 5 })
+        let volumes = sound.volumes.withLock { $0 }
+        #expect(volumes == (0...4).map { ramp.volume(after: .seconds($0)) })
+        #expect(volumes.first == 0.25)
+        #expect(volumes.last == 1)
+        player.stop()
     }
 
     @Test func startPlaysOnTheQueueAndNeedsNoFallback() async {

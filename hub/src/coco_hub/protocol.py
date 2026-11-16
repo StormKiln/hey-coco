@@ -120,6 +120,8 @@ class WeatherView(Message):
     current: WeatherNow
     hourly: list[WeatherHour]
     daily: list[WeatherDay]
+    place: str | None = None
+    """A place the person named (``Portland, Oregon``); null for home."""
 
 
 class PictureView(Message):

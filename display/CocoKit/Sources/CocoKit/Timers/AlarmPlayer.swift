@@ -24,12 +24,12 @@ public final class SilentAlarmPlayer: AlarmPlayer {
 /// The alarm's sound and its audio-session work. Every method is called on `AudioSessionQueue`,
 /// never on the main thread, and may block there.
 public protocol AlarmSound: AnyObject, Sendable {
-    /// Configures the session (just activates it when the voice loop owns it) and starts looping.
-    /// Returns whether it is playing.
-    func start(voiceOwnsSession: Bool) -> Bool
-    /// Restarts playback if something (an interruption, a route change) stopped it. Returns
-    /// whether it is playing.
-    func ensurePlaying(voiceOwnsSession: Bool) -> Bool
+    /// Configures the session (just activates it when the voice loop owns it) and starts looping
+    /// at `volume` (0...1). Returns whether it is playing.
+    func start(voiceOwnsSession: Bool, volume: Float) -> Bool
+    /// Restarts playback if something (an interruption, a route change) stopped it, and moves
+    /// to `volume` (the ramp). Returns whether it is playing.
+    func ensurePlaying(voiceOwnsSession: Bool, volume: Float) -> Bool
     /// Stops; releases the session unless the voice loop owns it (the wake word still listens).
     func stop(voiceOwnsSession: Bool)
 }
@@ -39,7 +39,7 @@ public let cocoAlertSound: @MainActor @Sendable () -> Void = {
     AudioServicesPlayAlertSound(SystemSoundID(1005))
 }
 
-/// `AlarmPlayer` looping the synthesised `AlarmTone` at full volume.
+/// `AlarmPlayer` looping the synthesised `AlarmTone`, getting louder over `AlarmVolumeRamp`.
 ///
 /// `start()` never waits for audio: `isRinging` (and so the alarm overlay) flips at once on the
 /// main actor, while the session and `AVAudioPlayer` work runs on `AudioSessionQueue` (see
@@ -50,7 +50,7 @@ public let cocoAlertSound: @MainActor @Sendable () -> Void = {
 /// A watchdog checks every `watchdogInterval`. Until the queue has confirmed the tone is playing
 /// (the session work is slow, wedged behind another session call, or the tone can't play at all)
 /// it plays the system alert sound instead: an alarm must never be silent. It also restarts the
-/// tone if something else stopped it.
+/// tone if something else stopped it, and steps the volume along the ramp.
 @MainActor
 @Observable
 public final class AudioAlarmPlayer: AlarmPlayer {
@@ -62,6 +62,9 @@ public final class AudioAlarmPlayer: AlarmPlayer {
     @ObservationIgnored private let alertSound: @MainActor () -> Void
     @ObservationIgnored private let sleep: @Sendable (Duration) async throws -> Void
     @ObservationIgnored private let watchdogInterval: Duration
+    @ObservationIgnored private let ramp: AlarmVolumeRamp
+    /// Watchdog ticks since `start()`: how far along the ramp it is.
+    @ObservationIgnored private var ticks = 0
     @ObservationIgnored private var watchdog: Task<Void, Never>?
     /// Bumped on every start / stop, so a late report from the queue is ignored.
     @ObservationIgnored private var generation = 0
@@ -83,7 +86,8 @@ public final class AudioAlarmPlayer: AlarmPlayer {
         voiceOwnsSession: @escaping @MainActor () -> Bool,
         alertSound: @escaping @MainActor () -> Void,
         sleep: @escaping @Sendable (Duration) async throws -> Void,
-        watchdogInterval: Duration = .seconds(1)
+        watchdogInterval: Duration = .seconds(1),
+        ramp: AlarmVolumeRamp = AlarmVolumeRamp()
     ) {
         self.sound = sound
         self.queue = queue
@@ -91,6 +95,7 @@ public final class AudioAlarmPlayer: AlarmPlayer {
         self.alertSound = alertSound
         self.sleep = sleep
         self.watchdogInterval = watchdogInterval
+        self.ramp = ramp
     }
 
     public func start() {
@@ -98,8 +103,10 @@ public final class AudioAlarmPlayer: AlarmPlayer {
         isRinging = true
         generation += 1
         confirmedPlaying = false
+        ticks = 0
         let owns = voiceOwnsSession()
-        enqueue { sound in sound.start(voiceOwnsSession: owns) }
+        let volume = ramp.volume(after: .zero)
+        enqueue { sound in sound.start(voiceOwnsSession: owns, volume: volume) }
         watchdog = Task { [weak self, sleep, watchdogInterval] in
             while !Task.isCancelled {
                 do { try await sleep(watchdogInterval) } catch { return }
@@ -123,9 +130,11 @@ public final class AudioAlarmPlayer: AlarmPlayer {
 
     private func check() {
         if !confirmedPlaying { alertSound() }
+        ticks += 1
         guard !queued else { return }
         let owns = voiceOwnsSession()
-        enqueue { sound in sound.ensurePlaying(voiceOwnsSession: owns) }
+        let volume = ramp.volume(after: watchdogInterval * ticks)
+        enqueue { sound in sound.ensurePlaying(voiceOwnsSession: owns, volume: volume) }
     }
 
     private func enqueue(_ work: @escaping @Sendable (any AlarmSound) -> Bool) {
@@ -150,19 +159,24 @@ public final class AVAlarmSound: AlarmSound, @unchecked Sendable {
 
     public init() {}
 
-    public func start(voiceOwnsSession: Bool) -> Bool {
+    /// Volume steps arrive once a second (the watchdog); each glides over this long.
+    private static let volumeFade: TimeInterval = 1
+
+    public func start(voiceOwnsSession: Bool, volume: Float) -> Bool {
         activateSession(voiceOwnsSession: voiceOwnsSession)
         player = Self.makePlayer()
+        player?.volume = volume
         player?.play()
         return player?.isPlaying ?? false
     }
 
-    public func ensurePlaying(voiceOwnsSession: Bool) -> Bool {
+    public func ensurePlaying(voiceOwnsSession: Bool, volume: Float) -> Bool {
         guard let player else { return false }
         if !player.isPlaying {
             activateSession(voiceOwnsSession: voiceOwnsSession)
             player.play()
         }
+        if player.volume != volume { player.setVolume(volume, fadeDuration: Self.volumeFade) }
         return player.isPlaying
     }
 
@@ -184,7 +198,6 @@ public final class AVAlarmSound: AlarmSound, @unchecked Sendable {
             player = try? AVAudioPlayer(data: AlarmTone.wav(duration: AlarmTone.patternDuration * 4))
         }
         player?.numberOfLoops = -1
-        player?.volume = 1
         player?.prepareToPlay()
         return player
     }
@@ -192,11 +205,13 @@ public final class AVAlarmSound: AlarmSound, @unchecked Sendable {
     private func activateSession(voiceOwnsSession: Bool) {
         #if os(iOS)
             let session = AVAudioSession.sharedInstance()
-            // While the voice loop owns the session (play-and-record, so a bare "stop" can be
-            // heard over the alarm), don't switch it to `.playback`.
-            if !voiceOwnsSession {
-                // `.playback` ignores the silent switch and interrupts other audio (music pauses).
+            switch AlarmAudioPolicy.session(voiceOwnsSession: voiceOwnsSession) {
+            case .playback:
                 try? session.setCategory(.playback, mode: .default)
+            case .shareVoiceSession:
+                // Play-and-record, so a bare "stop" can be heard over the alarm. The stop-word
+                // listener runs without voice processing so the alarm isn't processed with it.
+                break
             }
             try? session.setActive(true)
         #endif

@@ -63,7 +63,8 @@ daily_quota = 9000        # API units/day before Coco refuses searches (a search
 # Without client_id, Spotify stays off ("Spotify isn't set up yet.").
 # client_id = ""                 # from developer.spotify.com (PKCE login: no secret needed)
 # redirect_uri = "https://127.0.0.1:8765/spotify/callback"  # default; must match the app
-# device_name = "Kitchen iPad"   # Spotify Connect name of the iPad (Spotify app > Devices)
+# device_name = "iPad"           # Spotify Connect name of the iPad: always "iPad" (iPadOS hides
+                                 # custom names from apps); ambiguous if 2 iPads share the account
 # wake_wait_s = 4.0              # iPad missing: ask the Display to open Spotify, wait this
                                  # long (0 = off; does nothing under Guided Access, spike #5)
 

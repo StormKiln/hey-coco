@@ -12,8 +12,10 @@ extension VoiceLoop {
             host: host,
             wakeWord: wakeWord,
             stopWord: RecognizerStopWordListener(
-                recognizer: AppleSpeechRecognizer(policy: stopWindow, voiceProcessing: true)),
-            recognizer: AppleSpeechRecognizer(voiceProcessing: true),
+                recognizer: AppleSpeechRecognizer(
+                    policy: stopWindow, voiceProcessing: AlarmAudioPolicy.voiceProcessing(for: .stopWord))),
+            recognizer: AppleSpeechRecognizer(
+                voiceProcessing: AlarmAudioPolicy.voiceProcessing(for: .conversation)),
             synthesizer: AppleSpeechSynthesizer(),
             session: AudioSessionCoordinator.shared,
             requestMicPermission: { await AVAudioApplication.requestRecordPermission() },

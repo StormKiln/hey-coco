@@ -70,21 +70,33 @@ public struct HubSettings: Sendable, Equatable {
     public var token: String?
     /// The Hub paired with (trust on first use). `nil`: not paired; the token goes nowhere.
     public var pin: HubPin?
+    /// Where the paired Hub last answered (#91): the address verified when pairing, then every
+    /// address a pinned connection succeeded at. With no manual host it is tried alongside
+    /// Bonjour, so the Display finds the Hub even when Bonjour doesn't. Only a hint: the token
+    /// goes there only if the certificate matches `pin`.
+    public var lastKnownAddress: HubAddress?
 
     public init(
         manualHost: String?, port: Int = HubEndpoint.defaultPort, token: String?,
-        pin: HubPin? = nil
+        pin: HubPin? = nil, lastKnownAddress: HubAddress? = nil
     ) {
         self.manualHost = manualHost
         self.port = port
         self.token = token
         self.pin = pin
+        self.lastKnownAddress = lastKnownAddress
     }
 }
 
+extension HubAddress {
+    /// Host and port only: what is remembered as `HubSettings.lastKnownAddress`.
+    public var withoutAdvertisedID: HubAddress { HubAddress(host: host, port: port) }
+}
+
 public enum SettingsEditError: Error, Sendable, Equatable {
-    /// The host or port changed but no new token was entered: the saved token is never sent to a
-    /// different Hub without the user typing it again.
+    /// The host or port changed, no Hub is paired, and no new token was entered: without a pin
+    /// nothing ties the saved token to one Hub, so it is never sent to a new address without the
+    /// user typing it again.
     case tokenRequired
 }
 
@@ -92,18 +104,19 @@ extension HubSettings {
     /// Whether a token is saved. Settings shows only this, never the token itself.
     public var hasToken: Bool { token != nil }
 
-    /// "Forget Hub / Re-pair": drops the pin and the token, keeps the host and port. The next
-    /// connection asks to pair again, and the token must be entered again (it is never kept
-    /// for a Hub that is no longer trusted).
+    /// "Forget Hub / Re-pair": drops the pin, the token and the last known address, keeps the
+    /// host and port. The next connection asks to pair again, and the token must be entered
+    /// again (it is never kept for a Hub that is no longer trusted).
     public func forgettingHub() -> HubSettings {
-        HubSettings(manualHost: manualHost, port: port, token: nil, pin: nil)
+        HubSettings(manualHost: manualHost, port: port, token: nil, pin: nil, lastKnownAddress: nil)
     }
 
     /// Applies what the user entered in Settings. `host` blank means Bonjour discovery. An empty
-    /// `newToken` keeps the saved token, but only if the host and port are unchanged; otherwise
-    /// the token must be re-entered (`.tokenRequired`). With no saved token, an empty
-    /// `newToken` just leaves it unset. The pin is kept either way: it names the Hub, not its
-    /// address (a Hub whose IP changed is still the paired Hub).
+    /// `newToken` keeps the saved token. Changing the host or port keeps it too while a Hub is
+    /// pinned, because the token only ever goes to the pinned certificate (#91); with nothing
+    /// pinned the token must be re-entered (`.tokenRequired`). With no saved token, an empty
+    /// `newToken` just leaves it unset. The pin and the last known address are kept either way:
+    /// the pin names the Hub, not its address (a Hub whose IP changed is still the paired Hub).
     public func applyingEdit(
         host: String, port: Int, newToken: String
     ) -> Result<HubSettings, SettingsEditError> {
@@ -112,12 +125,17 @@ extension HubSettings {
         let trimmedToken = newToken.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmedToken.isEmpty {
             return .success(
-                HubSettings(manualHost: newHost, port: port, token: trimmedToken, pin: pin))
+                HubSettings(
+                    manualHost: newHost, port: port, token: trimmedToken, pin: pin,
+                    lastKnownAddress: lastKnownAddress))
         }
-        if token != nil && (newHost != manualHost || port != self.port) {
+        if token != nil && pin == nil && (newHost != manualHost || port != self.port) {
             return .failure(.tokenRequired)
         }
-        return .success(HubSettings(manualHost: newHost, port: port, token: token, pin: pin))
+        return .success(
+            HubSettings(
+                manualHost: newHost, port: port, token: token, pin: pin,
+                lastKnownAddress: lastKnownAddress))
     }
 }
 
@@ -126,6 +144,9 @@ extension HubSettings {
 public protocol HubConfigStore: Sendable {
     func load() -> HubSettings
     func save(_ settings: HubSettings) throws
+    /// Saves only `HubSettings.lastKnownAddress`, leaving the token and the pin alone: a
+    /// Keychain read that failed (and so loaded as "no token") is never written back.
+    func saveLastKnownAddress(_ address: HubAddress?) throws
 }
 
 /// Persists the Hub token (a secret, so not in UserDefaults).
@@ -135,8 +156,10 @@ public protocol TokenStore: Sendable {
     func writeToken(_ token: String?) throws
 }
 
-/// Host and port in `UserDefaults`; the token and the Hub pin in `TokenStore`s (two Keychain
-/// items in the app), so the pin can't be swapped by editing preferences.
+/// Host, port and last known address in `UserDefaults`; the token and the Hub pin in
+/// `TokenStore`s (two Keychain items in the app), so the pin can't be swapped by editing
+/// preferences. Each value has its own key, so settings saved before a key existed (the last
+/// known address, #91) load with it unset.
 public final class UserDefaultsHubConfigStore: HubConfigStore, @unchecked Sendable {
     // UserDefaults is thread-safe; it is only not annotated Sendable on every SDK.
     private let defaults: UserDefaults
@@ -146,6 +169,13 @@ public final class UserDefaultsHubConfigStore: HubConfigStore, @unchecked Sendab
     private enum Key {
         static let host = "hub.manualHost"
         static let port = "hub.port"
+        static let lastKnownAddress = "hub.lastKnownAddress"
+    }
+
+    /// The JSON stored under `Key.lastKnownAddress`.
+    private struct StoredAddress: Codable {
+        var host: String
+        var port: Int
     }
 
     public init(
@@ -164,7 +194,26 @@ public final class UserDefaultsHubConfigStore: HubConfigStore, @unchecked Sendab
             manualHost: defaults.string(forKey: Key.host).flatMap(Self.nonBlank),
             port: port,
             token: (try? tokens.readToken()).flatMap { $0 }.flatMap(Self.nonBlank),
-            pin: (try? pins.readToken()).flatMap { $0 }.flatMap(Self.decodePin))
+            pin: (try? pins.readToken()).flatMap { $0 }.flatMap(Self.decodePin),
+            lastKnownAddress: loadLastKnownAddress())
+    }
+
+    /// Unreadable or missing: `nil` (Bonjour and the manual host still work).
+    private func loadLastKnownAddress() -> HubAddress? {
+        guard let data = defaults.data(forKey: Key.lastKnownAddress),
+            let stored = try? JSONDecoder().decode(StoredAddress.self, from: data),
+            let host = Self.nonBlank(stored.host), (1...65535).contains(stored.port)
+        else { return nil }
+        return HubAddress(host: host, port: stored.port)
+    }
+
+    public func saveLastKnownAddress(_ address: HubAddress?) throws {
+        if let address {
+            let stored = StoredAddress(host: address.host, port: address.port)
+            defaults.set(try JSONEncoder().encode(stored), forKey: Key.lastKnownAddress)
+        } else {
+            defaults.removeObject(forKey: Key.lastKnownAddress)
+        }
     }
 
     public func save(_ settings: HubSettings) throws {
@@ -174,6 +223,7 @@ public final class UserDefaultsHubConfigStore: HubConfigStore, @unchecked Sendab
             defaults.removeObject(forKey: Key.host)
         }
         defaults.set(settings.port, forKey: Key.port)
+        try saveLastKnownAddress(settings.lastKnownAddress)
         try tokens.writeToken(settings.token.flatMap(Self.nonBlank))
         try pins.writeToken(try settings.pin.map(Self.encodePin))
     }

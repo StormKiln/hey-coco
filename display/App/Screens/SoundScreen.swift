@@ -56,6 +56,7 @@ struct SoundScreen: View {
         }
         .onChange(of: player?.finishCount) { countdown?.arm() }
         .onDisappear(perform: tearDown)
+        .closeButton()
     }
 
     private func setUp() -> SoundClipPlayer {

@@ -41,6 +41,7 @@ class FakeSpotify:
             ("PUT", "/v1/me/player/pause"): json_response(204),
             ("POST", "/v1/me/player/next"): json_response(204),
             ("PUT", "/v1/me/player/volume"): json_response(204),
+            ("PUT", "/v1/me/player/shuffle"): json_response(204),
         }
         self.transport = httpx.MockTransport(self)
 

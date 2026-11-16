@@ -44,12 +44,21 @@ struct ContentView: View {
             SettingsView(
                 settings: model.settings,
                 save: { settings in try model.saveSettings(settings) },
-                forgetHub: { try model.forgetHub() })
+                forgetHub: { try model.forgetHub() },
+                candidate: {
+                    if case .needsPairing(let candidate) = model.connection { candidate } else { nil }
+                }(),
+                pairWithCode: { candidate, code throws(PairingError) in
+                    try await model.pair(with: candidate, code: code)
+                },
+                pairScanned: { uri throws(PairingError) in try await model.pair(scanned: uri) })
         }
         .sheet(item: $pairing) { candidate in
-            PairingView(candidate: candidate) {
-                try model.pair(with: candidate)
-            }
+            PairingView(
+                candidate: candidate,
+                pair: { try model.pair(with: candidate) },
+                pairWithCode: { code throws(PairingError) in try await model.pair(with: candidate, code: code) },
+                pairScanned: { uri throws(PairingError) in try await model.pair(scanned: uri) })
         }
         // Ask as soon as an unpaired Hub turns up (or Settings closes on one). "Not now" leaves
         // the banner, which asks again when tapped.
@@ -155,58 +164,110 @@ struct ConnectionBanner: View {
     }
 }
 
-/// "Pair with Coco Hub?": the person compares the fingerprint with `make hub-fingerprint` on
-/// the Mac. Only after Pair is the Hub pinned and the token sent to it.
+/// "Pair with Coco Hub?" (#54, #89). `make hub-pair` on the Mac shows a QR code and a one-time
+/// code. Scan QR code pairs with the Hub presenting the scanned certificate; Enter code sends the
+/// code to the Hub whose fingerprint the person checked. "It matches. Pair" (fingerprint only,
+/// then the token typed in Settings) stays as the last resort. Only after pairing is the Hub
+/// pinned and the token sent to it.
 struct PairingView: View {
     let candidate: PairingCandidate
     let pair: () throws -> Void
+    let pairWithCode: (String) async throws(PairingError) -> Void
+    let pairScanned: (PairingURI) async throws(PairingError) -> Void
     @Environment(\.dismiss) private var dismiss
+    @State private var mode = Mode.choose
     @State private var error: String?
+
+    private enum Mode { case choose, scan, code }
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 28) {
-                Image(systemName: "lock.shield")
-                    .font(.system(size: 64))
-                    .foregroundStyle(.tint)
-                Text("Pair with Coco Hub?")
-                    .font(.largeTitle.weight(.semibold))
-                Text("On the Mac, run `make hub-fingerprint`. Pair only if it shows exactly this:")
-                    .font(.title3)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.secondary)
-                Text(candidate.pin.fingerprint)
-                    .font(.system(size: 40, weight: .semibold, design: .monospaced))
-                    .textSelection(.enabled)
-                    .accessibilityLabel(
-                        "Fingerprint \(candidate.pin.fingerprint.map { String($0) }.joined(separator: " "))")
-                Text("Hub at \(candidate.address.host), ID \(candidate.pin.hubID)")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                if let error {
-                    Text(error).foregroundStyle(.red)
-                }
-                HStack(spacing: 20) {
-                    Button("Not now", role: .cancel) { dismiss() }
-                        .buttonStyle(.bordered)
-                    Button("It matches. Pair") {
-                        do {
-                            try pair()
+            ScrollView {
+                VStack(spacing: 28) {
+                    Image(systemName: "lock.shield")
+                        .font(.system(size: 64))
+                        .foregroundStyle(.tint)
+                    Text("Pair with Coco Hub?")
+                        .font(.largeTitle.weight(.semibold))
+                    switch mode {
+                    case .choose: choose
+                    case .scan: ScanPairingView(pairScanned: pairScanned) { dismiss() }
+                    case .code:
+                        EnterCodeView(fingerprint: candidate.pin.fingerprint, pairWithCode: pairWithCode) {
                             dismiss()
-                        } catch {
-                            self.error = "Couldn't save the pairing: \(error.localizedDescription)"
                         }
                     }
-                    .buttonStyle(.borderedProminent)
                 }
-                .controlSize(.large)
-                Text("If it doesn't match, tap Not now: another device is pretending to be Coco Hub.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+                .padding(40)
+                .frame(maxWidth: 640)
+                .frame(maxWidth: .infinity)
             }
-            .padding(40)
-            .frame(maxWidth: 640)
+            .toolbar {
+                if mode != .choose {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Back") { mode = .choose }
+                    }
+                }
+            }
+        }
+    }
+
+    private var choose: some View {
+        VStack(spacing: 24) {
+            Text("On the Mac, run `make hub-pair`, then scan its QR code or enter its 6-digit code.")
+                .font(.title3)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
+            HStack(spacing: 20) {
+                Button {
+                    mode = .scan
+                } label: {
+                    Label("Scan QR code", systemImage: "qrcode.viewfinder")
+                }
+                .buttonStyle(.borderedProminent)
+                Button {
+                    mode = .code
+                } label: {
+                    Label("Enter code", systemImage: "number")
+                }
+                .buttonStyle(.bordered)
+            }
+            .controlSize(.large)
+            Divider()
+            Text("Or, with the token already entered in Settings: pair if `make hub-fingerprint` shows exactly")
+                .font(.callout)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
+            Text(candidate.pin.fingerprint)
+                .font(.system(size: 28, weight: .semibold, design: .monospaced))
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+                .textSelection(.enabled)
+                .accessibilityLabel(
+                    "Fingerprint \(candidate.pin.fingerprint.map { String($0) }.joined(separator: " "))")
+            Text("Hub at \(candidate.address.host), ID \(candidate.pin.hubID)")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+            if let error {
+                Text(error).foregroundStyle(.red)
+            }
+            HStack(spacing: 20) {
+                Button("Not now", role: .cancel) { dismiss() }
+                    .buttonStyle(.bordered)
+                Button("It matches. Pair") {
+                    do {
+                        try pair()
+                        dismiss()
+                    } catch {
+                        self.error = "Couldn't save the pairing: \(error.localizedDescription)"
+                    }
+                }
+                .buttonStyle(.bordered)
+            }
+            Text("If a fingerprint doesn't match, tap Not now: another device is pretending to be Coco Hub.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
         }
     }
 }
@@ -218,6 +279,10 @@ struct SettingsView: View {
     let saved: HubSettings
     let save: (HubSettings) throws -> Void
     let forgetHub: () throws -> Void
+    /// An unpaired Hub Coco found: what Enter code pairs with (#89).
+    let candidate: PairingCandidate?
+    let pairWithCode: (PairingCandidate, String) async throws(PairingError) -> Void
+    let pairScanned: (PairingURI) async throws(PairingError) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var host: String
     @State private var port: String
@@ -227,11 +292,17 @@ struct SettingsView: View {
 
     init(
         settings: HubSettings, save: @escaping (HubSettings) throws -> Void,
-        forgetHub: @escaping () throws -> Void
+        forgetHub: @escaping () throws -> Void,
+        candidate: PairingCandidate?,
+        pairWithCode: @escaping (PairingCandidate, String) async throws(PairingError) -> Void,
+        pairScanned: @escaping (PairingURI) async throws(PairingError) -> Void
     ) {
         self.saved = settings
         self.save = save
         self.forgetHub = forgetHub
+        self.candidate = candidate
+        self.pairWithCode = pairWithCode
+        self.pairScanned = pairScanned
         _host = State(initialValue: settings.manualHost ?? "")
         _port = State(initialValue: String(settings.port))
     }
@@ -252,6 +323,34 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    NavigationLink {
+                        ScanPairingView(pairScanned: pairScanned) { dismiss() }
+                            .padding(24)
+                            .navigationTitle("Scan QR code")
+                    } label: {
+                        Label("Scan QR code", systemImage: "qrcode.viewfinder")
+                    }
+                    if let candidate {
+                        NavigationLink {
+                            EnterCodeView(fingerprint: candidate.pin.fingerprint) { code throws(PairingError) in
+                                try await pairWithCode(candidate, code)
+                            } done: {
+                                dismiss()
+                            }
+                            .padding(24)
+                            .navigationTitle("Enter code")
+                        } label: {
+                            Label("Enter code", systemImage: "number")
+                        }
+                    } else {
+                        Label("Enter code", systemImage: "number").foregroundStyle(.secondary)
+                    }
+                } header: {
+                    Text("Pair")
+                } footer: {
+                    Text("On the Mac, run make hub-pair. Enter code is available once Coco finds an unpaired Coco Hub (after Forget Hub, if this iPad was paired). Typing the token below is the last resort.")
+                }
                 Section {
                     TextField("Find automatically", text: $host)
                         .textInputAutocapitalization(.never)
@@ -288,7 +387,7 @@ struct SettingsView: View {
                         }
                         LabeledContent("Hub ID") { Text(pin.hubID).font(.body.monospaced()) }
                     } else {
-                        Text("Not paired. Coco asks you to pair when it finds Coco Hub.")
+                        Text("Not paired. Coco asks you to pair when it finds Coco Hub, or use Scan QR code above.")
                             .foregroundStyle(.secondary)
                     }
                     Button("Forget Hub and Re-pair…", role: .destructive) { confirmingForget = true }
@@ -296,7 +395,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Paired Hub")
                 } footer: {
-                    Text("Use this after reinstalling Coco Hub or moving it to another Mac. You'll enter the token again and confirm the new fingerprint.")
+                    Text("Use this after reinstalling Coco Hub or moving it to another Mac, then pair again with make hub-pair.")
                 }
                 if let error {
                     Section { Text(error).foregroundStyle(.red) }
@@ -318,7 +417,7 @@ struct SettingsView: View {
                     }
                 }
             } message: {
-                Text("Coco stops trusting it and deletes the saved token. Enter the token again, then confirm the fingerprint to pair.")
+                Text("Coco stops trusting it and deletes the saved token. Then pair again: run make hub-pair on the Mac and scan its QR code or enter its code.")
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

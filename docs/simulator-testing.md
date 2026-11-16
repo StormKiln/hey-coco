@@ -53,9 +53,18 @@ printf "say: what's the weather\n" > "$docs/coco-debug-commands.txt"
 cat "$docs/coco-debug-log.txt"
 ```
 
-Commands (`DebugCommand`): `pair <fingerprint>`, `say: <text>`, `timer <seconds> [name]`,
-`stop-alarm`, `show idle|timers`, `night sleep|wake`, `forget`. Pairing still requires the
-fingerprint to match the one the app sees.
+Commands (`DebugCommand`): `pair <fingerprint>`, `pair-code <fingerprint> <code>`,
+`pair-uri <cocohub://pair?...>`, `say: <text>`, `timer <seconds> [name]`, `stop-alarm`,
+`show idle|timers`, `night sleep|wake`, `forget`. Pairing still requires the fingerprint to match
+the one the app sees.
+
+To try the easier pairing (#89) without a camera, launch without `-CocoDebugToken` (or send
+`forget`), so the app looks for a Hub to pair with, and run the pair command against the scratch
+Hub: `cd hub && COCO_CONFIG=/tmp/coco-scratch/config.toml uv run python -m coco_hub --pair`. Then
+`pair-code <fingerprint> <code>` with what it printed is Enter code. `pair-uri` is Scan QR code;
+the URI isn't printed as text (it holds the token), so build it with
+`coco_hub.pairing.pairing_uri(...)` from the scratch config. The simulator has no camera: Scan QR
+code shows "No camera available".
 
 ## 4. Look at it
 

@@ -8,6 +8,8 @@ import Foundation
 ///
 ///     say: set a pasta timer for 10 minutes   → sent to the Hub as if heard
 ///     pair FE3D-45AB-301C-3A25-BF52-AD89      → confirm pairing, only if this IS the fingerprint
+///     pair-code FE3D-…-AD89 482913            → Enter code, only if this IS the fingerprint
+///     pair-uri cocohub://pair?v=1&…           → as if this QR code was scanned
 ///     timer 300 eggs                          → a touch timer (seconds, optional name)
 ///     stop-alarm                              → as if the Stop button was tapped
 ///     show idle | show timers                 → navigate
@@ -16,6 +18,8 @@ import Foundation
 public enum DebugCommand: Equatable, Sendable {
     case say(String)
     case pair(fingerprint: String)
+    case pairCode(fingerprint: String, code: String)
+    case pairURI(String)
     case touchTimer(seconds: Int, name: String?)
     case stopAlarm
     case show(ViewType)
@@ -35,6 +39,10 @@ public enum DebugCommand: Equatable, Sendable {
         switch (words.first?.lowercased(), words.count) {
         case ("pair", 2):
             return .pair(fingerprint: words[1])
+        case ("pair-code", 3):
+            return .pairCode(fingerprint: words[1], code: words[2])
+        case ("pair-uri", 2):
+            return .pairURI(words[1])
         case ("timer", 2...):
             guard let seconds = Int(words[1]), seconds > 0 else { return nil }
             let name = words.count > 2 ? words.dropFirst(2).joined(separator: " ") : nil

@@ -217,27 +217,45 @@ The first time Coco opens (and the first time you use a feature) it asks for per
 | Microphone | To hear you when you speak to it. |
 | Speech Recognition | To turn what you say into text. |
 | Notifications | So a timer still rings if the Hub is unreachable. |
+| Camera | Only when you tap Scan QR code to pair (2.3). Not needed if you enter the code instead. |
 
 If you tapped "Don't Allow" by mistake, fix it in the iPad's Settings app: scroll down to Coco
 Display and switch the permission on.
 
 ### 2.3 Connect the iPad to the Hub
 
-1. On the Coco screen, tap the small **gear** icon, or press and hold the screen for 1.5 seconds.
-   Settings opens. (The "Can't reach Coco Hub" or "needs a valid token" pill at the top also opens
-   it when tapped.)
-2. **Hub host:** leave it blank and Coco finds the Mac with Bonjour (service `_coco._tcp`). If it
-   can't find it, type the Mac's IP address, for example `192.168.1.20`. Leave the port at `8765`
-   unless you changed it on the Hub. Prefer blank: with Bonjour, Coco finds the Mac again on its
-   own if its IP address changes; a typed address is only ever retried, and if the Mac moves the
-   pill says "Can't reach <address> — check the Mac" until you fix it in Settings.
-3. **Token:** paste the token from `hub/config.local.toml`.
-4. Tap **Save**.
-5. **Pair.** Coco finds the Hub and asks **"Pair with Coco Hub?"** with a fingerprint like
-   `3F2A-91C0-7B4E-D815-A6C2-0E9F`. On the Mac, run `make hub-fingerprint`. If the two match
-   exactly, tap **It matches. Pair**. If they don't, tap **Not now** and see Troubleshooting:
-   something else on your network is answering as Coco Hub. (Tapped Not now by mistake? Tap the
-   "Found Coco Hub. Tap to pair." pill at the top.)
+Open Coco on the iPad. When it finds Coco Hub it asks **"Pair with Coco Hub?"** (tapped Not now?
+Tap the "Found Coco Hub. Tap to pair." pill at the top; nothing found? See step 2 of "By hand"
+below). Then, on the Mac:
+
+```sh
+make hub-pair
+```
+
+It shows a QR code, a 6-digit code (works once, for 2 minutes) and the Hub's fingerprint. Pair one
+of these ways:
+
+1. **Scan QR code** (easiest). Tap it and point the iPad's camera at the QR code on the Mac's
+   screen (the round button switches between the front and back camera). That's it: the QR code
+   tells the iPad exactly which Hub to trust, so there is no fingerprint to compare. Coco asks to
+   use the camera the first time; it uses it only for this.
+2. **Enter code.** Tap it, check that the fingerprint on the iPad (like
+   `3F2A-91C0-7B4E-D815-A6C2-0E9F`) matches the one `make hub-pair` printed, and type the 6-digit
+   code. If the fingerprints don't match, don't enter the code; see Troubleshooting. Five wrong
+   codes, or two minutes, and the code stops working: run `make hub-pair` again for a new one.
+3. **By hand** (last resort). Open Settings (the small **gear** icon, or press and hold the
+   screen for 1.5 seconds), paste the token from `hub/config.local.toml` under **Token** and tap
+   **Save**. Then, on "Pair with Coco Hub?", check the fingerprint matches `make hub-fingerprint`
+   and tap **It matches. Pair**.
+
+Scan QR code and Enter code are also in Settings, under **Pair**.
+
+**Hub host** (Settings): leave it blank and Coco finds the Mac with Bonjour (service `_coco._tcp`).
+If it can't find it, type the Mac's IP address, for example `192.168.1.20`. Leave the port at
+`8765` unless you changed it on the Hub. Prefer blank: with Bonjour, Coco finds the Mac again on
+its own if its IP address changes; a typed address is only ever retried, and if the Mac moves the
+pill says "Can't reach <address> — check the Mac" until you fix it in Settings. Scanning the QR
+code doesn't change this setting.
 
 Coco only sends the token after you pair, and from then on only to that exact Hub, over an
 encrypted connection. The pairing survives Hub restarts and the Mac's IP address changing.
@@ -335,9 +353,12 @@ settings for that. Guided Access does not apply.
 | What you see | Likely cause | What to do |
 |---|---|---|
 | **"Can't reach Coco Hub"** | The Mac is off, asleep or logged out, the Hub isn't running, the two devices are on different Wi-Fi, or the Mac's IP changed. | On the Mac run `curl -k https://localhost:8765/healthz` and `make hub-logs`; re-run `make hub-install-service` if it is down. Check both devices are on the same Wi-Fi. If you typed a host in Coco's Settings, confirm the IP, or clear it to use Bonjour. Check Local Network is allowed for Coco (iPad Settings, Coco Display) and that you clicked Allow on the Mac's firewall prompt. |
-| **"Unknown Coco Hub at …"** | The iPad found a Coco Hub that isn't the one it paired with: the Hub's certificate changed (you deleted `~/Library/Application Support/CocoHub`, reinstalled, or moved the Hub to another Mac), or another device on the network claims to be Coco Hub. Coco ignores it and doesn't send the token. | If you know the Hub changed: on the iPad open Settings, tap **Forget Hub and Re-pair…**, enter the token again, Save, and pair after checking `make hub-fingerprint` on the Mac. If nothing changed on the Mac, don't re-pair: find the other device. |
-| **"Pair with Coco Hub?" fingerprint doesn't match `make hub-fingerprint`** | Something other than your Hub answered. | Tap **Not now**. Type the Mac's IP address as the Hub host in Settings so Coco asks that Mac directly, then pair. |
-| **"Coco Hub needs a valid token"** (unauthorized) | The token on the iPad doesn't match `token` in `hub/config.local.toml`. | Open Coco's Settings, enter the exact token, and Save. If you changed the token on the Mac, run `make hub-install-service` again to restart the Hub. |
+| **"Unknown Coco Hub at …"** | The iPad found a Coco Hub that isn't the one it paired with: the Hub's certificate changed (you deleted `~/Library/Application Support/CocoHub`, reinstalled, or moved the Hub to another Mac), or another device on the network claims to be Coco Hub. Coco ignores it and doesn't send the token. | If you know the Hub changed: on the iPad open Settings, tap **Forget Hub and Re-pair…**, then pair again with `make hub-pair` on the Mac (2.3). If nothing changed on the Mac, don't re-pair: find the other device. |
+| **"Pair with Coco Hub?" fingerprint doesn't match `make hub-pair` / `make hub-fingerprint`** | Something other than your Hub answered. | Tap **Not now** and don't enter the code. Scan the QR code instead (it only pairs with your Hub's certificate), or type the Mac's IP address as the Hub host in Settings so Coco asks that Mac directly, then pair. |
+| **Scan QR code: "doesn't match the QR code"** | The Hub that answered has a different certificate from the one in the QR code: an old QR code, or another device at that address. | Run `make hub-pair` again on the Hub's Mac and scan the new code. |
+| **Scan QR code: "Camera access is off" / "No camera available"** | Camera permission was refused, or the device has no camera. | Use **Enter code**, or allow the camera for Coco in the iPad's Settings app (Privacy & Security, Camera). |
+| **Enter code: "No pairing code is active" / "expired" / "Too many wrong codes"** | The code was used, is more than 2 minutes old, or was mistyped 5 times. | Run `make hub-pair` again for a new code. Make sure Coco Hub is running (it checks the code). |
+| **"Coco Hub needs a valid token"** (unauthorized) | The token on the iPad doesn't match `token` in `hub/config.local.toml`. | Open Coco's Settings, tap **Forget Hub and Re-pair…** and pair again with `make hub-pair` (2.3); or enter the exact token and Save. If you changed the token on the Mac, run `make hub-install-service` again to restart the Hub. |
 | **No forecast** ("Forecast unavailable") | The Hub has no home location, or can't reach the weather service. | Set `[location]` `lat` and `lon` in `hub/config.local.toml` and re-run `make hub-install-service`. "Forecast may be out of date" means the last fetch failed, so check the Mac's internet. |
 | **"Hey coco" does nothing** | This build has no trained "hey coco" model (the bottom-left hint says "Wake word off"). | Use the mic button for now. Train and commit the model: `docs/wake-word.md`. |
 | **The mic does nothing**, or Coco says it needs a permission | Microphone or Speech Recognition was denied. | iPad Settings, then Coco Display, and switch both on. |

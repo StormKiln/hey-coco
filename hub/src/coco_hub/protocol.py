@@ -348,6 +348,21 @@ class Health(Message):
     Advisory: the Display computes the fingerprint from the certificate it was served."""
 
 
+# --- Pairing ----------------------------------------------------------------------------
+
+
+class PairRequest(Message):
+    """``POST /v1/pair`` (no bearer): the one-time code ``make hub-pair`` showed."""
+
+    code: Annotated[str, Field(pattern=r"^[0-9]{6}$")]
+
+
+class PairResponse(Message):
+    """The shared LAN token, for a Display that entered the right pairing code."""
+
+    token: Annotated[str, Field(min_length=1)]
+
+
 # --- Diagnostics ------------------------------------------------------------------------
 
 CheckStatus = Literal["ok", "warn", "error", "off"]

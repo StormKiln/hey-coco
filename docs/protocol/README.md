@@ -39,6 +39,36 @@ in the same PR. Fixtures are mapped to models by filename prefix (`action_*` →
      one in the response body or TXT record). The person checks it matches
      `make hub-fingerprint` on the Mac and taps Pair.
   3. Save the pin (`hub_id` from `/healthz` + certificate SHA-256). Only now is the token sent.
+
+  A Display with no token and no pin looks for a Hub to pair with as above (the probe sends
+  nothing secret); one with a pin but no token stops at "needs a token".
+- **Easier pairing** (#89). `make hub-pair` (`python -m coco_hub --pair`) on the Hub's Mac prints,
+  to its terminal only (never logged), a QR code, a one-time 6-digit code and the short
+  fingerprint.
+  - **QR code** (main way): the pairing URI
+    `cocohub://pair?v=1&host=<LAN IPv4 hint>&port=<port>&token=<token>&cert=<64 hex>`. Query
+    values are percent-encoded (`%20`, never `+`); `cert` is the full certificate SHA-256 in
+    lowercase hex; the Display accepts only `v=1`. The Display probes `host` (then the Hub it
+    discovered, then its manual host: the address is only a hint) and pairs only if the Hub
+    there presents exactly the certificate `cert`: the pin is `hub_id` from that `/healthz` plus
+    `cert`, and the token is `token`. No fingerprint comparison is needed. How the Display
+    finds the Hub afterwards (Bonjour or manual host) is unchanged.
+  - **6-digit code** (fallback): the person confirms the fingerprint as in step 2, enters the
+    code, and the Display sends `POST /v1/pair` `{"code": "123456"}` without a bearer, over TLS
+    pinned to that certificate (a different certificate cancels the handshake). The Hub answers
+    `{"token": "..."}` and the Display saves the pin and the token. A code is valid for 2
+    minutes, works once, and is locked after 5 wrong attempts; a new `make hub-pair` replaces
+    it. The Hub stores only a salted hash in its database (the CLI and the server are separate
+    processes) and compares in constant time. Refusals (error body as usual):
+
+    | Status | `code` | When |
+    |---|---|---|
+    | 404 | `no_pairing_code` | none issued, or already used |
+    | 401 | `pairing_code_wrong` | wrong code (attempts 1-4) |
+    | 429 | `pairing_code_locked` | the 5th wrong attempt, and every attempt after it |
+    | 410 | `pairing_code_expired` | more than 2 minutes old |
+    | 422 | `invalid_request` | not exactly 6 digits (doesn't count as an attempt) |
+  - Typing the token in the Display's Settings stays as the last resort.
 - **Every later connection** (REST, the WebSocket, Hub media) runs through a TLS trust check
   that accepts the handshake only if the leaf certificate's SHA-256 equals the pin; otherwise
   the handshake is cancelled, so no request (and no token) is ever sent. Before connecting, the
@@ -49,8 +79,9 @@ in the same PR. Fixtures are mapped to models by filename prefix (`action_*` →
   certificate on the Hub (e.g. `data_dir` deleted, Hub moved to another Mac) always needs this.
 - `tls.enabled = false` on the Hub serves plain HTTP/WS for tests and local development only;
   the Display can't pair with such a Hub.
-- Every endpoint except `GET /healthz` requires `Authorization: Bearer <token>` (shared LAN token
-  from Hub settings). The WebSocket takes the same header on its upgrade request; a token in the
+- Every endpoint except `GET /healthz` and `POST /v1/pair` (whose credential is the pairing code)
+  requires `Authorization: Bearer <token>` (shared LAN token from Hub settings;
+  `hub/tests/test_pairing.py` checks every other `/v1` route refuses a request without it). The WebSocket takes the same header on its upgrade request; a token in the
   URL (`?token=`) is not accepted, because query strings end up in access logs. A missing or
   wrong token closes the WebSocket with code 1008 before it is accepted.
 - Errors: non-2xx with body `{"error": {"code": "<snake_case>", "message": "<human text>"}}`
@@ -61,6 +92,7 @@ in the same PR. Fixtures are mapped to models by filename prefix (`action_*` →
 | Method & path | Request | Response |
 |---|---|---|
 | `GET /healthz` | – | `Health` (unauthenticated) |
+| `POST /v1/pair` | `PairRequest` (`fixtures/pair_request.json`) | `PairResponse` (`fixtures/pair_response.json`); no bearer, see "Easier pairing" |
 | `POST /v1/utterance` | `UtteranceRequest` | `Action` |
 | `GET /v1/idle` | – | `IdleInfo` |
 | `GET /v1/timers` | – | `{"timers": [Timer], "server_time": ts}` |

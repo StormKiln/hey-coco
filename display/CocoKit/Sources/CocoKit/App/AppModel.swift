@@ -62,6 +62,8 @@ public final class AppModel {
     @ObservationIgnored private var runTask: Task<Void, Never>?
     @ObservationIgnored private let rediscovery: RediscoveryPolicy
     @ObservationIgnored private let now: @Sendable () -> Date
+    /// `POST /v1/pair` over TLS pinned to the candidate Hub (#89).
+    @ObservationIgnored private let redeemer: any PairingCodeRedeemer
 
     public init(
         config: any HubConfigStore,
@@ -76,8 +78,10 @@ public final class AppModel {
         media: MediaCenter? = nil,
         night: NightModeController? = nil,
         rediscovery: RediscoveryPolicy = RediscoveryPolicy(),
-        now: @escaping @Sendable () -> Date = { Date() }
+        now: @escaping @Sendable () -> Date = { Date() },
+        redeemer: any PairingCodeRedeemer = PinnedPairingCodeRedeemer()
     ) {
+        self.redeemer = redeemer
         self.rediscovery = rediscovery
         self.now = now
         self.config = config
@@ -152,6 +156,58 @@ public final class AppModel {
         try saveSettings(settings)
     }
 
+    /// "Enter code" (#89): the person confirmed `candidate`'s fingerprint matches what
+    /// `make hub-pair` shows and typed its one-time code. The code goes to the Hub over TLS
+    /// pinned to that certificate; the token it answers with is saved with the pin.
+    public func pair(with candidate: PairingCandidate, code typed: String) async throws(PairingError) {
+        guard let code = PairingCode.normalize(typed) else { throw .invalidCode }
+        let token: String
+        do {
+            token = try await redeemer.redeem(code: code, at: candidate.address, pin: candidate.pin)
+        } catch {
+            throw .hub(error)
+        }
+        try savePairing(pin: candidate.pin, token: token)
+    }
+
+    /// "Scan QR code" (#89): pairs with the Hub presenting exactly the scanned certificate. The
+    /// QR code's address is tried first, then the Hub found on the network and the manual host
+    /// (the address is only a hint; the certificate decides). Nothing is saved, and the token
+    /// goes nowhere, unless a Hub presenting that certificate answers. How the Display finds
+    /// the Hub (Bonjour or the manual host) is unchanged.
+    public func pair(scanned uri: PairingURI) async throws(PairingError) {
+        let saved = config.load()
+        var addresses = [uri.address]
+        if case .needsPairing(let candidate) = connection { addresses.append(candidate.address) }
+        if let host = saved.manualHost { addresses.append(HubAddress(host: host, port: saved.port)) }
+        var mismatch: PairingError?
+        var unreachable: PairingError?
+        var tried: Set<String> = []
+        for address in addresses where tried.insert("\(address.host):\(address.port)").inserted {
+            switch await probe.identify(address) {
+            case .success(let presented) where presented.certSHA256 == uri.certSHA256:
+                try savePairing(pin: presented, token: uri.token)
+                return
+            case .success:
+                mismatch = mismatch ?? .certificateMismatch(host: address.host)
+            case .failure(let error):
+                unreachable = unreachable ?? .unreachable(error.message)
+            }
+        }
+        throw mismatch ?? unreachable ?? .unreachable("No Coco Hub found.")
+    }
+
+    private func savePairing(pin: HubPin, token: String) throws(PairingError) {
+        var settings = config.load()
+        settings.pin = pin
+        settings.token = token
+        do {
+            try saveSettings(settings)
+        } catch {
+            throw .notSaved(error.localizedDescription)
+        }
+    }
+
     /// "Forget Hub / Re-pair": clears the pin and the token (see `HubSettings.forgettingHub`).
     public func forgetHub() throws {
         try saveSettings(config.load().forgettingHub())
@@ -219,7 +275,9 @@ public final class AppModel {
         self.settings = settings
         hubSession.setPin(settings.pin)
         connection = settings.manualHost == nil ? .searching : .connecting
-        guard let token = settings.token else {
+        // Paired but no token: Settings. Neither: look for a Hub to pair with (the probe sends
+        // nothing secret), so a fresh Display offers Scan QR code / Enter code (#89).
+        if settings.token == nil && settings.pin != nil {
             connection = .unauthorized
             return .done
         }
@@ -230,6 +288,10 @@ public final class AppModel {
         case nil: return .done
         }
         if Task.isCancelled { return .done }
+        guard let token = settings.token else {
+            connection = .unauthorized
+            return .done
+        }
         let endpoint = HubEndpoint(host: address.host, port: address.port, token: token)
         self.endpoint = endpoint
         let client = makeClient(endpoint)

@@ -15,12 +15,16 @@ import Testing
         ("night sleep", .night(.sleep)),
         ("night wake", .night(.wake)),
         ("forget", .forgetHub),
+        ("pair-code FE3D-45AB-301C-3A25-BF52-AD89 482913",
+         .pairCode(fingerprint: "FE3D-45AB-301C-3A25-BF52-AD89", code: "482913")),
+        ("pair-uri cocohub://pair?v=1&host=h&port=1&token=t&cert=ab",
+         .pairURI("cocohub://pair?v=1&host=h&port=1&token=t&cert=ab")),
     ])
     func parses(_ line: String, _ expected: DebugCommand) {
         #expect(DebugCommand.parse(line) == expected)
     }
 
-    @Test(arguments: ["", "   ", "# comment", "say:", "timer", "timer -5", "timer abc", "show nope", "dance"])
+    @Test(arguments: ["", "   ", "# comment", "say:", "timer", "timer -5", "timer abc", "show nope", "dance", "pair-code 482913", "pair-uri"])
     func rejects(_ line: String) {
         #expect(DebugCommand.parse(line) == nil)
     }

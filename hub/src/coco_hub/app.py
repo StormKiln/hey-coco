@@ -24,7 +24,7 @@ from coco_hub.pictures.commons import PictureService
 from coco_hub.protocol import Health
 from coco_hub.qwen.client import OllamaClient
 from coco_hub.qwen.fallback import QwenFallback
-from coco_hub.routes import idle, utterance
+from coco_hub.routes import idle, pair, utterance
 from coco_hub.settings import Settings, load_settings
 from coco_hub.sounds import SoundLibrary, media_router
 from coco_hub.timers import routes as timer_routes
@@ -171,6 +171,9 @@ def create_app(
     # WebSocket routes authorize themselves (auth.authorize_websocket), so they live outside
     # the bearer-token dependency.
     app.include_router(events.router, prefix="/v1")
+    # The pairing code is the credential here (the Display has no token yet): the only HTTP
+    # route under /v1 without the bearer dependency (tests/test_pairing.py guards this).
+    app.include_router(pair.router, prefix="/v1")
     # Spotify login: a browser on the Hub's Mac can't send the bearer header, so these
     # routes sit outside /v1 and only answer loopback clients (see media/spotify/auth.py).
     app.include_router(spotify_auth.router)

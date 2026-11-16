@@ -76,6 +76,20 @@ MIGRATIONS: list[Migration] = [
         );
         """,
     ),
+    Migration(
+        5,
+        "create pairing code",
+        """
+        CREATE TABLE pairing_code (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            code_hash TEXT NOT NULL,
+            salt TEXT NOT NULL,
+            expires_at REAL NOT NULL,
+            failed_attempts INTEGER NOT NULL DEFAULT 0 CHECK (failed_attempts >= 0),
+            locked INTEGER NOT NULL DEFAULT 0 CHECK (locked IN (0, 1))
+        );
+        """,
+    ),
 ]
 
 _SCHEMA_MIGRATIONS = """

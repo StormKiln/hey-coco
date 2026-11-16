@@ -129,12 +129,9 @@ public final class AudioSessionCoordinator: VoiceAudioSession {
                     forName: AVAudioSession.routeChangeNotification, object: session, queue: .main
                 ) { note in
                     let raw = note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt
-                    let reason = raw.flatMap(AVAudioSession.RouteChangeReason.init)
-                    // Our own category changes also post route changes; only react to hardware.
-                    guard
-                        [.newDeviceAvailable, .oldDeviceUnavailable, .override, .routeConfigurationChange]
-                            .contains(reason)
-                    else { return }
+                    // Our own category and voice-processing changes also post route changes;
+                    // only react to hardware (#108).
+                    guard AudioRouteChangePolicy.restartsListener(reasonRawValue: raw) else { return }
                     MainActor.assumeIsolated {
                         AudioSessionCoordinator.shared.onEvent?(.routeChanged)
                     }

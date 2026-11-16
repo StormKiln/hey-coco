@@ -8,7 +8,7 @@ import Foundation
 ///
 /// The audio session is configured by `ConversationAudio.beginConversation()`, not here.
 @MainActor
-public final class AppleSpeechRecognizer: SpeechRecognizer {
+public final class AppleSpeechRecognizer: FeedableSpeechRecognizer {
     public let locale: Locale
     public let policy: UtteranceEndpointer.Policy
     /// Echo cancellation on the mic (`VoiceLoop` turns it on so Coco can be heard over its own
@@ -19,6 +19,8 @@ public final class AppleSpeechRecognizer: SpeechRecognizer {
     private let finalGrace: Duration = .seconds(2)
 
     private var engine: AVAudioEngine?
+    /// Where the audio comes from instead of `engine` (the wake word's capture, #112).
+    private var feed: (any SpeechAudioFeed)?
     private var request: SFSpeechAudioBufferRecognitionRequest?
     private var task: SFSpeechRecognitionTask?
     private var endpointer: UtteranceEndpointer?
@@ -64,7 +66,18 @@ public final class AppleSpeechRecognizer: SpeechRecognizer {
         return .granted
     }
 
+    /// Opens its own mic.
     public func start() throws -> AsyncThrowingStream<SpeechTranscript, any Error> {
+        try begin(audio: nil)
+    }
+
+    /// Listens to audio already captured (from the wake word onward) instead of opening the mic,
+    /// so there is only ever one voice-processing engine on the input.
+    public func start(audio: any SpeechAudioFeed) throws -> AsyncThrowingStream<SpeechTranscript, any Error> {
+        try begin(audio: audio)
+    }
+
+    private func begin(audio feed: (any SpeechAudioFeed)?) throws -> AsyncThrowingStream<SpeechTranscript, any Error> {
         cancel()
         guard let recognizer = SFSpeechRecognizer(locale: locale), recognizer.isAvailable else {
             throw SpeechRecognitionError.unavailable
@@ -79,19 +92,22 @@ public final class AppleSpeechRecognizer: SpeechRecognizer {
         request.requiresOnDeviceRecognition = recognizer.supportsOnDeviceRecognition
         request.addsPunctuation = true
 
-        let engine = AVAudioEngine()
-        let input = engine.inputNode
-        // Best effort: without it recognition still works, just with more echo.
-        if voiceProcessing { try? VoiceProcessing.enable(on: input) }
-        input.installTap(
-            onBus: 0, bufferSize: 1024, format: input.outputFormat(forBus: 0),
-            block: Self.tapBlock(appendingTo: request))
-        engine.prepare()
-        do {
-            try engine.start()
-        } catch {
-            input.removeTap(onBus: 0)
-            throw SpeechRecognitionError.failed(error.localizedDescription)
+        if feed == nil {
+            let engine = AVAudioEngine()
+            let input = engine.inputNode
+            // Best effort: without it recognition still works, just with more echo.
+            if voiceProcessing { try? VoiceProcessing.enable(on: input) }
+            input.installTap(
+                onBus: 0, bufferSize: 1024, format: input.outputFormat(forBus: 0),
+                block: Self.tapBlock(appendingTo: request))
+            engine.prepare()
+            do {
+                try engine.start()
+            } catch {
+                input.removeTap(onBus: 0)
+                throw SpeechRecognitionError.failed(error.localizedDescription)
+            }
+            self.engine = engine
         }
 
         let (stream, continuation) = AsyncThrowingStream.makeStream(of: SpeechTranscript.self)
@@ -102,7 +118,6 @@ public final class AppleSpeechRecognizer: SpeechRecognizer {
                 self.cancel()
             }
         }
-        self.engine = engine
         self.request = request
         self.continuation = continuation
         self.task = recognizer.recognitionTask(
@@ -111,6 +126,12 @@ public final class AppleSpeechRecognizer: SpeechRecognizer {
                 guard let self, self.session == session else { return }
                 self.handle(event)
             })
+        if let feed {
+            // Everything captured since the wake word goes in first (faster than real time), then
+            // live frames, until `stopAudio()` detaches it.
+            self.feed = feed
+            feed.attach(Self.frameSink(appendingTo: request, sampleRate: feed.sampleRate))
+        }
         let endpointer = UtteranceEndpointer(policy: policy) { [weak self] in
             guard let self, self.session == session else { return }
             self.stop()
@@ -180,6 +201,8 @@ public final class AppleSpeechRecognizer: SpeechRecognizer {
     }
 
     private func stopAudio() {
+        feed?.detach()
+        feed = nil
         guard let engine else { return }
         engine.stop()
         engine.inputNode.removeTap(onBus: 0)
@@ -206,6 +229,16 @@ public final class AppleSpeechRecognizer: SpeechRecognizer {
         return { buffer, _ in request.append(buffer) }
     }
 
+    private nonisolated static func frameSink(
+        appendingTo request: SFSpeechAudioBufferRecognitionRequest, sampleRate: Double
+    ) -> @Sendable ([Int16]) -> Void {
+        nonisolated(unsafe) let request = request
+        return { frame in
+            guard let buffer = CapturedAudioBuffer.make(from: frame, sampleRate: sampleRate) else { return }
+            request.append(buffer)
+        }
+    }
+
     private nonisolated static func resultHandler(
         _ deliver: @escaping @MainActor @Sendable (RecognitionEvent) -> Void
     ) -> (SFSpeechRecognitionResult?, (any Error)?) -> Void {
@@ -227,5 +260,20 @@ public final class AppleSpeechRecognizer: SpeechRecognizer {
         await withCheckedContinuation { continuation in
             SFSpeechRecognizer.requestAuthorization { continuation.resume(returning: $0) }
         }
+    }
+}
+
+/// Captured 16-bit mono frames as the float PCM buffers `SFSpeechAudioBufferRecognitionRequest`
+/// takes.
+enum CapturedAudioBuffer {
+    static func make(from frame: [Int16], sampleRate: Double) -> AVAudioPCMBuffer? {
+        guard !frame.isEmpty,
+            let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1),
+            let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(frame.count)),
+            let channel = buffer.floatChannelData?[0]
+        else { return nil }
+        for (index, sample) in frame.enumerated() { channel[index] = Float(sample) / 32_768 }
+        buffer.frameLength = AVAudioFrameCount(frame.count)
+        return buffer
     }
 }

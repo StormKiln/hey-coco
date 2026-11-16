@@ -273,8 +273,9 @@ Every event has `type` and `server_time`.
 | `spotify.wake_requested` | `device_name` (nullable): the iPad's Spotify Connect name |
 
 `spotify.wake_requested` (#5, `fixtures/event_spotify_wake_requested.json`): Spotify doesn't
-list the iPad, so the Hub asks the Display to open the Spotify app, then waits
-`spotify.wake_wait_s` and lists devices again. The Display opens the `spotify:` URL scheme
+list the iPad, so the Hub asks the Display to open the Spotify app, then lists devices every
+`spotify.wake_poll_s` (1 s) until the iPad is back or `spotify.wake_wait_s` (12 s) has passed
+(#95). The event itself is unchanged. The Display opens the `spotify:` URL scheme
 only when Guided Access is off (and at most once a minute); under Guided Access it does
 nothing and the Hub says "Open Spotify on the iPad once, then try again." The Display sends
 nothing back. The Hub only publishes it while a Display is connected.

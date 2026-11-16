@@ -93,11 +93,14 @@ class Spotify(BaseModel):
     device_name: str | None = None
     """The Spotify Connect device to play on, e.g. "Kitchen iPad" (as the Spotify app names
     it). Unset: the active device, or the only one."""
-    wake_wait_s: Annotated[float, Field(ge=0, le=30)] = 4.0
+    wake_wait_s: Annotated[float, Field(ge=0, le=30)] = 12.0
     """When the iPad is missing from Spotify's device list, the Hub asks the Display to open
-    the Spotify app (``spotify.wake_requested``) and waits this long before listing devices
-    again. 0 turns waking off. Under Guided Access the Display can't open Spotify, so this is
-    only extra delay there (docs/spotify.md, spike #5)."""
+    the Spotify app (``spotify.wake_requested``) and lists devices every ``wake_poll_s`` for
+    up to this long (#95: the iPad reappeared about 6 s after a wake). 0 turns waking off.
+    Under Guided Access the Display can't open Spotify, so this is only extra delay there
+    (docs/spotify.md, spike #5)."""
+    wake_poll_s: Annotated[float, Field(gt=0, le=10)] = 1.0
+    """How often to list devices while waiting for the iPad after a wake."""
 
 
 class Music(BaseModel):

@@ -1,0 +1,29 @@
+{
+  "playlists": {
+    "href": "https://api.spotify.com/v1/search?query=christmas&type=playlist&offset=0&limit=5",
+    "limit": 5,
+    "offset": 0,
+    "total": 3,
+    "items": [
+      null,
+      {
+        "type": "playlist",
+        "id": "3ChristmasHitsList000a",
+        "uri": "spotify:playlist:3ChristmasHitsList000a",
+        "name": "Christmas Hits",
+        "owner": {"display_name": "Spotify", "id": "spotify"},
+        "tracks": {"total": 100},
+        "images": []
+      },
+      {
+        "type": "playlist",
+        "id": "4KidsChristmasList000a",
+        "uri": "spotify:playlist:4KidsChristmasList000a",
+        "name": "Kids Christmas Songs",
+        "owner": {"display_name": "Spotify", "id": "spotify"},
+        "tracks": {"total": 60},
+        "images": []
+      }
+    ]
+  }
+}

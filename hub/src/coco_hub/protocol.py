@@ -136,6 +136,9 @@ class SoundView(Message):
     clip_url: str
     image_url: str
     attribution: str
+    caption: str | None = None
+    """What the sound is, for the screen ("A cow says moo!"). Never spoken: sound views come
+    with ``say: null`` so speech doesn't talk over the clip (#94)."""
 
 
 class YoutubeView(Message):

@@ -81,6 +81,17 @@ func everyFixtureDecodesWithItsModel(name: String) throws {
     #expect(encoded == (try Fixtures.jsonObject(Fixtures.data("timer_create_request_unnamed"))))
 }
 
+@Test func soundActionIsCaptionedNotSpoken() throws {
+    // #94: the clip is the answer; the line is shown as a caption, and there is nothing to say.
+    let action = try Fixtures.decode(Action.self, "action_sound")
+    #expect(action.say == nil)
+    guard case .sound(let sound) = action.view else {
+        Issue.record("expected sound view, got \(String(describing: action.view))")
+        return
+    }
+    #expect(sound.caption == "A cow says moo!")
+}
+
 @Test func weatherActionDecodes() throws {
     let action = try Fixtures.decode(Action.self, "action_weather")
     #expect(action.intent == "weather.current")

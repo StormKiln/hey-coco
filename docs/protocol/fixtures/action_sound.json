@@ -1,11 +1,12 @@
 {
-  "say": "A cow says moo!",
+  "say": null,
   "view": {
     "type": "sound",
     "name": "cow",
     "clip_url": "/v1/media/sounds/clips/cow.m4a",
     "image_url": "/v1/media/sounds/images/cow.jpg",
-    "attribution": "Sound: MichaeltheFox8621 (CC BY-SA 4.0) · Picture: Kim Hansen (CC BY-SA 3.0)"
+    "attribution": "Sound: MichaeltheFox8621 (CC BY-SA 4.0) · Picture: Kim Hansen (CC BY-SA 3.0)",
+    "caption": "A cow says moo!"
   },
   "commands": [],
   "intent": "sound.play",

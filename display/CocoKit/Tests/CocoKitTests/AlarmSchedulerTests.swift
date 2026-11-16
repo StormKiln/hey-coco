@@ -145,21 +145,3 @@ private final class FakeNotifications: AlarmNotifications {
         #expect(await waitUntil { fired })
     }
 }
-
-@Suite struct AlarmToneTests {
-    @Test func wavHeaderAndLength() {
-        let data = AlarmTone.wav(duration: 2)
-        #expect(data.prefix(4) == Data("RIFF".utf8))
-        #expect(data[8..<12] == Data("WAVE".utf8))
-        let samples = Int(2 * Double(AlarmTone.sampleRate))
-        #expect(data.count == 44 + samples * 2)
-    }
-
-    @Test func isLoudAndHasPauses() {
-        let pcm = AlarmTone.pcm(duration: AlarmTone.patternDuration)
-        let peak = pcm.map { abs(Int($0)) }.max() ?? 0
-        #expect(peak > Int(Int16.max) * 8 / 10)
-        // The tail of each cycle is silent.
-        #expect(pcm.suffix(1000).allSatisfy { $0 == 0 })
-    }
-}

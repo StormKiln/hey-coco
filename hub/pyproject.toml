@@ -10,6 +10,7 @@ dependencies = [
     "ifaddr>=0.2",
     "pydantic>=2.9",
     "pydantic-settings>=2.6",
+    "segno>=1.6",
     "uvicorn[standard]>=0.32",
     "zeroconf>=0.136",
 ]

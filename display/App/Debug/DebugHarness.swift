@@ -43,6 +43,24 @@ enum DebugHarness {
             } else {
                 note = "not paired: connection is \(model.connection)"
             }
+        case .pairCode(let fingerprint, let code):
+            if case .needsPairing(let candidate) = model.connection,
+                DebugCommand.fingerprintMatches(expected: fingerprint, candidate: candidate.pin.fingerprint)
+            {
+                do { try await model.pair(with: candidate, code: code) } catch { note = "pair-code failed: \(error.message)" }
+            } else {
+                note = "not paired: connection is \(model.connection)"
+            }
+        case .pairURI(let text):
+            do {
+                try await model.pair(scanned: try PairingURI.parse(text))
+            } catch let error as PairingURIError {
+                note = "pair-uri failed: \(error.message)"
+            } catch let error as PairingError {
+                note = "pair-uri failed: \(error.message)"
+            } catch {
+                note = "pair-uri failed: \(error)"
+            }
         case .touchTimer(let seconds, let name):
             await model.timerStore.create(durationS: seconds, name: name)
         case .stopAlarm:
@@ -62,7 +80,9 @@ enum DebugHarness {
         }
         // Let the reply land (views, events) before recording the state.
         try? await Task.sleep(nanoseconds: 300_000_000)
-        log("\(command)\(note.isEmpty ? "" : " — \(note)")", model: model)
+        // A pairing URI holds the token: never write it to the log.
+        let label = if case .pairURI = command { "pairURI(<redacted>)" } else { "\(command)" }
+        log("\(label)\(note.isEmpty ? "" : " — \(note)")", model: model)
     }
 
     private static var documents: URL {

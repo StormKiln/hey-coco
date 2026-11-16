@@ -87,6 +87,16 @@ public struct HubClient: HubAPI {
         try await send("GET", "/v1/diagnostics")
     }
 
+    /// `POST /v1/pair` (#89): trades the one-time code from `make hub-pair` for the token. Sent
+    /// without `Authorization` (the Display has no token yet), so only call it on a session
+    /// pinned to the Hub the person confirmed (`PinnedPairingCodeRedeemer`). Refusals keep the
+    /// Hub's code (`pairing_code_wrong`, `…_expired`, `…_locked`, `no_pairing_code`), even 401.
+    public func pair(code: String) async throws(HubError) -> String {
+        let response: PairResponse = try await send(
+            "POST", "/v1/pair", body: PairRequest(code: code), authorized: false)
+        return response.token
+    }
+
     // MARK: - Plumbing
 
     private struct NoBody: Encodable {}
@@ -98,12 +108,15 @@ public struct HubClient: HubAPI {
     }
 
     private func send<Body: Encodable, Response: Decodable>(
-        _ method: String, _ path: String, body: Body?, timeout: TimeInterval? = nil
+        _ method: String, _ path: String, body: Body?, timeout: TimeInterval? = nil,
+        authorized: Bool = true
     ) async throws(HubError) -> Response {
         var request = URLRequest(url: endpoint.url(for: path))
         request.httpMethod = method
         request.timeoutInterval = timeout ?? self.timeout
-        request.setValue("Bearer \(endpoint.token)", forHTTPHeaderField: "Authorization")
+        if authorized {
+            request.setValue("Bearer \(endpoint.token)", forHTTPHeaderField: "Authorization")
+        }
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         if let body {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -132,7 +145,7 @@ public struct HubClient: HubAPI {
             } catch {
                 throw .decoding("\(Response.self): \(error)")
             }
-        case 401, 403:
+        case 401 where authorized, 403 where authorized:
             throw .unauthorized
         default:
             if let body = try? CocoJSON.decoder.decode(ErrorResponse.self, from: data) {

@@ -181,6 +181,24 @@ public struct TimersList: Codable, Sendable, Equatable {
     }
 }
 
+/// `POST /v1/pair` (no bearer): the one-time code `make hub-pair` showed (#89).
+public struct PairRequest: Codable, Sendable, Equatable {
+    public var code: String
+
+    public init(code: String) {
+        self.code = code
+    }
+}
+
+/// The shared LAN token, for the right pairing code.
+public struct PairResponse: Codable, Sendable, Equatable {
+    public var token: String
+
+    public init(token: String) {
+        self.token = token
+    }
+}
+
 /// `POST /v1/timers/{id}/add`: time to add to a running (or ringing) Hub timer.
 public struct TimerAddRequest: Codable, Sendable, Equatable {
     public var seconds: Int

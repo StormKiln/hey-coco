@@ -128,7 +128,7 @@ private func makeModel(
 
     @Test func missingTokenIsUnauthorizedWithoutConnecting() async throws {
         let model = makeModel(
-            settings: HubSettings(manualHost: "10.0.0.5", port: 8765, token: nil),
+            settings: HubSettings(manualHost: "10.0.0.5", port: 8765, token: nil, pin: .test),
             updates: [.connecting(attempt: 1), .connected])
         model.start()
         #expect(await eventually { model.connection == .unauthorized })
@@ -162,7 +162,7 @@ private func makeModel(
 
     @Test func savingSettingsReconnects() async throws {
         let model = makeModel(
-            settings: HubSettings(manualHost: "10.0.0.5", port: 8765, token: nil),
+            settings: HubSettings(manualHost: "10.0.0.5", port: 8765, token: nil, pin: .test),
             updates: [.connecting(attempt: 1), .connected])
         model.start()
         #expect(await eventually { model.connection == .unauthorized })

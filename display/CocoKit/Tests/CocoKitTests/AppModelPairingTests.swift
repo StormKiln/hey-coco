@@ -187,7 +187,9 @@ private func makeModel(
         #expect(model.settings.pin == nil)
         #expect(model.settings.token == nil)
         #expect(model.settings.manualHost == "10.0.0.5")
-        #expect(await eventually { model.connection == .unauthorized })
+        // Neither pin nor token: it offers to pair again (#89), and sends nothing.
+        let candidate = PairingCandidate(address: HubAddress(host: "10.0.0.5", port: 8765), pin: .test)
+        #expect(await eventually { model.connection == .needsPairing(candidate) })
         #expect(model.hubSession.pinning.pin == nil)
         model.stop()
     }

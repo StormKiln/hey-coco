@@ -10,7 +10,7 @@ PLIST_DEST := $(HOME)/Library/LaunchAgents/$(SERVICE_LABEL).plist
 HUB_LOG_DIR := $(HOME)/Library/Logs/CocoHub
 LAUNCH_DOMAIN = gui/$$(id -u)
 
-.PHONY: help hub-setup hub-sync hub-run hub-test hub-resilience hub-lint hub-fingerprint hub-eval hub-fmt hub-render-plist hub-install-service hub-uninstall-service hub-logs hub-logs-launchd hub-diag spotify-login spotify-spike sounds-build display-gen display-build display-run-sim display-testflight-check display-testflight-preflight display-archive display-archive-unsigned display-artifact display-testflight-upload display-testflight testflight-status display-icon wakeword-train display-build-mac display-run-mac display-test kit-test test lint repo-check check-workflows ci-xcode
+.PHONY: help hub-setup hub-sync hub-run hub-test hub-resilience hub-lint hub-fingerprint hub-pair hub-eval hub-fmt hub-render-plist hub-install-service hub-uninstall-service hub-logs hub-logs-launchd hub-diag spotify-login spotify-spike sounds-build display-gen display-build display-run-sim display-testflight-check display-testflight-preflight display-archive display-archive-unsigned display-artifact display-testflight-upload display-testflight testflight-status display-icon wakeword-train display-build-mac display-run-mac display-test kit-test test lint repo-check check-workflows ci-xcode
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-18s %s\n", $$1, $$2}'
@@ -77,6 +77,11 @@ spotify-spike: hub-sync ## Spike #5: log iPad visibility in Spotify (ARGS="--hou
 
 hub-fingerprint: hub-sync ## Print the Hub's TLS fingerprint (compare it with the iPad when pairing)
 	@cd hub && uv run --quiet python -m coco_hub --fingerprint
+
+# Prints to this terminal only: the QR code holds the token. The running Hub reads the code
+# from its database, so it must use the same config (hub/config.local.toml + COCO_* env).
+hub-pair: hub-sync ## Pair the iPad: show a QR code to scan and a one-time 6-digit code (2 min)
+	@cd hub && uv run --quiet python -m coco_hub --pair
 
 hub-logs: ## Follow the Hub's JSON log (hub.jsonl), pretty-printed
 	@mkdir -p "$(HUB_LOG_DIR)"

@@ -51,11 +51,11 @@ class SpyWaker:
         self.fake = fake
         self.result = result
 
-    async def wake(self, device_name: str | None) -> bool:
+    async def wake(self, device_name: str | None, appeared) -> bool:
         self.calls.append(device_name)
         if self.fake is not None:  # the iPad shows up after waking
             self.fake.set("GET", "/v1/me/player/devices", json_response(200, "devices"))
-        return self.result
+        return self.result and await appeared()
 
 
 @pytest.fixture

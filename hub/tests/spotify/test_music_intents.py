@@ -58,6 +58,27 @@ PHRASES: list[tuple[str, UtteranceContext, str | None, dict[str, str]]] = [
     ("play Raffi", MUSIC, "music.play", {"query": "raffi"}),
     ("can you play the Beatles", IDLE, "music.play", {"query": "the beatles"}),
     ("play some Christmas music", IDLE, "music.play", {"query": "some christmas music"}),
+    # #95: the query and shuffle were dropped (Qwen gave only kind=playlist)
+    (
+        "Shuffle a Christmas playlist on Spotify",
+        IDLE,
+        "music.play",
+        {"shuffle": "shuffle", "query": "a christmas playlist"},
+    ),
+    (
+        "shuffle my dinner playlist",
+        IDLE,
+        "music.play",
+        {"shuffle": "shuffle", "query": "my dinner playlist"},
+    ),
+    ("shuffle play Raffi", IDLE, "music.play", {"shuffle": "shuffle", "query": "raffi"}),
+    (
+        "play Christmas music on shuffle",
+        IDLE,
+        "music.play",
+        {"query": "christmas music", "shuffle": "on shuffle"},
+    ),
+    ("play a Christmas playlist", IDLE, "music.play", {"query": "a christmas playlist"}),
     ("spotify play Raffi", IDLE, "music.play", {"query": "raffi"}),
     # music.now_playing
     ("what's playing", MUSIC, "music.now_playing", {}),
@@ -129,6 +150,9 @@ def test_phrase_table_is_big_enough():
         ("my discover weekly", "playlist", "discover weekly"),
         ("my dinner playlist", "playlist", "dinner"),
         ("the playlist road trip", "playlist", "road trip"),
+        ("a christmas playlist", "playlist", "christmas"),
+        ("an elmo playlist", "playlist", "elmo"),
+        ("a christmas album", "album", "christmas"),
         ("songs by the wiggles", "artist", "the wiggles"),
         ("music by raffi", "artist", "raffi"),
         ("some music by raffi", "artist", "raffi"),
@@ -181,7 +205,8 @@ def test_music_intents_are_offered_to_qwen(registry):
         assert len(intent.description) > 20
     play = registry.get("music.play")
     # The keys the Qwen spike and hub/eval/utterances.jsonl use.
-    assert set(play.llm_slots) == {"query", "kind"}
+    assert set(play.llm_slots) == {"query", "kind", "shuffle"}
+    assert play.llm_slots["shuffle"].type == "boolean"
     assert set(play.llm_slots["kind"].enum) == {"artist", "album", "playlist", "song", "any"}
 
 
@@ -453,3 +478,62 @@ async def test_volume_unsupported_is_spoken(run, fake):
     action = await run("louder", MUSIC)
     assert action.commands == [VolumeChange(delta=15)]
     assert action.say == "Spotify won't let me change the iPad's volume. Use its volume buttons."
+
+
+# --- #95: shuffle a playlist found by search ------------------------------------------------
+
+
+async def test_shuffle_a_christmas_playlist(run, fake):
+    fake.set("GET", "/v1/search", json_response(200, "search_christmas_playlist"))
+    action = await run("Shuffle a Christmas playlist on Spotify")
+    assert action.intent == "music.play"
+    assert action.matched_by == "rules"
+    assert action.say == "Shuffling Christmas Hits on Spotify."
+    (search,) = fake.calls("GET", "/v1/search")
+    assert (search.url.params["q"], search.url.params["type"]) == ("christmas", "playlist")
+    (play,) = fake.calls("PUT", "/v1/me/player/play")
+    assert fake.body(play) == {"context_uri": "spotify:playlist:3ChristmasHitsList000a"}
+    (shuffle,) = fake.calls("PUT", "/v1/me/player/shuffle")
+    assert shuffle.url.params["state"] == "true"
+    assert shuffle.url.params["device_id"] == IPAD_ID
+    # Shuffle is set once the playlist is playing on the iPad.
+    calls = fake.api_calls()
+    assert calls.index(("PUT", "/v1/me/player/play")) < calls.index(
+        ("PUT", "/v1/me/player/shuffle")
+    )
+
+
+async def test_play_without_shuffle_leaves_shuffle_alone(run, fake):
+    await run("play Raffi")
+    assert fake.calls("PUT", "/v1/me/player/shuffle") == []
+
+
+async def test_qwen_shuffle_and_query_slots(registry, settings, spotify, policy, fake):
+    from coco_hub.intents.engine import Match
+    from coco_hub.qwen.catalog import Catalog
+
+    fake.set("GET", "/v1/search", json_response(200, "search_christmas_playlist"))
+    specs = Catalog.from_registry(registry).intents["music.play"].llm_slots
+    slots = dict(
+        specs[k].handler_slot(k, v)
+        for k, v in {"query": "Christmas", "kind": "playlist", "shuffle": True}.items()
+    )
+    engine = RulesEngine(registry)
+    ctx = IntentContext(
+        settings=settings, clock=lambda: T0, services={"spotify": spotify, "media_policy": policy}
+    )
+    text = "could you shuffle us something christmassy from spotify"
+    request = UtteranceRequest(text=text, source="voice", context=IDLE)
+    action = await engine.dispatch(
+        Match(intent="music.play", slots=slots, text=text), request, ctx, matched_by="qwen"
+    )
+    assert action.say == "Shuffling Christmas Hits on Spotify."
+    assert fake.calls("GET", "/v1/search")[0].url.params["q"] == "Christmas"
+    assert fake.calls("PUT", "/v1/me/player/shuffle")[0].url.params["state"] == "true"
+
+
+async def test_shuffle_just_music_resumes_and_shuffles(run, fake):
+    action = await run("shuffle some music")
+    assert action.say == "Shuffling music on Spotify."
+    assert fake.body(fake.calls("PUT", "/v1/me/player/play")[0]) is None
+    assert len(fake.calls("PUT", "/v1/me/player/shuffle")) == 1

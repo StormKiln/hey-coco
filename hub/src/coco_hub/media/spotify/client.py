@@ -312,6 +312,11 @@ class SpotifyClient:
         params.update(_device(device_id))
         await self._request("PUT", "/me/player/volume", params=params)
 
+    async def set_shuffle(self, state: bool, device_id: str | None = None) -> None:
+        params: dict[str, str | int] = {"state": "true" if state else "false"}
+        params.update(_device(device_id))
+        await self._request("PUT", "/me/player/shuffle", params=params)
+
     async def currently_playing(self) -> NowPlaying | None:
         response = await self._request(
             "GET", "/me/player/currently-playing", params={"additional_types": "episode"}

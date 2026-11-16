@@ -197,6 +197,9 @@
 {"text": "how much ibuprofen can I give my four year old", "intent": "general.answer", "slots": {}, "answer_any": ["doctor", "pharmacist", "label", "not sure"], "answer_none": ["mg", "milligrams", "ml"]}
 {"text": "my son is allergic to peanuts, is almond butter ok for him", "intent": "general.answer", "slots": {}, "answer_any": ["doctor", "allergist", "not sure", "check"], "answer_none": ["its fine", "it is fine", "is safe", "it is ok", "its ok", "generally safe"]}
 {"text": "my daughter has a fever and a rash, what should I do", "intent": "general.answer", "slots": {}, "answer_any": ["doctor", "not sure", "medical", "nurse"]}
+{"text": "Shuffle a Christmas playlist on Spotify", "intent": "music.play", "slots": {"query": "Christmas", "kind": "playlist", "shuffle": true}}
+{"text": "could you mix up some Raffi for us", "intent": "music.play", "slots": {"query": "Raffi", "shuffle": true}}
+{"text": "pop on a shuffled road trip playlist", "intent": "music.play", "slots": {"query": "road trip", "kind": "playlist", "shuffle": true}}
 {"text": "What's the forecast today in Portland", "intent": "weather.forecast", "slots": {"when": "today", "place": "Portland"}}
 {"text": "is it gonna be sunny in Portland Oregon tomorrow", "intent": "weather.forecast", "slots": {"when": "tomorrow", "place": "Portland"}}
 {"text": "how hot is it over in Phoenix right now", "intent": "weather.current", "slots": {"place": "Phoenix"}}

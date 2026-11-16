@@ -94,8 +94,9 @@ owner).
 
 - **"Open Spotify on the iPad once, then try again."** Spotify drops an idle iPad from the
   device list. Open the Spotify app on the iPad and retry. Before saying this, the Hub asks
-  the Display to open Spotify itself (`spotify.wake_requested`, waits
-  `spotify.wake_wait_s`, default 4 s; 0 turns it off). That only works with **Guided Access
+  the Display to open Spotify itself (`spotify.wake_requested`), then lists devices every
+  `spotify.wake_poll_s` (default 1 s) for up to `spotify.wake_wait_s` (default 12 s; 0 turns
+  it off). That only works with **Guided Access
   off**, and leaves Spotify in front; under Guided Access iOS won't switch apps, so the
   Display does nothing. Whether the iPad stays listed on its own under Guided Access is what
   spike #5 measures: `make spotify-spike`, procedure and decision rule in

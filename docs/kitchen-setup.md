@@ -136,6 +136,17 @@ Press Ctrl-C to stop following; the Hub keeps running. The log files live in
 `config.local.toml`. After you edit that file, run `make hub-install-service` again to restart the
 Hub with the new settings.
 
+**Allow Local Network on the Mac.** macOS asks before an app may use the local network, and the
+Hub needs it to announce itself with Bonjour (that's how the iPad finds it). If you missed or
+refused the prompt, the Hub still runs and `curl` above still works, but the iPad sits on
+"Looking for Coco Hub…" and `make hub-logs` shows a zeroconf error ending in `[Errno 65] No route to
+host`. Fix it in System Settings, Privacy & Security, **Local Network**: switch on the app that
+runs the Hub (Terminal or iTerm if you started it with `make hub-run`). The launchd service may
+appear as its own entry (for example `python3` or `uv`) and need its own switch; after changing
+it, run `make hub-install-service` again to restart the Hub. Since #91 a paired iPad also tries the
+address where it last found the Hub, so it usually reconnects even without Bonjour, but a new or
+re-paired iPad, or a Mac whose IP changed, still needs it.
+
 Other useful commands:
 
 - `make hub-render-plist` prints the launchd file it would install.
@@ -255,7 +266,10 @@ If it can't find it, type the Mac's IP address, for example `192.168.1.20`. Leav
 `8765` unless you changed it on the Hub. Prefer blank: with Bonjour, Coco finds the Mac again on
 its own if its IP address changes; a typed address is only ever retried, and if the Mac moves the
 pill says "Can't reach <address> — check the Mac" until you fix it in Settings. Scanning the QR
-code doesn't change this setting.
+code doesn't change this setting. With the host blank, Coco also remembers where it last reached
+the paired Hub and tries that address alongside Bonjour, so a Mac whose Bonjour is broken is still
+found as long as its IP hasn't changed. Once paired, changing the host or port keeps the saved
+token (it only ever goes to the paired Hub); before pairing, you have to enter the token again.
 
 Coco only sends the token after you pair, and from then on only to that exact Hub, over an
 encrypted connection. The pairing survives Hub restarts and the Mac's IP address changing.
@@ -353,6 +367,7 @@ settings for that. Guided Access does not apply.
 | What you see | Likely cause | What to do |
 |---|---|---|
 | **"Can't reach Coco Hub"** | The Mac is off, asleep or logged out, the Hub isn't running, the two devices are on different Wi-Fi, or the Mac's IP changed. | On the Mac run `curl -k https://localhost:8765/healthz` and `make hub-logs`; re-run `make hub-install-service` if it is down. Check both devices are on the same Wi-Fi. If you typed a host in Coco's Settings, confirm the IP, or clear it to use Bonjour. Check Local Network is allowed for Coco (iPad Settings, Coco Display) and that you clicked Allow on the Mac's firewall prompt. |
+| **"Looking for Coco Hub…"** that never ends, then **"Can't find Coco Hub. Check it's running on the Mac…"** (after about 30 seconds) | Bonjour finds nothing: the Hub isn't running, the devices are on different Wi-Fi, or the Mac doesn't allow Local Network for the app running the Hub (`make hub-logs` shows zeroconf `[Errno 65] No route to host`). Coco keeps searching. | On the Mac: System Settings, Privacy & Security, **Local Network**, and switch on the app that runs the Hub (the launchd service may need its own entry; see 1.4), then `make hub-install-service`. Or tap the pill and type the Mac's IP address as the Hub host (a paired iPad keeps its token). |
 | **"Unknown Coco Hub at …"** | The iPad found a Coco Hub that isn't the one it paired with: the Hub's certificate changed (you deleted `~/Library/Application Support/CocoHub`, reinstalled, or moved the Hub to another Mac), or another device on the network claims to be Coco Hub. Coco ignores it and doesn't send the token. | If you know the Hub changed: on the iPad open Settings, tap **Forget Hub and Re-pair…**, then pair again with `make hub-pair` on the Mac (2.3). If nothing changed on the Mac, don't re-pair: find the other device. |
 | **"Pair with Coco Hub?" fingerprint doesn't match `make hub-pair` / `make hub-fingerprint`** | Something other than your Hub answered. | Tap **Not now** and don't enter the code. Scan the QR code instead (it only pairs with your Hub's certificate), or type the Mac's IP address as the Hub host in Settings so Coco asks that Mac directly, then pair. |
 | **Scan QR code: "doesn't match the QR code"** | The Hub that answered has a different certificate from the one in the QR code: an old QR code, or another device at that address. | Run `make hub-pair` again on the Hub's Mac and scan the new code. |

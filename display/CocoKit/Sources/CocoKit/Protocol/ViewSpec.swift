@@ -17,6 +17,8 @@ public enum ViewSpec: Codable, Sendable, Equatable {
         public var current: WeatherNow
         public var hourly: [WeatherHour]
         public var daily: [WeatherDay]
+        /// A place the person named ("Portland, Oregon"); nil for home (#93).
+        public var place: String?
     }
 
     public struct PicturePayload: Codable, Sendable, Equatable {
@@ -29,9 +31,11 @@ public enum ViewSpec: Codable, Sendable, Equatable {
         public var clipURL: String
         public var imageURL: String
         public var attribution: String
+        /// What the sound is ("A cow says moo!"), shown on screen, never spoken (#94).
+        public var caption: String? = nil
 
         enum CodingKeys: String, CodingKey {
-            case name, attribution
+            case name, attribution, caption
             case clipURL = "clip_url"
             case imageURL = "image_url"
         }

@@ -44,8 +44,9 @@ def test_sound_utterance_and_its_media_are_served(client):
     response = client.post("/v1/utterance", json=body("what does a cow say"), headers=AUTH)
     assert response.status_code == 200
     action = Action.model_validate(response.json())
-    assert action.intent == "sound.play" and action.say == "A cow says moo!"
+    assert action.intent == "sound.play" and action.say is None
     assert isinstance(action.view, SoundView)
+    assert action.view.caption == "A cow says moo!"
     # The Hub-relative paths resolve against the Hub base URL, with the bearer token.
     clip = client.get(action.view.clip_url, headers=AUTH)
     assert clip.status_code == 200 and clip.headers["content-type"] == "audio/mp4"

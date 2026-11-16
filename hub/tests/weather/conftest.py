@@ -5,6 +5,11 @@ Fixtures in ``tests/fixtures/open_meteo/``:
   America/Toronto for lat 45.42 lon -75.69 (Ottawa, a generic public location).
 - ``rain_afternoon.json``: the metric recording with rain 12:00-17:00 local on 2026-11-14.
 - ``subzero.json``: the metric recording 10 degrees colder, with snow 12:00-16:00 on 11-15.
+- ``portland_metric.json``: a real response recorded 2026-11-16 20:00 UTC (12:00
+  America/Los_Angeles) for lat 45.52345 lon -122.67621 (Portland, Oregon).
+- ``geocode_portland.json`` / ``geocode_paris.json``: real Open-Meteo geocoding responses
+  (``/v1/search?name=...&count=10``) recorded 2026-11-16; ``geocode_none.json`` is the reply
+  for a name with no match (no ``results`` key).
 """
 
 import asyncio
@@ -23,6 +28,9 @@ OPEN_METEO_DIR = Path(__file__).resolve().parents[1] / "fixtures" / "open_meteo"
 FIXED = datetime(2026, 11, 14, 15, 20, tzinfo=UTC)
 
 
+GEOCODE = {"portland": "geocode_portland", "paris": "geocode_paris"}
+
+
 def load(name: str) -> dict:
     return json.loads((OPEN_METEO_DIR / f"{name}.json").read_text())
 
@@ -32,6 +40,8 @@ class FakeOpenMeteo:
 
     def __init__(self, name: str = "ottawa_metric") -> None:
         self.name = name
+        self.places = dict(GEOCODE)
+        """Geocoding: searched name (lowercase) -> fixture; anything else finds nothing."""
         self.fail: bool | int = False
         """False, True (connection error) or an HTTP status code to return."""
         self.hang = False
@@ -51,7 +61,18 @@ class FakeOpenMeteo:
             raise httpx.ConnectError("offline", request=request)
         if self.fail:
             return httpx.Response(int(self.fail), json={"error": True, "reason": "nope"})
+        if request.url.path == "/v1/search":
+            name = request.url.params["name"].lower()
+            return httpx.Response(200, json=load(self.places.get(name, "geocode_none")))
         return httpx.Response(200, json=load(self.name))
+
+    @property
+    def searches(self) -> list[str]:
+        return [r.url.params["name"] for r in self.requests if r.url.path == "/v1/search"]
+
+    @property
+    def forecasts(self) -> list[httpx.Request]:
+        return [r for r in self.requests if r.url.path == "/v1/forecast"]
 
 
 class Clock:

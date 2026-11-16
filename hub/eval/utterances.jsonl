@@ -200,3 +200,7 @@
 {"text": "Shuffle a Christmas playlist on Spotify", "intent": "music.play", "slots": {"query": "Christmas", "kind": "playlist", "shuffle": true}}
 {"text": "could you mix up some Raffi for us", "intent": "music.play", "slots": {"query": "Raffi", "shuffle": true}}
 {"text": "pop on a shuffled road trip playlist", "intent": "music.play", "slots": {"query": "road trip", "kind": "playlist", "shuffle": true}}
+{"text": "What's the forecast today in Portland", "intent": "weather.forecast", "slots": {"when": "today", "place": "Portland"}}
+{"text": "is it gonna be sunny in Portland Oregon tomorrow", "intent": "weather.forecast", "slots": {"when": "tomorrow", "place": "Portland"}}
+{"text": "how hot is it over in Phoenix right now", "intent": "weather.current", "slots": {"place": "Phoenix"}}
+{"text": "should grandma bring an umbrella in Vancouver this weekend", "intent": "weather.rain", "slots": {"when": "this_weekend", "place": "Vancouver"}}

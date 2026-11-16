@@ -75,11 +75,22 @@ developer.apple.com, then Certificates, Identifiers & Profiles, then Identifiers
 2. Description: `Coco Display`. Bundle ID: **Explicit**, `com.stormkiln.heycoco.display`.
    If Apple says it is taken (bundle IDs are global), pick your own, for example
    `com.<yourname>.coco.display`, and use it in step 5.
-3. Capabilities: leave the defaults. Coco needs none of the optional ones today (if a later
-   build adds MusicKit, tick it here then).
+3. Capabilities: leave the defaults. Then, under **App Services**, tick **MusicKit** (the
+   Apple Music fallback, #42; see `docs/apple-music.md`). Without it the build still uploads,
+   but Apple Music requests fail on the iPad.
 
 Automatic signing can also register the ID on the first archive, but doing it by hand first
 makes step 3 simpler.
+
+### 2b. Register at least one device
+
+Before the first real archive, register at least one device (the kitchen iPad will do):
+developer.apple.com, then Certificates, Identifiers & Profiles, then Devices, then **+**, with
+its name and UDID. Get the UDID by connecting the iPad to the Mac and selecting it in Finder
+(click the line under its name until the identifier shows), or in Xcode, Window, Devices and
+Simulators. Without any registered device, the archive fails with "Your team has no devices from
+which to generate a provisioning profile", even though TestFlight distribution itself doesn't
+need the device.
 
 ### 3. Create the app record in App Store Connect
 
@@ -253,6 +264,7 @@ permissions error, that is the setting to check.
 | Error | Fix |
 |---|---|
 | `No Accounts` / `No signing certificate "iOS Distribution" found` | Set the `ASC_*` env vars (the archive then authenticates with the API key), or sign in to Xcode with your Apple ID (Xcode, Settings, Accounts). |
+| `Your team has no devices from which to generate a provisioning profile` | Register at least one device (UDID) for the team (step 2b), then archive again. |
 | `No profiles for '...' were found` | The bundle ID in `Signing.local.xcconfig` doesn't match one registered to your team (step 2), or `DEVELOPMENT_TEAM` is wrong. |
 | `The bundle version must be higher than the previously uploaded version` | Build number already used: pull `main`, or pass `BUILD_NUMBER=` higher than the last upload. The preflight normally catches this before archiving. |
 | `HEAD is not on origin/main's history` | Merge first, then `git fetch origin main` and upload from `main`. Rehearsals (`dry_run`) are allowed from any branch. |

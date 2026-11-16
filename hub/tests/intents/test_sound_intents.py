@@ -147,13 +147,15 @@ async def test_play_cow(say, library):
     action = await say("what does a cow say")
     cow = library.get("cow")
     assert cow is not None
-    assert action.say == "A cow says moo!"
+    # #94: the clip is the answer; the line is a caption on screen, never spoken.
+    assert action.say is None
     assert action.intent == "sound.play"
     assert action.view == SoundView(
         name="cow",
         clip_url="/v1/media/sounds/clips/cow.m4a",
         image_url="/v1/media/sounds/images/cow.jpg",
         attribution=cow.attribution_text(),
+        caption="A cow says moo!",
     )
 
 
@@ -181,7 +183,18 @@ async def test_play_table(say, library, phrase, sound_id, spoken):
     assert sound is not None
     assert action.view.clip_url == sound.clip_url_path()
     assert action.view.image_url == sound.image_url_path()
-    assert action.say == spoken
+    assert action.view.caption == spoken
+    assert action.say is None
+
+
+@pytest.mark.anyio
+async def test_fire_engine_plays_without_speaking(say):
+    # The kitchen's utterance from #94: the Display played the clip and also spoke this.
+    action = await say("What sound does a fire engine make")
+    assert action.intent == "sound.play"
+    assert isinstance(action.view, SoundView)
+    assert action.view.caption == "A fire truck goes nee naw!"
+    assert action.say is None
 
 
 @pytest.mark.anyio
@@ -210,6 +223,7 @@ async def test_again_replays_the_last_sound(say):
     again = await say("play it again", SOUND)
     assert again.intent == "sound.again"
     assert again.view == first.view
+    assert again.view.caption == "A duck says quack!"
     assert again.say is None
 
 

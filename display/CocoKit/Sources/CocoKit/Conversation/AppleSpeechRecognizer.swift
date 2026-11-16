@@ -12,7 +12,7 @@ public final class AppleSpeechRecognizer: SpeechRecognizer {
     public let locale: Locale
     public let policy: UtteranceEndpointer.Policy
     /// Echo cancellation on the mic (`VoiceLoop` turns it on so Coco can be heard over its own
-    /// media and alarm).
+    /// media; not for the bare "stop" while the alarm rings, see `AlarmAudioPolicy`).
     public let voiceProcessing: Bool
     /// After the audio ends, how long to wait for the recognizer's final before using the last
     /// partial instead.

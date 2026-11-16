@@ -91,8 +91,9 @@ class Spotify(BaseModel):
     ``https://127.0.0.1:<port>/spotify/callback`` (``http://`` with ``tls.enabled = false``;
     Spotify wants a loopback IP literal, not ``localhost``)."""
     device_name: str | None = None
-    """The Spotify Connect device to play on, e.g. "Kitchen iPad" (as the Spotify app names
-    it). Unset: the active device, or the only one."""
+    """The Spotify Connect device to play on, as the Spotify app names it: an iPad is always
+    "iPad" (iPadOS hides custom device names from apps). Unset: the active device, or the only
+    one."""
     wake_wait_s: Annotated[float, Field(ge=0, le=30)] = 12.0
     """When the iPad is missing from Spotify's device list, the Hub asks the Display to open
     the Spotify app (``spotify.wake_requested``) and lists devices every ``wake_poll_s`` for
@@ -124,6 +125,8 @@ class Weather(BaseModel):
     forecast_url: str = "https://api.open-meteo.com/v1/forecast"
     """Open-Meteo forecast endpoint. Only changed by tests (pointed at a dead port to simulate
     the internet being down)."""
+    geocoding_url: str = "https://geocoding-api.open-meteo.com/v1/search"
+    """Open-Meteo geocoding endpoint, for places named in a question (#93)."""
 
 
 class Discovery(BaseModel):

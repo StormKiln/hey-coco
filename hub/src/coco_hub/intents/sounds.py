@@ -1,9 +1,12 @@
 """Sound intents: "what does a cow say", "play a fire truck sound", "moo", and "again".
 
 Handlers look sounds up in the ``SoundLibrary`` in ``ctx.services["sounds"]`` (names and
-aliases, plural- and article-tolerant). The sound view carries Hub-relative media paths
-(``/v1/media/sounds/...``); the Display resolves them against the Hub base URL and sends its
-bearer token.
+aliases, plural- and article-tolerant). A found sound is answered with the clip alone: ``say``
+is null and the line ("A fire truck goes nee naw!") is the view's ``caption``, shown on screen
+but never spoken over the clip (#94). Only "I don't have that sound yet" is spoken.
+
+The sound view carries Hub-relative media paths (``/v1/media/sounds/...``); the Display
+resolves them against the Hub base URL and sends its bearer token.
 
 "Again" replays the last sound played. That memory lives in the registry built by
 ``register`` (one per app, one Display at a time), not in a module global.
@@ -177,6 +180,7 @@ def view(sound: Sound) -> SoundView:
         clip_url=sound.clip_url_path(),
         image_url=sound.image_url_path(),
         attribution=sound.attribution_text(),
+        caption=spoken(sound),
     )
 
 
@@ -204,7 +208,8 @@ def register(registry: IntentRegistry, *, rng: random.Random | None = None) -> N
         if sound is None:
             return Reply(say=suggestion(library, name))
         last.sound = sound
-        return Reply(say=spoken(sound), view=view(sound))
+        # The clip is the answer; speaking the caption too talked over it (#94).
+        return Reply(say=None, view=view(sound))
 
     def sound_again(match: Match, request: UtteranceRequest, ctx: IntentContext) -> Reply:
         if last.sound is None:

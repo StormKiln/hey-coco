@@ -49,6 +49,18 @@ struct WeatherScreen: View {
         .padding(.bottom, 140)
         .contentShape(Rectangle())
         .simultaneousGesture(TapGesture().onEnded { autoReturn?.noteInteraction() })
+        // A place the person named (#93), in the clear band above the content.
+        .overlay(alignment: .top) {
+            if let place = payload.place {
+                Text(place)
+                    .font(.system(size: 44, weight: .semibold, design: .rounded))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                    .padding(.horizontal, 160)
+                    .padding(.top, 24)
+                    .accessibilityAddTraits(.isHeader)
+            }
+        }
         // Bottom-left, like the idle screen's Timers button: the top-left corner holds the
         // wake-word hint.
         .overlay(alignment: .bottomLeading) {

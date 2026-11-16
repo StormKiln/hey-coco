@@ -7,7 +7,8 @@ network and every call raises ``SpotifyNotConfigured`` ("Spotify isn't set up ye
 
 Device targeting: the device named ``spotify.device_name`` (case-insensitive), else the
 active device, else the only one. If it isn't in the device list, the ``DeviceWaker`` gets one
-chance to bring it back before Coco says "Open Spotify on the iPad once, then try again."
+chance to bring it back (polling the list, #95) before Coco says "Open Spotify on the iPad
+once, then try again."
 
 Now playing: ``run()`` polls ``currently-playing`` and publishes a ``now_playing`` event when
 it changes. It polls every 5 s for 10 minutes after any Spotify command, then every 60 s while
@@ -60,18 +61,20 @@ _SEARCH_KINDS: dict[MusicKind, tuple[ItemKind, ...]] = {
 class DeviceWaker(Protocol):
     """Tries to make the iPad's Spotify app show up as a Connect device again.
 
-    Returns True when it did something worth re-listing devices for. Spotify drops an idle
-    iPad from the device list; how to bring it back is what spike #5 is finding out.
+    After trying, it calls ``appeared`` (which lists devices again) until that returns True,
+    and returns True only then. Spotify drops an idle iPad from the device list; spike #5.
     """
 
-    async def wake(self, device_name: str | None) -> bool: ...
+    async def wake(
+        self, device_name: str | None, appeared: Callable[[], Awaitable[bool]]
+    ) -> bool: ...
 
 
 class NoopWaker:
     """Does nothing (tests, and ``spotify.wake_wait_s = 0``). The Hub's real waker is
     ``coco_hub.media.spotify.waker.DisplayWaker``."""
 
-    async def wake(self, device_name: str | None) -> bool:
+    async def wake(self, device_name: str | None, appeared: Callable[[], Awaitable[bool]]) -> bool:
         return False
 
 
@@ -192,8 +195,16 @@ class SpotifyService:
 
     async def target_device(self) -> Device:
         device = choose_device(await self._client.devices(), self.device_name)
-        if device is None and await self._waker.wake(self.device_name):
-            device = choose_device(await self._client.devices(), self.device_name)
+        if device is None:
+            found: Device | None = None
+
+            async def appeared() -> bool:
+                nonlocal found
+                found = choose_device(await self._client.devices(), self.device_name)
+                return found is not None
+
+            if await self._waker.wake(self.device_name, appeared):
+                device = found
         if device is None:
             raise SpotifyNoDevice(f"device {self.device_name or '(any)'} not visible")
         return device
@@ -210,8 +221,10 @@ class SpotifyService:
         items = await self._client.search(query, _SEARCH_KINDS[kind])
         return rank(items, query)
 
-    async def play(self, item: Item | None) -> None:
-        """Play ``item`` on the target device; None resumes whatever Spotify had there."""
+    async def play(self, item: Item | None, *, shuffle: bool = False) -> None:
+        """Play ``item`` on the target device; None resumes whatever Spotify had there.
+        ``shuffle`` turns Spotify's shuffle on once it is playing there (left as is
+        otherwise)."""
         self.ensure_ready()
         device = await self.target_device()
         if item is None:
@@ -220,6 +233,8 @@ class SpotifyService:
             await self._client.play(device.id, uris=[item.uri])
         else:
             await self._client.play(device.id, context_uri=item.uri)
+        if shuffle:
+            await self._client.set_shuffle(True, device.id)
         self.touch()
 
     # --- transport ---------------------------------------------------------------------

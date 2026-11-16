@@ -61,7 +61,12 @@ def create_app(
         app.state.services["youtube"] = youtube
         # Always registered; inert (no network, no poller) without spotify.client_id.
         # A missing iPad: ask the Display to open Spotify (#5; a no-op under Guided Access).
-        waker = DisplayWaker(app.state.events, wait_s=settings.spotify.wake_wait_s, clock=clock)
+        waker = DisplayWaker(
+            app.state.events,
+            wait_s=settings.spotify.wake_wait_s,
+            poll_s=settings.spotify.wake_poll_s,
+            clock=clock,
+        )
         spotify = SpotifyService.from_settings(
             app.state.db,
             settings,

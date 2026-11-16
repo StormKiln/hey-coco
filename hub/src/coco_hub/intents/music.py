@@ -8,7 +8,8 @@ only runs for Spotify (docs/apple-music.md).
 
 - ``music.play`` covers "play X" without "on YouTube": "play Raffi", "play some music", "play
   the Frozen soundtrack", "put on my Discover Weekly", "play Taylor Swift on Spotify", "play
-  songs by the Wiggles", "play Baby Shark". ``parse_music_request`` reads the kind (artist /
+  songs by the Wiggles", "play Baby Shark", "shuffle a Christmas playlist" (#95: the
+  ``shuffle`` slot turns Spotify's shuffle on). ``parse_music_request`` reads the kind (artist /
   album / playlist / song / any) from the wording; "any" searches every kind and ``rank``
   picks the best. A bare "play some music" resumes whatever Spotify last had on the iPad.
 - ``music.now_playing``: "what's playing", "what song is this", "who sings this".
@@ -36,6 +37,7 @@ from coco_hub.protocol import MusicPlay, NowPlayingView, UtteranceRequest
 NO_RESULTS = "I couldn't find that on Spotify."
 NOTHING_PLAYING = "Nothing's playing on Spotify."
 PLAYING_MUSIC = "Playing music on Spotify."
+SHUFFLING_MUSIC = "Shuffling music on Spotify."
 APPLE_PLAYING_MUSIC = "Playing music on Apple Music."
 APPLE_NOW_PLAYING = "Here's what's playing."
 
@@ -66,9 +68,9 @@ _RULES: tuple[tuple[re.Pattern[str], MusicKind], ...] = tuple(
         (r"(?:the )?(?:artist|band|singer|group) (?P<q>.+)", "artist"),
         (r"(?:the )?(?:album|record) (?P<q>.+)", "album"),
         (r"(?:the )?(?P<q>.+? soundtrack)", "album"),
-        (r"(?:the |my |our )?(?P<q>.+?) (?:album|record)", "album"),
+        (r"(?:the |my |our |an? )?(?P<q>.+?) (?:album|record)", "album"),
         (r"(?:the |my |our )?playlist (?P<q>.+)", "playlist"),
-        (r"(?:the |my |our )?(?P<q>.+?) playlist", "playlist"),
+        (r"(?:the |my |our |an? )?(?P<q>.+?) playlist", "playlist"),
         (r"(?:my|our) (?P<q>.+)", "playlist"),
         (r"(?:the )?(?:song|track|tune) (?P<q>.+)", "song"),
         (r"(?:the )?(?P<q>.+?) (?:song|track|tune)", "song"),
@@ -126,8 +128,14 @@ def _apple_music_play(query: str, kind: MusicKind) -> Reply:
     return Reply(say=say, view=NowPlayingView(), commands=(MusicPlay(query=query, kind=kind),))
 
 
+def _shuffle(match: Match) -> bool:
+    """The rules capture the shuffle wording; Qwen's boolean arrives as "true" / "false"."""
+    return match.slots.get("shuffle", "false") not in ("", "false")
+
+
 async def music_play(match: Match, request: UtteranceRequest, ctx: IntentContext) -> Reply:
     asked = " ".join(match.slots.get("query", "").split())
+    shuffle = _shuffle(match)
     kind, query = parse_music_request(asked)
     if match.slots.get("kind") in MUSIC_KINDS:
         kind = match.slots["kind"]  # type: ignore[assignment]  # from Qwen
@@ -143,8 +151,8 @@ async def music_play(match: Match, request: UtteranceRequest, ctx: IntentContext
     try:
         spotify.ensure_ready()
         if not query:
-            await spotify.play(None)
-            return Reply(say=PLAYING_MUSIC, view=NowPlayingView())
+            await spotify.play(None, shuffle=shuffle)
+            return Reply(say=SHUFFLING_MUSIC if shuffle else PLAYING_MUSIC, view=NowPlayingView())
         items = await spotify.search(query, kind)
         first_denial: MediaDecision | None = None
         for item in items:
@@ -158,9 +166,10 @@ async def music_play(match: Match, request: UtteranceRequest, ctx: IntentContext
                 )
             )
             if decision.allowed:
-                await spotify.play(item)
+                await spotify.play(item, shuffle=shuffle)
+                verb = "Shuffling" if shuffle else "Playing"
                 return Reply(
-                    say=f"Playing {spoken_name(item.name)} on Spotify.", view=NowPlayingView()
+                    say=f"{verb} {spoken_name(item.name)} on Spotify.", view=NowPlayingView()
                 )
             first_denial = first_denial or decision
     except SpotifyError as exc:
@@ -204,6 +213,9 @@ _NOT_OTHER = (
     r"alarm|alarms)\b)"
 )
 _Q = r"(?P<query>[a-z0-9].*?)"
+# "shuffle X", "shuffle play X"; or "play X on shuffle" / "play X shuffled".
+_SHUFFLE = r"(?P<shuffle>shuffle)(?: play| me)?"
+_ON_SHUFFLE = r" (?P<shuffle>on shuffle|shuffled)"
 _THIS = r"(?:this|that)"
 _SONG = r"(?:song|music|track|tune)"
 
@@ -215,6 +227,9 @@ def register(registry: IntentRegistry) -> None:
             patterns=[
                 rf"{_MPLAY} (?:me )?{_NOT_TRANSPORT}{_Q} on spotify",
                 rf"{_MPLAY} (?:me )?{_NOT_TRANSPORT}{_NOT_OTHER}{_Q}",
+                rf"{_SHUFFLE} {_NOT_TRANSPORT}{_Q} on spotify",
+                rf"{_SHUFFLE} {_NOT_TRANSPORT}{_NOT_OTHER}{_Q}",
+                rf"{_MPLAY} (?:me )?{_NOT_TRANSPORT}{_Q}{_ON_SHUFFLE}(?: on spotify)?",
             ],
             handler=music_play,
             description=(
@@ -226,13 +241,18 @@ def register(registry: IntentRegistry) -> None:
                 "query": LlmSlot(
                     hint=(
                         "for music.play, query is what to play, as said (an artist, album, "
-                        "playlist or song name); leave it out for just 'some music'."
+                        "playlist or song name, or a theme like 'Christmas' for 'shuffle a "
+                        "Christmas playlist'); leave it out only for just 'some music'."
                     ),
                 ),
                 # Same keys and enum as the Qwen spike's schema (docs/spikes/qwen.md).
                 "kind": LlmSlot(
                     enum=MUSIC_KINDS,
                     hint="kind is artist, album, playlist, song, or any if unsure.",
+                ),
+                "shuffle": LlmSlot(
+                    type="boolean",
+                    hint="shuffle is true when the person said shuffle or shuffled.",
                 ),
             },
         )

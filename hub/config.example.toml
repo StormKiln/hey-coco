@@ -65,8 +65,9 @@ daily_quota = 9000        # API units/day before Coco refuses searches (a search
 # redirect_uri = "https://127.0.0.1:8765/spotify/callback"  # default; must match the app
 # device_name = "iPad"           # Spotify Connect name of the iPad: always "iPad" (iPadOS hides
                                  # custom names from apps); ambiguous if 2 iPads share the account
-# wake_wait_s = 4.0              # iPad missing: ask the Display to open Spotify, wait this
-                                 # long (0 = off; does nothing under Guided Access, spike #5)
+# wake_wait_s = 12.0             # iPad missing: ask the Display to open Spotify, wait up to
+                                 # this long (0 = off; does nothing under Guided Access, spike #5)
+# wake_poll_s = 1.0              # how often to look for the iPad while waiting
 
 [music]
 # Who plays "play Raffi": "spotify" (above) or "apple_music" (MusicKit on the iPad, #42).

@@ -65,6 +65,31 @@ public enum DiagnosticsFormat {
         }
     }
 
+    /// The last Spotify wake (#5, #116): whether the Spotify SDK brought Coco back, and why not.
+    public static func spotifyWake(_ outcome: SpotifyWakeOutcome?) -> String {
+        switch outcome {
+        case nil: "None yet"
+        case .ignored(.guidedAccess)?: "Skipped (Guided Access)"
+        case .ignored(.tooSoon)?: "Skipped (opened Spotify less than a minute ago)"
+        case .openedScheme(let fallback)?: "Opened Spotify (\(spotifyFallback(fallback)))"
+        case .appRemoteRequested?: "Spotify SDK: waiting for Spotify"
+        case .appRemoteAuthorized?: "Spotify SDK: back in Coco"
+        case .appRemoteReturned?: "Spotify SDK: back in Coco (redirect not read)"
+        case .appRemoteReturnedWithError(let reason)?: "Spotify SDK: back in Coco, Spotify said \(reason)"
+        case .appRemoteFailed(let reason)?: "Spotify SDK failed: \(reason)"
+        }
+    }
+
+    private static func spotifyFallback(_ fallback: SpotifyWakeDecision.Fallback) -> String {
+        switch fallback {
+        case .notPlaying: "not a play request"
+        case .noClientID: "no client ID from the Hub"
+        case .invalidURI: "not a Spotify URI"
+        case .sdkUnavailable: "no Spotify SDK"
+        case .sdkFailedRecently: "Spotify SDK failed recently"
+        }
+    }
+
     /// "host:port"; the token is deliberately left out.
     public static func address(_ endpoint: HubEndpoint?) -> String {
         guard let endpoint else { return "Not found yet" }

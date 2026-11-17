@@ -89,8 +89,21 @@ final class FakeRecognizer: SpeechRecognizer {
     private(set) var stopCount = 0
     private(set) var cancelCount = 0
     private(set) var continuation: AsyncThrowingStream<SpeechTranscript, any Error>.Continuation?
+    /// Audio handed over by `start(audio:)` (#112), in the order it arrived.
+    let audio = FrameLog()
+    private(set) var audioStartCount = 0
+    private var feed: (any SpeechAudioFeed)?
 
     func requestPermission() async -> SpeechPermission { permission }
+
+    /// Like `start()`, but listening to `audio` (attached until `stop()` / `cancel()`).
+    func start(audio feed: any SpeechAudioFeed) throws -> AsyncThrowingStream<SpeechTranscript, any Error> {
+        let stream = try start()
+        audioStartCount += 1
+        self.feed = feed
+        feed.attach(audio.sink)
+        return stream
+    }
 
     func start() throws -> AsyncThrowingStream<SpeechTranscript, any Error> {
         startCount += 1
@@ -100,11 +113,20 @@ final class FakeRecognizer: SpeechRecognizer {
         return stream
     }
 
-    func stop() { stopCount += 1 }
+    func stop() {
+        stopCount += 1
+        detachFeed()
+    }
 
     func cancel() {
         cancelCount += 1
+        detachFeed()
         continuation?.finish()
+    }
+
+    private func detachFeed() {
+        feed?.detach()
+        feed = nil
     }
 
     /// Sends one transcript update to the controller.

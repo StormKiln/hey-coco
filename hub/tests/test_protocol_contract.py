@@ -113,6 +113,21 @@ def test_spotify_wake_requested_event_decodes():
     event = p.EVENT_ADAPTER.validate_json(raw)
     assert isinstance(event, p.SpotifyWakeRequestedEvent)
     assert event.device_name == "Kitchen iPad"
+    assert event.play is True
+    assert event.uri == "spotify:artist:4RaffiArtistId0000000a"
+    assert event.client_id == "0123456789abcdef0123456789abcdef"
+
+
+def test_spotify_wake_requested_open_only_event_decodes():
+    raw = (FIXTURES / "event_spotify_wake_requested_open_only.json").read_text()
+    event = p.EVENT_ADAPTER.validate_json(raw)
+    assert isinstance(event, p.SpotifyWakeRequestedEvent)
+    assert (event.device_name, event.play, event.uri, event.client_id) == (
+        None,
+        False,
+        None,
+        None,
+    )
 
 
 def test_events_are_discriminated_by_type():

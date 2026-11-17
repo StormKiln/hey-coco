@@ -26,7 +26,8 @@ public protocol VoiceAudioSession: AnyObject {
     /// Play-and-record with echo cancellation, mixing with (not ducking) other audio.
     /// Idempotent: while an activation is in flight, joins it rather than starting another.
     func activateStandby() async throws
-    /// Like standby, but ducks other audio. Called with the mic engines stopped.
+    /// Like standby, but ducks other audio. After a wake word, called with the wake word's mic
+    /// still running (it is capturing the request, #112); after a tap, with the mic stopped.
     func beginConversation() async throws
     /// Plays the listening chime and returns when it has finished (so the mic doesn't hear it).
     func playListeningChime() async

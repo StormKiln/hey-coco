@@ -139,10 +139,10 @@ private func action(say: String?, view: ViewSpec? = nil, commands: [Command] = [
         #expect(
             h.log.entries == [
                     "session:standby", "wake:start",
-                    // wake → hand the mic over before the recognizer opens it
-                    "wake:stop", "session:duck", "session:chime", "recognizer:start",
-                    // recognizer done → wake word back for barge-in
-                    "wake:start", "hub:capital of france", "view:nil", "say:Paris.",
+                    // wake → the wake-word mic keeps running and hands its audio over (#112)
+                    "session:duck", "session:chime", "recognizer:start(captured)",
+                    // recognizer done → the same mic listens for the wake word again (barge-in)
+                    "wake:resume", "hub:capital of france", "view:nil", "say:Paris.",
                     // turn over → unduck, re-arm
                     "wake:stop", "session:off", "session:standby", "wake:start",
                 ])
@@ -175,7 +175,9 @@ private func action(say: String?, view: ViewSpec? = nil, commands: [Command] = [
         h.wake?.detect()
         #expect(await waitUntil { h.synthesizer.stopCount > 0 && h.loop.state == .listening })
         #expect(h.recognizer.fake.startCount == 2)
-        #expect(h.wake?.isRunning == false)
+        // The barge-in hears what follows the wake word too, from the same mic.
+        #expect(h.recognizer.fake.audioStartCount == 2)
+        #expect(h.wake?.isRunning == true)
     }
 
     @Test func cancellingDuringTheChimeReArms() async {
@@ -187,6 +189,116 @@ private func action(say: String?, view: ViewSpec? = nil, commands: [Command] = [
         #expect(await waitUntil { h.loop.state == .idle(armed: true) })
         #expect(h.wake?.isRunning == true)
         #expect(h.loop.ducking == false)
+    }
+
+    // MARK: - Nothing said after the wake word is lost (#112)
+
+    @Test func everythingSaidAfterTheWakeWordReachesTheRecognizerInOrder() async {
+        let h = Harness()
+        await h.loop.start()
+        await h.loop.settled()
+        h.wake?.hear([1])  // before "hey coco": not part of the request
+        h.wake?.detect()
+        // "show me" straight after the wake word, before the session switched or the chime...
+        h.wake?.hear([2])
+        h.wake?.hear([3])
+        // ...over the chime...
+        h.session.duringChime = { h.wake?.hear([4]) }
+        #expect(await waitUntil { h.recognizer.fake.continuation != nil && h.loop.state == .listening })
+        // ...and live once the recognizer runs.
+        h.wake?.hear([5])
+        #expect(h.recognizer.fake.audio.received == [[2], [3], [4], [5]])
+        // One mic the whole time: the wake word's was never stopped, the recognizer opened none.
+        #expect(h.wake?.isRunning == true)
+        #expect(!h.log.entries.contains("wake:stop"))
+        #expect(h.log.entries.contains("recognizer:start(captured)"))
+        #expect(!h.log.entries.contains("recognizer:start"))
+        #expect(h.loop.wakeWord == .paused)
+    }
+
+    @Test func theRecognizerStopsGettingAudioOnceItIsDone() async {
+        let h = Harness()
+        h.host.result = .success(action(say: nil))
+        h.host.holds = true
+        await h.loop.start()
+        await h.loop.settled()
+        await h.wakeAndListen()
+        h.wake?.hear([1])
+        h.recognizer.fake.stop()
+        h.wake?.hear([2])
+        h.recognizer.fake.hear(.final("hello"))
+        #expect(await waitUntil { h.loop.state == .thinking })
+        h.wake?.hear([3])
+        #expect(h.recognizer.fake.audio.received == [[1]])
+        // Listening for the wake word again on the same mic.
+        #expect(h.loop.wakeWord == .armed)
+        #expect(h.wake?.startCount == 1)
+        h.host.respond()
+        await h.loop.conversation.waitUntilFinished()
+    }
+
+    @Test func tapToTalkOpensTheRecognizersOwnMicWithNoPreRoll() async {
+        let h = Harness()
+        h.host.result = .success(action(say: nil))
+        await h.loop.start()
+        await h.loop.settled()
+        h.wake?.hear([1])
+        h.loop.conversation.micTapped()
+        #expect(await waitUntil { h.recognizer.fake.continuation != nil })
+        #expect(h.recognizer.fake.audioStartCount == 0)
+        #expect(h.recognizer.fake.audio.received.isEmpty)
+        #expect(h.wake?.isRunning == false)
+        #expect(h.log.entries.contains("recognizer:start"))
+    }
+
+    @Test func aRecognizerThatCannotTakeAudioGetsTheMicHandedOverAsBefore() async {
+        let log = CallLog()
+        let recognizer = MicOnlyRecognizer(log: log)
+        let wake = FakeWakeWordEngine()
+        wake.log = { log.record("wake:\($0)") }
+        let loop = VoiceLoop(
+            host: FakeConversationHost(log: log), wakeWord: .available(wake),
+            stopWord: FakeStopWordListener(log: log), recognizer: recognizer,
+            synthesizer: FakeSynthesizer(log: log), session: FakeVoiceAudioSession(log: log),
+            requestMicPermission: { true }, micAlreadyGranted: { true }, sleep: ManualSleeper().sleep)
+        await loop.start()
+        await loop.settled()
+        wake.detect()
+        #expect(await waitUntil { recognizer.fake.continuation != nil })
+        #expect(wake.isRunning == false)
+        let stop = log.entries.lastIndex(of: "wake:stop")
+        let start = log.entries.firstIndex(of: "recognizer:start")
+        #expect(stop != nil && start != nil && stop! < start!)
+    }
+
+    @Test func cancellingDuringTheChimeAfterAWakeListensForTheWakeWordAgain() async {
+        let h = Harness()
+        await h.loop.start()
+        await h.loop.settled()
+        h.session.duringChime = { h.loop.conversation.cancel() }
+        h.wake?.detect()
+        #expect(await waitUntil { h.loop.state == .idle(armed: true) })
+        await h.loop.settled()
+        #expect(h.recognizer.fake.startCount == 0)
+        #expect(h.wake?.isRunning == true)
+        // The capture was dropped with the mic: a new wake starts a fresh one.
+        h.session.duringChime = nil
+        h.wake?.detect()
+        h.wake?.hear([7])
+        #expect(await waitUntil { h.recognizer.fake.continuation != nil })
+        #expect(h.recognizer.fake.audio.received == [[7]])
+    }
+
+    @Test func routeChangeWhileListeningKeepsTheCapture() async {
+        let h = Harness()
+        await h.loop.start()
+        await h.loop.settled()
+        await h.wakeAndListen()
+        h.session.send(.routeChanged)
+        await h.loop.settled()
+        h.wake?.hear([1])
+        #expect(h.recognizer.fake.audio.received == [[1]])
+        #expect(!h.log.entries.contains("wake:stop"))
     }
 
     // MARK: - Recovery

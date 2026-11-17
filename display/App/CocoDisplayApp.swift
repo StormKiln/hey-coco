@@ -13,9 +13,12 @@ struct CocoDisplayApp: App {
                 .task {
                     // The alarm tone lives in Library/Sounds so the notification backup can use it.
                     _ = try? AlarmTone.installNotificationSound()
-                    model.installLiveMusic()  // Apple Music (#42) + Spotify wake (#5)
+                    // Apple Music (#42) + Spotify wake (#5) through the Spotify iOS SDK (#116)
+                    model.installLiveMusic(spotifyAppRemote: SpotifyAppRemoteBridge())
                     model.start()
                 }
+                // Spotify's redirect back to Coco after an SDK wake (#116).
+                .onOpenURL { model.handleOpenURL($0) }
                 // A new network path may mean the Hub has a new address: look for it again.
                 .task {
                     for await _ in NetworkPathChanges.updates() { model.networkChanged() }

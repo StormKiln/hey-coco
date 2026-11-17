@@ -6,6 +6,11 @@ Every clip and picture comes from Wikimedia Commons under a free licence (CC0, p
 
 ## Animals
 
+### alligator (`alligator`)
+
+- Sound: Wikimedia Commons user Borisblue, [Public domain](<https://en.wikipedia.org/wiki/Public_domain>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Alligatorbellow1.ogg>)
+- Picture: User:Postdlf, [CC BY-SA 3.0](<http://creativecommons.org/licenses/by-sa/3.0/>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:American_Alligator.jpg>)
+
 ### bear (`bear`)
 
 - Sound: NPS & MSU Acoustic Atlas / Jennifer Jerrett, [Public domain](<https://en.wikipedia.org/wiki/Public_domain>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Yellowstone_sound_library_-_Grizzly_Bear_vocalizations_-_001.mp3>)
@@ -21,6 +26,11 @@ Every clip and picture comes from Wikimedia Commons under a free licence (CC0, p
 - Sound: Wikimedia Commons user FoeNyx, [CC BY-SA 3.0](<http://creativecommons.org/licenses/by-sa/3.0/>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Turdus_merula_male_song_at_dawn(20s).ogg>)
 - Picture: Andreas Trepte, [CC BY-SA 2.5](<https://creativecommons.org/licenses/by-sa/2.5>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Common_Blackbird.jpg>)
 
+### camel (`camel`)
+
+- Sound: J.P Longre. S. Mercier. M.Harry. P. Louisons. C. Ferry. G. Muys. K. Lens. B. Picard. V. Sandrilli. H. Van Hoeven. L. Rodriguez. B. Couderc, [CC BY-SA 3.0](<https://creativecommons.org/licenses/by-sa/3.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Cri_du_chameau.ogg>)
+- Picture: Christian Ursilva from Copenhagen, Denmark, [CC BY-SA 4.0](<https://creativecommons.org/licenses/by-sa/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Camelus_bactrianus_(55026866188).jpg>)
+
 ### cat (`cat`)
 
 - Sound: Tobias Puderer, [CC BY-SA 3.0](<https://creativecommons.org/licenses/by-sa/3.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Felis_silvestris_catus_meows.ogg>)
@@ -31,10 +41,25 @@ Every clip and picture comes from Wikimedia Commons under a free licence (CC0, p
 - Sound: alys, [Public domain](<https://en.wikipedia.org/wiki/Public_domain>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Hen_announcing_shes_lain_an_egg.ogg>)
 - Picture: Thegreenj, [CC BY-SA 3.0](<http://creativecommons.org/licenses/by-sa/3.0/>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Hen_chicken.jpg>)
 
+### chimpanzee (`chimpanzee`)
+
+- Sound: Pawel Fedurek et al., [CC BY 4.0](<https://creativecommons.org/licenses/by/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Pant-hoot_call_made_by_a_male_chimpanzee.ogg>)
+- Picture: Giles Laurent, [CC BY-SA 4.0](<https://creativecommons.org/licenses/by-sa/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:015_Chimpanzee_at_Kibale_forest_National_Park_Photo_by_Giles_Laurent.jpg>)
+
+### cicada (`cicada`)
+
+- Sound: Dhkurt, [CC BY-SA 3.0](<https://creativecommons.org/licenses/by-sa/3.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Cicada_calling_in_Irving,_TX_in_June_of_2012.ogg>)
+- Picture: Judy Gallagher, [CC BY 2.0](<https://creativecommons.org/licenses/by/2.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Cicada_-_Neotibicen_linnei,_Woodbridge,_Virginia.jpg>)
+
 ### cow (`cow`)
 
 - Sound: MichaeltheFox8621, [CC BY-SA 4.0](<https://creativecommons.org/licenses/by-sa/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Single_Cow_Moo.ogg>)
 - Picture: Kim Hansen, [CC BY-SA 3.0](<https://creativecommons.org/licenses/by-sa/3.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Cow_(Fleckvieh_breed)_Oeschinensee_Slaunger_2009-07-07.jpg>)
+
+### coyote (`coyote`)
+
+- Sound: Rybkovich, [CC BY-SA 4.0](<https://creativecommons.org/licenses/by-sa/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Pack_of_coyotes_howling.ogg>)
+- Picture: Yathin S Krishnappa, [CC BY-SA 3.0](<https://creativecommons.org/licenses/by-sa/3.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:2009-Coyote-Yosemite.jpg>)
 
 ### cricket (`cricket`)
 
@@ -51,10 +76,20 @@ Every clip and picture comes from Wikimedia Commons under a free licence (CC0, p
 - Sound: Benoît Van Hecke, [CC BY-SA 4.0](<https://creativecommons.org/licenses/by-sa/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Cuculus_canorus_-_Common_Cuckoo_XC542432.mp3>)
 - Picture: Andy Morffew from Itchen Abbas, Hampshire, UK, [CC BY 2.0](<https://creativecommons.org/licenses/by/2.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Cuckoo_(51169010335).jpg>)
 
+### deer (`deer`)
+
+- Sound: Jugrü, [CC BY-SA 3.0](<https://creativecommons.org/licenses/by-sa/3.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Hirsch_roehrt.ogg>)
+- Picture: Lviatour, [CC BY-SA 3.0](<https://creativecommons.org/licenses/by-sa/3.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Cervus_elaphus_Luc_Viatour_6.jpg>)
+
 ### dog (`dog`)
 
 - Sound: Amada44, [CC BY-SA 3.0](<https://creativecommons.org/licenses/by-sa/3.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Barking_of_a_dog.ogg>)
 - Picture: Dukedestiny01.jpg : "Janneke Vreugdenhil" derivative work: Anka Friedrich ([[User talk:Ankaaswe Trix Friedrich| talk ]]), [Public domain](<https://en.wikipedia.org/wiki/Public_domain>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Golden_Retriever_Dukedestiny01_drvd.jpg>)
+
+### dolphin (`dolphin`)
+
+- Sound: The user Felix.Blume https://freesound.org/people/felix.blume/, [CC0](<http://creativecommons.org/publicdomain/zero/1.0/deed.en>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:161691_felixblume_dolphin-screaming-underwater-in-caribbean-sea-mexico.wav>)
+- Picture: NASA, [Public domain](<https://en.wikipedia.org/wiki/Public_domain>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Tursiops_truncatus_01.jpg>)
 
 ### donkey (`donkey`)
 
@@ -71,6 +106,11 @@ Every clip and picture comes from Wikimedia Commons under a free licence (CC0, p
 - Sound: தகவலுழவன், [CC0](<http://creativecommons.org/publicdomain/zero/1.0/deed.en>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Elephant_voice_-_trumpeting.ogg>)
 - Picture: Yathin S Krishnappa, [CC BY-SA 3.0](<https://creativecommons.org/licenses/by-sa/3.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Elephas_maximus_(Bandipur).jpg>)
 
+### elk (`elk`)
+
+- Sound: Jim Pisarowicz, [Public domain](<https://en.wikipedia.org/wiki/Public_domain>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:American_Elk_Bugling.ogg>)
+- Picture: Membeth, [CC0](<http://creativecommons.org/publicdomain/zero/1.0/deed.en>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Jasper.Wapiti-Hirsch.P1033401.jpg>)
+
 ### frog (`frog`)
 
 - Sound: MichaeltheFox8621, [CC BY-SA 4.0](<https://creativecommons.org/licenses/by-sa/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Single_Frog_Croak.oga>)
@@ -80,6 +120,11 @@ Every clip and picture comes from Wikimedia Commons under a free licence (CC0, p
 
 - Sound: stephan, [Public domain](<https://en.wikipedia.org/wiki/Public_domain>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Herd_of_goats_bleating.ogg>)
 - Picture: Kuebi = Armin Kübelbeck, [CC BY-SA 3.0](<https://creativecommons.org/licenses/by-sa/3.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Hausziege_04.jpg>)
+
+### goose (`goose`)
+
+- Sound: U.S. Fish and Wildlife Service, [Public domain](<https://en.wikipedia.org/wiki/Public_domain>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Geese_Honking_(loud).ogg>)
+- Picture: JJ Harrison, [CC BY-SA 3.0](<https://creativecommons.org/licenses/by-sa/3.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Domestic_Goose.jpg>)
 
 ### guinea pig (`guinea_pig`)
 
@@ -91,6 +136,11 @@ Every clip and picture comes from Wikimedia Commons under a free licence (CC0, p
 - Sound: Hü ., [Public domain](<https://en.wikipedia.org/wiki/Public_domain>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Wiehern.ogg>)
 - Picture: Nokota_Horses.jpg : François Marchal derivative work: Dana boomer ( talk ), [CC BY-SA 3.0](<http://creativecommons.org/licenses/by-sa/3.0/>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Nokota_Horses_cropped.jpg>)
 
+### hyena (`hyena`)
+
+- Sound: This file has been provided by the British Library from its digital collections. Links to the British Library's website may be broken as the library recovers from a October 2023 cyber attack, and will be updated once material becomes accessible online. For more information on the attack see: https://www.bl.uk/about/cyber-attack It is also made available on a British Library website ., [CC BY 4.0](<https://creativecommons.org/licenses/by/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Spotted_Hyaena_(Crocuta_crocuta)_(W1CDR0000381_BD12).ogg>)
+- Picture: Charles J. Sharp, [CC BY-SA 4.0](<https://creativecommons.org/licenses/by-sa/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Spotted_hyena_(Crocuta_crocuta).jpg>)
+
 ### kookaburra (`kookaburra`)
 
 - Sound: Powys, V., [CC BY 3.0](<https://creativecommons.org/licenses/by/3.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Dacelo_novaeguineae_ANWC_X00520.opus>)
@@ -100,6 +150,11 @@ Every clip and picture comes from Wikimedia Commons under a free licence (CC0, p
 
 - Sound: த*உழவன், [Public domain](<https://en.wikipedia.org/wiki/Public_domain>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Lion_raring-sound1TamilNadu178.ogg>)
 - Picture: Giles Laurent, [CC BY-SA 4.0](<https://creativecommons.org/licenses/by-sa/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:020_The_lion_king_Snyggve_in_the_Serengeti_National_Park_Photo_by_Giles_Laurent.jpg>)
+
+### loon (`loon`)
+
+- Sound: D. Gordon E. Robertson, [CC BY-SA 3.0](<https://creativecommons.org/licenses/by-sa/3.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Loon_yodel.ogg>)
+- Picture: John Picken from Chicago, USA, [CC BY 2.0](<https://creativecommons.org/licenses/by/2.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Gavia_immer_-Minocqua,_Wisconsin,_USA_-swimming-8.jpg>)
 
 ### monkey (`monkey`)
 
@@ -116,6 +171,11 @@ Every clip and picture comes from Wikimedia Commons under a free licence (CC0, p
 - Sound: Ganesh Mohan T, [CC BY-SA 4.0](<https://creativecommons.org/licenses/by-sa/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:African_grey_parrot_sound.wav>)
 - Picture: Florettesokeng, [CC BY-SA 4.0](<https://creativecommons.org/licenses/by-sa/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Perroquet_%C3%A0_Yampopo_Beach_-_Douala.jpg>)
 
+### peacock (`peacock`)
+
+- Sound: Perlscrypt, [CC BY-SA 3.0](<https://creativecommons.org/licenses/by-sa/3.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:MalePeacockCall.ogg>)
+- Picture: Kandukuru Nagarjun from Bangalore, India, [CC BY 2.0](<https://creativecommons.org/licenses/by/2.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Peacock_on_tree_(52077240794).jpg>)
+
 ### penguin (`penguin`)
 
 - Sound: Benchill, [CC BY 3.0](<https://creativecommons.org/licenses/by/3.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Little_Penguin_(Eudyptula_minor).ogg>)
@@ -131,6 +191,11 @@ Every clip and picture comes from Wikimedia Commons under a free licence (CC0, p
 - Sound: Marie-Lan Taÿ Pamart, [CC BY-SA 4.0](<https://creativecommons.org/licenses/by-sa/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Columba_livia_-_Rock_Dove_XC541143.mp3>)
 - Picture: william_stephens, [CC BY 4.0](<https://creativecommons.org/licenses/by/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Columba_livia_(Rock_Dove,_wild),_Duncansby_Head,_Caithness,_Scotland_1.jpg>)
 
+### rattlesnake (`rattlesnake`)
+
+- Sound: Wikimedia Commons user Borisblue, [Public domain](<https://en.wikipedia.org/wiki/Public_domain>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Rattlesnake.ogg>)
+- Picture: derivative work: Victorrocha ( talk · contribs ) Crotalus_cerastes_mesquite_springs_CA.JPG : Tigerhawkvok ( talk · contribs ), [CC BY-SA 3.0](<https://creativecommons.org/licenses/by-sa/3.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Crotalus_cerastes_mesquite_springs_CA-2.jpg>)
+
 ### rooster (`rooster`)
 
 - Sound: Filo gèn', [CC BY-SA 4.0](<https://creativecommons.org/licenses/by-sa/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Rooster_crowing.ogg>)
@@ -140,6 +205,11 @@ Every clip and picture comes from Wikimedia Commons under a free licence (CC0, p
 
 - Sound: Sonothèque ADVL, [CC0](<http://creativecommons.org/publicdomain/zero/1.0/deed.en>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:XC707075_-_European_Herring_Gull_-_Larus_argentatus.mp3>)
 - Picture: Rhododendrites, [CC BY-SA 4.0](<https://creativecommons.org/licenses/by-sa/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:European_herring_gull_vocalizing_(00170).jpg>)
+
+### seal (`seal`)
+
+- Sound: Department of Conservation, [CC BY 4.0](<https://creativecommons.org/licenses/by/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Arctocephalus_forsteri_-_sound.ogg>)
+- Picture: Charles J. Sharp, [CC BY-SA 4.0](<https://creativecommons.org/licenses/by-sa/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:New_Zealand_fur_seal_(Arctocephalus_forsteri)_male_Kangaroo_Island.jpg>)
 
 ### sheep (`sheep`)
 
@@ -170,6 +240,11 @@ Every clip and picture comes from Wikimedia Commons under a free licence (CC0, p
 
 - Sound: T.Voekler, [CC BY-SA 3.0](<https://creativecommons.org/licenses/by-sa/3.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Great_Spotted_Woodpecker_drum.ogg>)
 - Picture: Charles J. Sharp, [CC BY-SA 4.0](<https://creativecommons.org/licenses/by-sa/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Great_spotted_woodpecker_(Dendrocopos_major)_male_Drenthe.jpg>)
+
+### zebra (`zebra`)
+
+- Sound: DiegoC472, [CC BY-SA 4.0](<https://creativecommons.org/licenses/by-sa/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Gr%C3%A9vys_zebra_(Sound_Effects).ogg>)
+- Picture: Rainbirder, [CC BY-SA 2.0](<https://creativecommons.org/licenses/by-sa/2.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Grevy%27s_Zebra_Stallion.jpg>)
 
 ## Vehicles
 
@@ -208,20 +283,50 @@ Every clip and picture comes from Wikimedia Commons under a free licence (CC0, p
 - Sound: T.Voekler, [CC BY-SA 3.0](<https://creativecommons.org/licenses/by-sa/3.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:A_small_orange_excavator_shoveling_gravel.ogg>)
 - Picture: kallerna, [CC BY-SA 4.0](<https://creativecommons.org/licenses/by-sa/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Excavator_Postiguet_Beach_2.jpg>)
 
+### fighter jet (`fighter_jet`)
+
+- Sound: Work With Sounds / Torsten Nilsson, [CC BY 4.0](<https://creativecommons.org/licenses/by/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:WWS_SaabJ35DDraken8211passingtwotimes.ogg>)
+- Picture: Blockhaj, [CC BY-SA 4.0](<https://creativecommons.org/licenses/by-sa/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:J_35F_1972_(cropped,_removal_of_damage_and_dirt_using_clone_tool).jpg>)
+
 ### fire truck (`fire_truck`)
 
 - Sound: Heggyhomolit, [CC0](<http://creativecommons.org/publicdomain/zero/1.0/deed.en>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Whelen.ogg>)
 - Picture: Loadmaster (David R. Tribble) This image was made by Loadmaster (David R. Tribble) . Email the author: David R. Tribble Also see my personal gallery at Google Photos, [CC BY-SA 3.0](<https://creativecommons.org/licenses/by-sa/3.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:FireEngine-5236.jpg>)
+
+### forklift (`forklift`)
+
+- Sound: Work With Sounds / Werstas, [CC BY 4.0](<https://creativecommons.org/licenses/by/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:WWS_Forklifttruck.ogg>)
+- Picture: Mrbobax, [CC BY-SA 4.0](<https://creativecommons.org/licenses/by-sa/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Material_Lift_Truck.jpg>)
 
 ### garbage truck (`garbage_truck`)
 
 - Sound: Ke4roh, [CC0](<http://creativecommons.org/publicdomain/zero/1.0/deed.en>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Back-up_beeper.ogg>)
 - Picture: Bdonjc, [CC BY-SA 4.0](<https://creativecommons.org/licenses/by-sa/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:LA-City-Sanitation-trash-truck-1.jpg>)
 
+### go-kart (`go_kart`)
+
+- Sound: DrTrumpet, [CC BY-SA 4.0](<https://creativecommons.org/licenses/by-sa/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Wurstelprater_Wien_2024_Bandito_Rennbahn_Go-Kart.ogg>)
+- Picture: Oscar3kings, [CC BY-SA 3.0](<https://creativecommons.org/licenses/by-sa/3.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Kosmic_TS28.JPG>)
+
 ### helicopter (`helicopter`)
 
 - Sound: ezwa, [Public domain](<https://en.wikipedia.org/wiki/Public_domain>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Helicopter_over_a_lake.ogg>)
 - Picture: Fly45yt, [CC BY 4.0](<https://creativecommons.org/licenses/by/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:VH-SUF_Taking_Off.jpg>)
+
+### ice cream truck (`ice_cream_truck`)
+
+- Sound: Work With Sounds / Torsten Nilsson, [CC BY 4.0](<https://creativecommons.org/licenses/by/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:WWS_HomeIceCreamvan.ogg>)
+- Picture: Joekelsey, [CC BY-SA 3.0](<https://creativecommons.org/licenses/by-sa/3.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Hollywood_Cone_Ice_Cream_Truck_1.jpg>)
+
+### lawn mower (`lawn_mower`)
+
+- Sound: Work With Sounds / Werstas, [CC BY 4.0](<https://creativecommons.org/licenses/by/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:WWS_Lawnmower.ogg>)
+- Picture: Shixart1985, [CC BY 2.0](<https://creativecommons.org/licenses/by/2.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Man_using_lawn_mower_to_cut_grass_in_backyard_on_a_sunny_day_in_summer.jpg>)
+
+### motorboat (`motorboat`)
+
+- Sound: Work With Sounds / Werstas, [CC BY 4.0](<https://creativecommons.org/licenses/by/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:WWS_MSThti.ogg>)
+- Picture: Kondicherry, [CC BY-SA 3.0](<https://creativecommons.org/licenses/by-sa/3.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Motorboat_at_Kankaria_lake.JPG>)
 
 ### motorcycle (`motorcycle`)
 
@@ -248,10 +353,20 @@ Every clip and picture comes from Wikimedia Commons under a free licence (CC0, p
 - Sound: NASA, [Public domain](<https://en.wikipedia.org/wiki/Public_domain>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Discovery_-_STS-41D_Liftoff.mp3>)
 - Picture: NASA; edited by jjron (tilt corrected), [Public domain](<https://en.wikipedia.org/wiki/Public_domain>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:STS120LaunchHiRes-edit1.jpg>)
 
+### scooter (`scooter`)
+
+- Sound: Zyance, [CC BY-SA 3.0](<http://creativecommons.org/licenses/by-sa/3.0/>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Vespa.ogg>)
+- Picture: No machine-readable author provided. Kylet assumed (based on copyright claims)., [CC BY 2.5](<https://creativecommons.org/licenses/by/2.5>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:PerthVespa.jpg>)
+
 ### ship (`ship`)
 
 - Sound: Tvabutzku1234, [CC0](<http://creativecommons.org/publicdomain/zero/1.0/deed.en>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Cruise_ship_Albatros_ship_horn.ogg>)
 - Picture: Gary Houston, [CC0](<http://creativecommons.org/publicdomain/zero/1.0/deed.en>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Albatros_Burnie_20200221-001.jpg>)
+
+### sleigh (`sleigh`)
+
+- Sound: The Midnite Wolf, [CC0](<http://creativecommons.org/publicdomain/zero/1.0/deed.en>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Sleigh_bells.wav>)
+- Picture: George Chernilevsky, [Public domain](<https://en.wikipedia.org/wiki/Public_domain>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Horse-drawn_sleighs_2012_G1.jpg>)
 
 ### steam train (`steam_train`)
 
@@ -268,6 +383,11 @@ Every clip and picture comes from Wikimedia Commons under a free licence (CC0, p
 - Sound: Philt3r, [CC BY 4.0](<https://creativecommons.org/licenses/by/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:London_Underground_1996_Stock_train_arriving_in_a_station.ogg>)
 - Picture: mattbuck ( category ), [CC BY-SA 4.0](<https://creativecommons.org/licenses/by-sa/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Stanmore_tube_station_MMB_02_1996_Stock.jpg>)
 
+### tank (`tank`)
+
+- Sound: Beeld en Geluid, [CC BY-SA 3.0](<https://creativecommons.org/licenses/by-sa/3.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Sherman_tank,_met_grote_snelheid_rijden_-_SoundCloud_-_Beeld_en_Geluid.ogg>)
+- Picture: Joost J. Bakker, [CC BY 2.0](<https://creativecommons.org/licenses/by/2.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:M4_Sherman_tank_-_Flickr_-_Joost_J._Bakker_IJmuiden.jpg>)
+
 ### tractor (`tractor`)
 
 - Sound: Work With Sounds / Werstas, [CC BY 4.0](<https://creativecommons.org/licenses/by/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:WWS_JohnDeereTractor.ogg>)
@@ -278,17 +398,27 @@ Every clip and picture comes from Wikimedia Commons under a free licence (CC0, p
 - Sound: HarveyHenkelmann, [CC0](<http://creativecommons.org/publicdomain/zero/1.0/deed.en>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Nathan_M5.ogg>)
 - Picture: Andrey Kurmelyov, [CC BY-SA 4.0](<https://creativecommons.org/licenses/by-sa/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:%D0%A7%D0%9C%D0%AD3-2908,_%D0%A3%D0%BA%D1%80%D0%B0%D0%B8%D0%BD%D0%B0,_%D0%94%D0%BD%D0%B5%D0%BF%D1%80%D0%BE%D0%BF%D0%B5%D1%82%D1%80%D0%BE%D0%B2%D1%81%D0%BA%D0%B0%D1%8F_%D0%BE%D0%B1%D0%BB%D0%B0%D1%81%D1%82%D1%8C,_%D0%BF%D0%B5%D1%80%D0%B5%D0%B3%D0%BE%D0%BD_%D0%92%D1%81%D1%82%D1%80%D0%B5%D1%87%D0%BD%D1%8B%D0%B9_-_%D0%94%D0%BD%D0%B5%D0%BF%D1%80%D0%BE%D0%BF%D0%B5%D1%82%D1%80%D0%BE%D0%B2%D1%81%D0%BA-%D0%AE%D0%B6%D0%BD%D1%8B%D0%B9_(Trainpix_138895).jpg>)
 
+### tram (`tram`)
+
+- Sound: Beeld en Geluid, [CC BY-SA 3.0](<https://creativecommons.org/licenses/by-sa/3.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Het_bellen_van_de_Blauwe_Tram_-_SoundCloud_-_Beeld_en_Geluid.ogg>)
+- Picture: ŠJů ( cs:ŠJů ), [CC BY-SA 3.0](<https://creativecommons.org/licenses/by-sa/3.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Muzeum_MHD,_tramvaje_T3_8084_a_6149,_zep%C5%99edu.jpg>)
+
+### tugboat (`tugboat`)
+
+- Sound: Work With Sounds / Konrad Gutkowski, [CC BY 4.0](<https://creativecommons.org/licenses/by/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:WWS_Steamwhistle.ogg>)
+- Picture: Alexey Komarov, [CC BY-SA 4.0](<https://creativecommons.org/licenses/by-sa/4.0>), via [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Canning_(steam_tugboat,_1954)_in_Swansea.jpg>)
+
 ## Licence summary
 
 | Licence | Files |
 |---|---|
-| CC BY 2.0 | 4 |
-| CC BY 2.5 | 1 |
+| CC BY 2.0 | 9 |
+| CC BY 2.5 | 2 |
 | CC BY 3.0 | 4 |
-| CC BY 4.0 | 12 |
-| CC BY-SA 2.0 | 1 |
+| CC BY 4.0 | 21 |
+| CC BY-SA 2.0 | 2 |
 | CC BY-SA 2.5 | 2 |
-| CC BY-SA 3.0 | 21 |
-| CC BY-SA 4.0 | 32 |
-| CC0 | 13 |
-| Public domain | 18 |
+| CC BY-SA 3.0 | 38 |
+| CC BY-SA 4.0 | 42 |
+| CC0 | 16 |
+| Public domain | 24 |

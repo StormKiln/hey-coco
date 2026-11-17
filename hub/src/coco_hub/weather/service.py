@@ -94,6 +94,11 @@ class WeatherService:
         self._failed_at = None
         self._inflight = None  # a fetch still running finishes, but for nobody
 
+    @property
+    def home_coordinates(self) -> tuple[float, float] | None:
+        """Where home is, from the Display or the config file; None when unset."""
+        return self._home_coordinates()
+
     def _home_coordinates(self) -> tuple[float, float] | None:
         if self._home is not None:
             return self._home.lat, self._home.lon

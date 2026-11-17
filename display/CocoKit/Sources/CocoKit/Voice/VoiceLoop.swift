@@ -4,10 +4,13 @@ import Observation
 /// The listening state machine (#22): the single owner of the microphone.
 ///
 /// Between requests the mic belongs to a *standby* listener: the wake-word engine, or, while an
-/// alarm rings, the bare-"stop" listener (#23). On "hey coco" (or a tap) the standby listener is
-/// stopped **before** the speech recognizer opens the mic, and restarted as soon as the recognizer
-/// is done, so a wake word while Coco is thinking or speaking barges in. Other audio is ducked
-/// from wake until the reply has been spoken.
+/// alarm rings, the bare-"stop" listener (#23). On "hey coco" the wake word's mic stays open: from
+/// the detection on, its audio is captured and handed to the speech recognizer, so nothing said
+/// while the session switches and the chime plays is lost, and there is never a second mic
+/// (#112). On a tap the standby listener is stopped **before** the speech recognizer opens its own
+/// mic. Either way the wake word listens again as soon as the recognizer is done, so a wake word
+/// while Coco is thinking or speaking barges in. Other audio is ducked from wake until the reply
+/// has been spoken.
 ///
 /// ```
 /// idle(armed) ──wake/tap──▶ woken (chime) ──▶ listening ──▶ thinking ──▶ speaking ──▶ idle(armed)
@@ -70,10 +73,16 @@ public final class VoiceLoop {
         }
     }
 
-    private enum Standby { case none, wakeWord, stopWord }
+    /// What has the mic. `capture`: the wake-word engine's mic, kept open after a detection, its
+    /// audio going to the conversation's recognizer (#112).
+    private enum Standby { case none, wakeWord, stopWord, capture }
 
     private var recognizerActive = false
     @ObservationIgnored private var standby: Standby = .none
+    /// The audio since the wake word, while `standby == .capture`.
+    @ObservationIgnored private var capture: (any SpeechAudioFeed)?
+    /// The recognizer can listen to captured audio (else it opens its own mic, as before #112).
+    @ObservationIgnored private let recognizerTakesCapture: Bool
     @ObservationIgnored private let host: any ConversationHost
     @ObservationIgnored private let engine: (any WakeWordEngine)?
     @ObservationIgnored private let unavailableReason: String
@@ -138,6 +147,7 @@ public final class VoiceLoop {
         self.activationTimeout = activationTimeout
         self.nextBackoff = retryBackoff
         self.sleep = sleep
+        self.recognizerTakesCapture = recognizer is any FeedableSpeechRecognizer
 
         let audio = LoopConversationAudio(session: session)
         let handoff = HandoffRecognizer(base: recognizer)
@@ -192,7 +202,9 @@ public final class VoiceLoop {
     // MARK: - Standby listener
 
     private var desiredStandby: Standby {
-        guard started, !interrupted, !micHeldByConversation else { return .none }
+        guard started, !interrupted else { return .none }
+        // The conversation keeps a capture it already has; it never starts one.
+        if micHeldByConversation { return capture != nil ? .capture : .none }
         // The bare "stop" needs the mic already granted: opening it without permission can stall
         // Core Audio, and the Stop button always works.
         if alarmRinging { return micGranted ? .stopWord : .none }
@@ -207,7 +219,9 @@ public final class VoiceLoop {
     /// whoever asked for the mic gets it. Arming is left to the background pass.
     private func reconcile(restart: Bool = false) {
         let wanted = desiredStandby
-        if standby != .none, standby != wanted || restart { stopStandby() }
+        // A capture is never restarted: that would lose the request (its mic restarts itself on
+        // a configuration change).
+        if standby != .none, standby != wanted || (restart && standby != .capture) { stopStandby() }
         if wanted == standby {
             // Releasing the session doesn't wait for it, so it can happen right here.
             if wanted == .none, !ducking { session.deactivate() }
@@ -272,6 +286,8 @@ public final class VoiceLoop {
     }
 
     private func startListener(_ wanted: Standby) {
+        // Only ever taken over from a running wake word (`conversationWillBegin`), never started.
+        guard wanted != .capture else { return }
         do {
             switch wanted {
             case .wakeWord:
@@ -279,7 +295,7 @@ public final class VoiceLoop {
             case .stopWord:
                 try stopWord.start { [weak self] in self?.stopWordHeard() }
                 stopWordActive = true
-            case .none:
+            case .none, .capture:
                 break
             }
             standby = wanted
@@ -294,11 +310,12 @@ public final class VoiceLoop {
 
     private func stopStandby() {
         switch standby {
-        case .wakeWord: engine?.stop()
+        case .wakeWord, .capture: engine?.stop()
         case .stopWord: stopWord.stop()
         case .none: break
         }
         standby = .none
+        capture = nil
         stopWordActive = false
     }
 
@@ -380,6 +397,13 @@ public final class VoiceLoop {
 
     fileprivate func conversationWillBegin() async throws {
         turn += 1
+        // Woken by the wake word: its mic stays open and has been capturing since the detection,
+        // so nothing said before the recognizer starts (session switch, chime) is lost (#112).
+        // A tap finds no capture and hands the mic over as before.
+        if standby == .wakeWord, recognizerTakesCapture, let feed = engine?.claimCapture() {
+            capture = feed
+            standby = .capture
+        }
         micHeldByConversation = true
         ducking = true
         reconcile()
@@ -397,17 +421,29 @@ public final class VoiceLoop {
         reconcile()
     }
 
-    fileprivate func recognizerWillStart() -> Int {
+    /// The turn, and the wake word's capture if the recognizer is to listen to it instead of
+    /// opening the mic.
+    fileprivate func recognizerWillStart() -> (turn: Int, audio: (any SpeechAudioFeed)?) {
         micHeldByConversation = true
         recognizerActive = true
         reconcile()
-        return turn
+        return (turn, capture)
     }
 
     fileprivate func recognizerDidEnd(turn: Int) {
         guard turn == self.turn, recognizerActive else { return }
         recognizerActive = false
         micHeldByConversation = false
+        if standby == .capture {
+            // Listen for the wake word again (barge-in) on the same mic, without restarting it.
+            if engine?.isRunning == true {
+                engine?.resumeDetection()
+                capture = nil
+                standby = .wakeWord
+            } else {
+                stopStandby()
+            }
+        }
         reconcile()
     }
 
@@ -430,7 +466,8 @@ private final class LoopConversationAudio: ConversationAudio {
 }
 
 /// Wraps the conversation's recognizer so the loop knows exactly when it holds the mic: the
-/// standby listener is stopped before `start()` and restarted when the stream ends.
+/// standby listener is stopped before `start()` (or, after a wake word, its capture is handed to
+/// the recognizer) and listens again when the stream ends.
 @MainActor
 private final class HandoffRecognizer: SpeechRecognizer {
     weak var loop: VoiceLoop?
@@ -443,11 +480,15 @@ private final class HandoffRecognizer: SpeechRecognizer {
     func requestPermission() async -> SpeechPermission { await base.requestPermission() }
 
     func start() throws -> AsyncThrowingStream<SpeechTranscript, any Error> {
-        let turn = loop?.recognizerWillStart() ?? 0
+        let (turn, audio) = loop?.recognizerWillStart() ?? (0, nil)
         activeTurn = turn
         let inner: AsyncThrowingStream<SpeechTranscript, any Error>
         do {
-            inner = try base.start()
+            if let audio, let feedable = base as? any FeedableSpeechRecognizer {
+                inner = try feedable.start(audio: audio)
+            } else {
+                inner = try base.start()
+            }
         } catch {
             ended(turn)
             throw error

@@ -52,10 +52,17 @@ class AppearsAfter:
         return self.n is not None and self.checks > self.n
 
 
-def make_waker(bus, *, wait_s=12.0, poll_s=1.0, clock=None, sleeps=None) -> DisplayWaker:
+def make_waker(
+    bus, *, wait_s=12.0, poll_s=1.0, clock=None, sleeps=None, client_id=None
+) -> DisplayWaker:
     clock = clock or Clock()
     return DisplayWaker(
-        bus, wait_s=wait_s, poll_s=poll_s, clock=clock, sleep=sleeps or Sleeps(clock)
+        bus,
+        wait_s=wait_s,
+        poll_s=poll_s,
+        clock=clock,
+        sleep=sleeps or Sleeps(clock),
+        client_id=client_id,
     )
 
 
@@ -68,9 +75,24 @@ async def test_publishes_wake_requested_then_polls_until_it_appears():
     with bus.subscribe() as sub:
         assert await waker.wake("iPad", appeared) is True
         event = sub.get_nowait()
-    assert event == SpotifyWakeRequestedEvent(server_time=T0, device_name="iPad")
+    assert event == SpotifyWakeRequestedEvent(
+        server_time=T0, device_name="iPad", play=False, uri=None, client_id=None
+    )
     assert sleeps.calls == [1.0] * 6
     assert appeared.checks == 6
+
+
+async def test_a_play_wake_carries_the_uri_and_the_client_id():
+    """#116: the Display wakes Spotify through the iOS SDK, which plays ``uri`` and bounces
+    back to Coco; it needs the Spotify app's client id (the Hub's ``spotify.client_id``)."""
+    bus = EventBus()
+    waker = make_waker(bus, client_id="client-123")
+    with bus.subscribe() as sub:
+        await waker.wake("iPad", AppearsAfter(0), play=True, uri="spotify:album:x")
+        event = sub.get_nowait()
+    assert event == SpotifyWakeRequestedEvent(
+        server_time=T0, device_name="iPad", play=True, uri="spotify:album:x", client_id="client-123"
+    )
 
 
 async def test_gives_up_after_wait_s():

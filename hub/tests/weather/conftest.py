@@ -42,6 +42,9 @@ class FakeOpenMeteo:
         self.name = name
         self.places = dict(GEOCODE)
         """Geocoding: searched name (lowercase) -> fixture; anything else finds nothing."""
+        self.at: dict[str, str | int] = {}
+        """Forecasts: ``latitude`` param -> fixture (or HTTP status to fail with), instead of
+        ``name``: home and a named place answer differently."""
         self.fail: bool | int = False
         """False, True (connection error) or an HTTP status code to return."""
         self.hang = False
@@ -64,7 +67,10 @@ class FakeOpenMeteo:
         if request.url.path == "/v1/search":
             name = request.url.params["name"].lower()
             return httpx.Response(200, json=load(self.places.get(name, "geocode_none")))
-        return httpx.Response(200, json=load(self.name))
+        fixture = self.at.get(request.url.params.get("latitude", ""), self.name)
+        if isinstance(fixture, int):
+            return httpx.Response(fixture, json={"error": True, "reason": "nope"})
+        return httpx.Response(200, json=load(fixture))
 
     @property
     def searches(self) -> list[str]:

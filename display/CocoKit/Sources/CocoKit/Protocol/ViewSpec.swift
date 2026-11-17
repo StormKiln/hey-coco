@@ -19,6 +19,9 @@ public enum ViewSpec: Codable, Sendable, Equatable {
         public var daily: [WeatherDay]
         /// A place the person named ("Portland, Oregon"); nil for home (#93).
         public var place: String?
+        /// Home's weather for the same periods, beside a named place (#111); nil for home, when
+        /// home isn't set, or when the place is home.
+        public var compare: WeatherComparison? = nil
     }
 
     public struct PicturePayload: Codable, Sendable, Equatable {

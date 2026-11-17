@@ -117,6 +117,18 @@ class TimersView(Message):
     type: Literal["timers"] = "timers"
 
 
+class WeatherComparison(Message):
+    """Home's weather beside a named place's (#111)."""
+
+    name: str
+    """What to call it on screen: ``Home``."""
+    current: WeatherNow
+    """Home's conditions now (the same instant as the place's ``current``)."""
+    daily: list[WeatherDay]
+    """Home's days for the place's ``daily`` dates (the place's local calendar dates), as far
+    as home's forecast reaches; match them by ``date``."""
+
+
 class WeatherView(Message):
     type: Literal["weather"] = "weather"
     current: WeatherNow
@@ -124,6 +136,9 @@ class WeatherView(Message):
     daily: list[WeatherDay]
     place: str | None = None
     """A place the person named (``Portland, Oregon``); null for home."""
+    compare: WeatherComparison | None = None
+    """Home's weather for the same periods, when ``place`` is set, home is known, and the
+    place isn't home; otherwise null."""
 
 
 class PictureView(Message):

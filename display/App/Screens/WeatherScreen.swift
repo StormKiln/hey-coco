@@ -19,7 +19,14 @@ struct WeatherScreen: View {
             let hours = WeatherForecast.upcomingHours(payload.hourly, at: context.date)
             let days = WeatherForecast.upcomingDays(payload.daily, at: context.date, timeZone: timeZone)
             GeometryReader { geometry in
-                if geometry.size.width > geometry.size.height {
+                if let compare = payload.compare {
+                    // #111: the named place beside home, row by row.
+                    let landscape = geometry.size.width > geometry.size.height
+                    let count = landscape ? WeatherCompare.landscapeDayCount : WeatherCompare.portraitDayCount
+                    comparison(compare, days: Array(days.prefix(count)), now: context.date)
+                        .frame(maxWidth: 1000)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if geometry.size.width > geometry.size.height {
                     HStack(alignment: .center, spacing: 56) {
                         VStack(spacing: 48) {
                             current
@@ -165,5 +172,116 @@ struct WeatherScreen: View {
                 }
             }
         }
+    }
+
+    // MARK: - Compared with home (#111)
+
+    /// Columns: period | the place | Home | difference (the place minus home, "+6°") with a
+    /// rain cue ("Rain there, dry here"). Now, then the days; no hourly strip, so two places
+    /// stay readable from across the room.
+    private func comparison(_ compare: WeatherComparison, days: [WeatherDay], now: Date) -> some View {
+        let pairs = WeatherCompare.pairs(place: days, home: compare.daily)
+        return Grid(alignment: .leading, horizontalSpacing: 28, verticalSpacing: 22) {
+            GridRow {
+                Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
+                columnHeader(WeatherCompare.shortName(payload.place ?? ""))
+                columnHeader(compare.name)
+                columnHeader("")
+            }
+            GridRow {
+                rowLabel("Now")
+                nowCell(payload.current)
+                nowCell(compare.current)
+                cueCell(
+                    WeatherCompare.difference(place: payload.current.temp, home: compare.current.temp),
+                    WeatherCompare.precipCue(placeCode: payload.current.code, homeCode: compare.current.code))
+            }
+            .accessibilityElement(children: .combine)
+            Divider().gridCellUnsizedAxes(.horizontal)
+            ForEach(pairs, id: \.place.date) { pair in
+                GridRow {
+                    rowLabel(WeatherForecast.dayLabel(pair.place, at: now, timeZone: timeZone))
+                    dayCell(pair.place)
+                    if let home = pair.home {
+                        dayCell(home)
+                        cueCell(
+                            WeatherCompare.difference(place: pair.place.high, home: home.high),
+                            WeatherCompare.precipCue(place: pair.place, home: home))
+                    } else {
+                        Text("—")
+                            .font(.system(size: 34, design: .rounded))
+                            .foregroundStyle(.secondary)
+                        Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
+                    }
+                }
+                .accessibilityElement(children: .combine)
+            }
+        }
+    }
+
+    private func columnHeader(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 34, weight: .semibold, design: .rounded))
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
+            .accessibilityAddTraits(.isHeader)
+    }
+
+    private func rowLabel(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 34, weight: .medium, design: .rounded))
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
+    }
+
+    private func nowCell(_ now: WeatherNow) -> some View {
+        HStack(spacing: 14) {
+            WeatherIcon(code: now.code, isDay: now.isDay)
+                .font(.system(size: 48))
+                .frame(width: 64)
+            Text(WeatherFormat.temperature(now.temp))
+                .font(.system(size: 64, weight: .medium, design: .rounded))
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+        }
+    }
+
+    /// Icon, high, low, and the chance of precipitation when it's worth showing.
+    private func dayCell(_ day: WeatherDay) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            WeatherIcon(code: day.code, isDay: true)
+                .font(.system(size: 34))
+                .frame(width: 52)
+            Text(WeatherFormat.temperature(day.high))
+                .font(.system(size: 38, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+            Text(WeatherFormat.temperature(day.low))
+                .font(.system(size: 30, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+            if let precip = WeatherForecast.precipText(day.precipProbability) {
+                Text(precip)
+                    .font(.system(size: 22, weight: .medium, design: .rounded))
+                    .foregroundStyle(.blue)
+            }
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
+    }
+
+    private func cueCell(_ difference: String, _ precip: String?) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(difference)
+                .font(.system(size: 38, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+            if let precip {
+                Text(precip)
+                    .font(.system(size: 22, weight: .medium, design: .rounded))
+                    .foregroundStyle(.blue)
+            }
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.6)
     }
 }

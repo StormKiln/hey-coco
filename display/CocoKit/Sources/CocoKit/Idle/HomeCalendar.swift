@@ -1,7 +1,7 @@
 import Foundation
 
-/// One event line on the home screen.
-public struct HomeCalendarRow: Equatable, Sendable, Identifiable {
+/// One event line, on the home screen (#142) and the calendar screen (#143).
+public struct CalendarRow: Equatable, Sendable, Identifiable {
     public var id: String
     /// "All day", "6:00 PM" or "Until 12:00 PM" (Hub time).
     public var time: String
@@ -9,13 +9,15 @@ public struct HomeCalendarRow: Equatable, Sendable, Identifiable {
     public var title: String
     /// The calendar's colour as `0xRRGGBB`; nil when it has none (the view picks one).
     public var color: UInt32?
+    /// "Family", "Work".
+    public var calendarName: String
     public var accessibilityLabel: String
 }
 
 /// "Today" or "Tomorrow" and what's left on it.
 public struct HomeCalendarSection: Equatable, Sendable {
     public var title: String
-    public var rows: [HomeCalendarRow]
+    public var rows: [CalendarRow]
     /// "+3 more" when more events are left than rows shown.
     public var moreText: String?
     /// Shown instead of rows when nothing is left.
@@ -38,6 +40,7 @@ public enum HomeCalendar {
     /// Tomorrow shows only when today has at most this many events left.
     public static let tomorrowThreshold = 3
 
+    public static let allDayLabel = "All day"
     public static let todayEmpty = "Nothing else today"
     public static let tomorrowEmpty = "Nothing tomorrow"
 
@@ -83,8 +86,15 @@ public enum HomeCalendar {
     public static func staleLabel(
         _ calendar: IdleCalendar, now: Date, timeZone: TimeZone, locale: Locale = .current
     ) -> String? {
-        guard calendar.stale else { return nil }
-        guard let fetchedAt = calendar.fetchedAt else { return "Not updated" }
+        staleLabel(stale: calendar.stale, fetchedAt: calendar.fetchedAt, now: now, timeZone: timeZone, locale: locale)
+    }
+
+    /// The same label from a `calendar` view's `stale` and `fetched_at` (#143).
+    public static func staleLabel(
+        stale: Bool, fetchedAt: Date?, now: Date, timeZone: TimeZone, locale: Locale = .current
+    ) -> String? {
+        guard stale else { return nil }
+        guard let fetchedAt else { return "Not updated" }
         var cal = Calendar(identifier: .gregorian)
         cal.timeZone = timeZone
         if cal.isDate(fetchedAt, inSameDayAs: now) {
@@ -98,10 +108,10 @@ public enum HomeCalendar {
     public static func timeLabel(
         _ event: CalendarEvent, startOfDay: Date, timeZone: TimeZone, locale: Locale = .current
     ) -> String {
-        if event.allDay { return "All day" }
+        if event.allDay { return allDayLabel }
         if event.start < startOfDay {
             let endOfDay = startOfDay.addingTimeInterval(24 * 3600)
-            return event.end >= endOfDay ? "All day" : "Until \(time(event.end, timeZone: timeZone, locale: locale))"
+            return event.end >= endOfDay ? allDayLabel :"Until \(time(event.end, timeZone: timeZone, locale: locale))"
         }
         return time(event.start, timeZone: timeZone, locale: locale)
     }
@@ -120,17 +130,27 @@ public enum HomeCalendar {
         _ title: String, _ events: [CalendarEvent], limit: Int, empty: String, startOfDay: Date,
         timeZone: TimeZone, locale: Locale
     ) -> HomeCalendarSection {
-        let rows = events.prefix(limit).map { event in
-            let time = timeLabel(event, startOfDay: startOfDay, timeZone: timeZone, locale: locale)
-            let title = event.busyOnly ? "Busy" : event.title
-            return HomeCalendarRow(
-                id: event.id, time: time, title: title, color: color(hex: event.calendar.color),
-                accessibilityLabel: "\(time), \(title), \(event.calendar.name) calendar")
+        let rows = events.prefix(limit).map {
+            row($0, startOfDay: startOfDay, timeZone: timeZone, locale: locale)
         }
-        let more = events.count - rows.count
         return HomeCalendarSection(
-            title: title, rows: rows, moreText: more > 0 ? "+\(more) more" : nil,
+            title: title, rows: rows, moreText: moreText(total: events.count, shown: rows.count),
             emptyText: events.isEmpty ? empty : nil)
+    }
+
+    /// One event as a row on the day that starts at `startOfDay` (Hub time). Shared with #143.
+    static func row(_ event: CalendarEvent, startOfDay: Date, timeZone: TimeZone, locale: Locale) -> CalendarRow {
+        let time = timeLabel(event, startOfDay: startOfDay, timeZone: timeZone, locale: locale)
+        let title = event.busyOnly ? "Busy" : event.title
+        return CalendarRow(
+            id: event.id, time: time, title: title, color: color(hex: event.calendar.color),
+            calendarName: event.calendar.name,
+            accessibilityLabel: "\(time), \(title), \(event.calendar.name) calendar")
+    }
+
+    /// "+3 more" when fewer rows are shown than there are events.
+    static func moreText(total: Int, shown: Int) -> String? {
+        total > shown ? "+\(total - shown) more" : nil
     }
 
     /// "6:00 PM" in en_US, like the clock.

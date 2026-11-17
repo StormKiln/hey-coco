@@ -122,6 +122,8 @@ struct ScreenView: View {
             YouTubeScreen(videoID: videoID, title: title)
         case .nowPlaying:
             NowPlayingScreen()
+        case .calendar(let payload):
+            CalendarScreen(payload: payload, idleInfo: idleInfo)
         default:
             Text(view.type)
                 .m3Font(.headlineMedium)

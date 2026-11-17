@@ -17,6 +17,7 @@ import logging
 import re
 import time
 import unicodedata
+from collections.abc import Mapping
 from typing import Any
 
 from coco_hub.intents.engine import (
@@ -146,6 +147,12 @@ class QwenFallback:
         self._catalog_size = -1
         self._warming: asyncio.Task[None] | None = None
 
+    def _slots(self, slots: Mapping[str, object]) -> dict[str, object]:
+        """Slot values repeat what was said (an event, a timer name): hidden like ``_t``."""
+        if self.log_transcripts:
+            return dict(slots)
+        return {key: "<hidden>" for key in slots}
+
     def _t(self, text: str) -> str:
         """Household speech (and model replies derived from it) only reach the log when
         ``diagnostics.log_transcripts`` is on."""
@@ -178,7 +185,7 @@ class QwenFallback:
             "qwen: %r -> %s %s in %.2fs",
             self._t(no_match.raw),
             result.intent if result else "invalid",
-            dict(result.slots) if result else "",
+            self._slots(result.slots) if result else "",
             time.monotonic() - started,
         )
         if result is None:

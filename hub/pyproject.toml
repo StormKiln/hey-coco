@@ -10,6 +10,7 @@ dependencies = [
     "ifaddr>=0.2",
     "pydantic>=2.9",
     "pydantic-settings>=2.6",
+    "python-kasa>=0.12",
     "segno>=1.6",
     "uvicorn[standard]>=0.32",
     "zeroconf>=0.136",
@@ -43,4 +44,4 @@ target-version = "py313"
 select = ["E", "F", "I", "UP", "B"]
 
 [tool.ruff.lint.isort]
-known-local-folder = ["conftest", "fake_ollama", "fake_spotify"]
+known-local-folder = ["conftest", "fake_kasa", "fake_ollama", "fake_spotify"]

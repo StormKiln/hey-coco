@@ -28,6 +28,11 @@ dark at night.
   pause / resume / skip / volume.
 - General questions answered by a local Qwen model, kept short.
 - Spoken replies (iPad built-in TTS) plus on-screen text.
+- Smart plugs (added by epic #131; was a non-goal): "turn on / off <device>", "is <device>
+  on" for TP-Link Kasa plugs and power strips on the local network, whole device or one
+  outlet, named in config. A generic device layer (backend interface + contract tests) with
+  Kasa as the first backend; local LAN only, no cloud. Rules-only intents (never Qwen), and
+  Coco confirms only what the device reports when read back. Setup: `docs/kasa.md`.
 - Idle screen: large clock + current temp + forecast for the next ~6 hours.
 - Night mode on a configurable schedule: dim at bedtime, fully dark after a few idle
   minutes, wake on "hey coco" or tap.
@@ -45,7 +50,8 @@ dark at night.
 ## Non-goals (my calls, not discussed)
 
 - Wake-up alarms at a clock time, reminders, shopping lists, calendars, smart-home
-  control, multi-room / multiple Displays, voice identification of who is speaking.
+  control beyond smart plugs (lights, dimmers, scenes, rooms/groups), multi-room /
+  multiple Displays, voice identification of who is speaking.
   These are reasonable future features, not v1.
 
 ## Anti-goals (would be a failure even if it "works")

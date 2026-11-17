@@ -15,6 +15,11 @@ final class OpenWakeWordEngine: WakeWordEngine {
         sampleRate: Double(OpenWakeWord.sampleRate), frameLength: OpenWakeWord.chunkSamples)
     /// Created on first start (that is when the models load) and kept for the app's life.
     private var recognizer: OpenWakeWordRecognizer?
+    /// Routes the mic's frames to the detector, or after a detection to the speech recognizer
+    /// (#112). One per start, so a capture can't outlive the mic it came from.
+    private var router: WakeFrameRouter?
+    /// An unclaimed capture is dropped after this long (the turn never started).
+    private static let captureLimit: Double = 10
 
     var isRunning: Bool { microphone.isRunning }
 
@@ -28,9 +33,15 @@ final class OpenWakeWordEngine: WakeWordEngine {
         self.recognizer = recognizer
         // A restart (after a conversation, an interruption) must not hear audio from before it.
         recognizer.reset()
+        let router = WakeFrameRouter(
+            sampleRate: microphone.sampleRate,
+            maxBufferedFrames: Int(Self.captureLimit * microphone.sampleRate) / microphone.frameLength,
+            detect: { recognizer.process($0) },
+            resetDetector: { recognizer.reset() })
+        self.router = router
         try microphone.start { frame in
             // On the microphone's serial queue.
-            if recognizer.process(frame) {
+            if router.process(frame) {
                 Task { @MainActor in onDetected() }
             }
         }
@@ -38,6 +49,15 @@ final class OpenWakeWordEngine: WakeWordEngine {
 
     func stop() {
         microphone.stop()
+        router = nil
+    }
+
+    func claimCapture() -> (any SpeechAudioFeed)? {
+        microphone.isRunning ? router?.claimCapture() : nil
+    }
+
+    func resumeDetection() {
+        router?.resumeDetection()
     }
 
     private func makeRecognizer() throws -> OpenWakeWordRecognizer {

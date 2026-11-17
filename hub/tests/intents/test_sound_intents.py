@@ -174,6 +174,11 @@ async def test_play_cow(say, library):
         ("make a train noise", "train", "Here's a train."),
         ("vroom vroom", "car", "A car goes vroom vroom!"),
         ("play the sound of an airplane", "airplane", "Here's an airplane."),
+        ("what do geese say", "goose", "A goose says honk honk!"),
+        ("what does a seal say", "seal", "A seal says arf arf!"),
+        ("play an ice cream truck sound", "ice_cream_truck", "Here's an ice cream truck."),
+        ("what does santa's sleigh sound like", "sleigh", "A sleigh goes jingle jingle!"),
+        ("how does a tram go", "tram", "A tram goes clang clang!"),
     ],
 )
 async def test_play_table(say, library, phrase, sound_id, spoken):

@@ -140,7 +140,7 @@ def create_app(
     # Intent pipeline. Feature modules register intents into `app.state.intents` (see
     # coco_hub.intents.INTENT_MODULES), put their services in `app.state.services` (handed to
     # handlers as `ctx.services`), and the Qwen fallback replaces `app.state.fallback`.
-    app.state.intents = build_registry()
+    app.state.intents = build_registry(device_names=devices.spoken_names)
     app.state.engine = RulesEngine(app.state.intents)
     app.state.services = {"weather": weather, "devices": devices}
     app.state.fallback = no_fallback

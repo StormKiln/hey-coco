@@ -84,7 +84,7 @@ public enum WeatherForecast {
 /// The colour role of one layer of a weather symbol, drawn with palette rendering. Multicolor
 /// draws clouds and moons white, which vanish on the light (day) theme; the app maps these roles
 /// to colours that read on both themes.
-public enum WeatherTint: Sendable, Equatable {
+public enum WeatherTint: Sendable, Hashable, CaseIterable {
     case cloud, sun, moon, rain, snow, fog
 }
 

@@ -4,7 +4,9 @@ import SwiftUI
 /// `ViewSpec.picture` (#33): the image full screen with its title and attribution. Swipe for the
 /// next or previous result; the Hub's "next one" sends a new picture view (images rotated), which
 /// starts again at its first image. The Close (X) button or a minute without a swipe goes back
-/// to idle.
+/// to idle. The photo stays out from under the top chrome (wake-word hint, gear, Close): below
+/// the Close button in portrait, below the top row and in from the Close column in landscape,
+/// and above the mic button.
 struct PictureScreen: View {
     let payload: ViewSpec.PicturePayload
     @Environment(AppModel.self) private var model
@@ -14,11 +16,18 @@ struct PictureScreen: View {
         ZStack {
             Color.black.ignoresSafeArea()
             if let image = carousel.current {
-                RemoteImage(reference: image.displayURL)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .ignoresSafeArea()
-                    .id(image.displayURL)
-                    .accessibilityLabel(image.title)
+                GeometryReader { geometry in
+                    let landscape = geometry.size.width > geometry.size.height
+                    RemoteImage(reference: image.displayURL)
+                        .accessibilityLabel(image.title)
+                        .padding(.top, landscape ? ScreenChrome.top : ScreenChrome.belowClose)
+                        .padding(.horizontal, landscape ? ScreenChrome.closeColumn : 0)
+                        // Above the mic button; the caption sits over the photo's foot.
+                        .padding(.bottom, ScreenChrome.bottom)
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                }
+                .ignoresSafeArea()
+                .id(image.displayURL)
                 caption(for: image)
             } else {
                 Text("No pictures of \(payload.query).")

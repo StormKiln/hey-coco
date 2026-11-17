@@ -17,6 +17,7 @@ import Foundation
 ///     now-playing off                         → nothing playing
 ///     screenshot idle-day                     → the app's windows to Documents/idle-day.png
 ///     rotate landscape | rotate portrait      → ask iPadOS to rotate the interface
+///     view weather-compare                    → show Documents/weather-compare.json (a ViewSpec)
 ///     night sleep | night wake                → night mode
 ///     forget                                  → Forget Hub (clears pin and token)
 public enum DebugCommand: Equatable, Sendable {
@@ -36,6 +37,9 @@ public enum DebugCommand: Equatable, Sendable {
     case screenshot(name: String)
     /// Asks iPadOS for this interface orientation (`simctl` can't rotate a simulator).
     case rotate(Orientation)
+    /// Shows the `ViewSpec` JSON in `Documents/<name>.json` as if the Hub had sent it, to look at
+    /// a screen (weather beside home, a sound) with recorded data. Names as for `screenshot`.
+    case view(name: String)
 
     public enum Orientation: String, Sendable { case portrait, landscape }
 
@@ -70,9 +74,9 @@ public enum DebugCommand: Equatable, Sendable {
         case ("night", 2):
             return NightAction(rawValue: words[1].lowercased()).map(DebugCommand.night)
         case ("screenshot", 2):
-            let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_"))
-            let name = words[1]
-            return name.unicodeScalars.allSatisfy(allowed.contains) ? .screenshot(name: name) : nil
+            return isFileName(words[1]) ? .screenshot(name: words[1]) : nil
+        case ("view", 2):
+            return isFileName(words[1]) ? .view(name: words[1]) : nil
         case ("rotate", 2):
             return Orientation(rawValue: words[1].lowercased()).map(DebugCommand.rotate)
         case ("forget", 1):
@@ -92,6 +96,12 @@ public enum DebugCommand: Equatable, Sendable {
             NowPlaying(
                 source: .spotify, title: title, artist: parts.count > 1 ? parts[1] : "", album: nil,
                 artworkURL: nil, isPlaying: true))
+    }
+
+    /// Letters, digits, `-` and `_`: stays inside Documents.
+    private static func isFileName(_ name: String) -> Bool {
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_"))
+        return name.unicodeScalars.allSatisfy(allowed.contains)
     }
 
     public static func parseAll(_ text: String) -> [DebugCommand] {

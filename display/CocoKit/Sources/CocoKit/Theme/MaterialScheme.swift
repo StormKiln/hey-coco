@@ -50,6 +50,8 @@ public struct MaterialScheme: Equatable, Sendable {
     /// M3's surface tint: the primary colour laid over raised surfaces.
     public let surfaceTint: RGBColor
     public let scrim: RGBColor
+    /// Weather icon layers (`weather(_:)`), in this scheme's tones.
+    let weatherColors: [WeatherTint: RGBColor]
 
     /// The palettes behind the roles, M3 "tonal spot" style.
     public struct Palettes: Equatable, Sendable {
@@ -115,6 +117,7 @@ public struct MaterialScheme: Equatable, Sendable {
         outlineVariant = p.neutralVariant.tone(dark ? 30 : 80)
         surfaceTint = primary
         scrim = RGBColor(hex: 0x000000)
+        weatherColors = Self.weatherColors(palettes: p, dark: dark)
     }
 }
 

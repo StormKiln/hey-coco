@@ -89,6 +89,13 @@ enum DebugHarness {
                 }
             }
             try? await Task.sleep(nanoseconds: 1_000_000_000)
+        case .view(let name):
+            do {
+                let data = try Data(contentsOf: documents.appendingPathComponent("\(name).json"))
+                model.show(try CocoJSON.decoder.decode(ViewSpec.self, from: data))
+            } catch {
+                note = "view failed: \(error)"
+            }
         case .screenshot(let name):
             // Let animations settle before drawing.
             try? await Task.sleep(nanoseconds: 600_000_000)

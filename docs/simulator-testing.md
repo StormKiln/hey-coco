@@ -56,9 +56,16 @@ cat "$docs/coco-debug-log.txt"
 Commands (`DebugCommand`): `pair <fingerprint>`, `pair-code <fingerprint> <code>`,
 `pair-uri <cocohub://pair?...>`, `say: <text>`, `timer <seconds> [name]`, `stop-alarm`,
 `show idle|timers|now_playing`, `night sleep|wake`, `forget`, `screenshot <name>`,
-`rotate portrait|landscape`, and `now-playing <title> [| <artist>]` / `now-playing off` (music as
-the Hub would report it, to look at Now Playing without Spotify). Pairing still requires the
-fingerprint to match the one the app sees.
+`rotate portrait|landscape`, `now-playing <title> [| <artist>]` / `now-playing off` (music as
+the Hub would report it, to look at Now Playing without Spotify), and `view <name>`. Pairing still
+requires the fingerprint to match the one the app sees.
+
+`view <name>` shows the `ViewSpec` JSON in `$docs/<name>.json` (the protocol's view object, e.g.
+`{"type": "weather", "place": "Paris, France", "current": …, "hourly": […], "daily": […],
+"compare": {"name": "Home", …}}`) as if the Hub had sent it: recorded data for a screen that is
+hard to reach live, such as weather beside home with rain on one side. Weather hours and days are
+filtered by the clock, so write the fixture with times from now. It needs no Hub, but a Hub-relative
+media path (`/v1/media/…`) only loads while connected.
 
 To try the easier pairing (#89) without a camera, launch without `-CocoDebugToken` (or send
 `forget`), so the app looks for a Hub to pair with, and run the pair command against the scratch

@@ -33,12 +33,14 @@ import Testing
         // simctl can't rotate the simulator; the app asks for an orientation itself.
         ("rotate landscape", .rotate(.landscape)),
         ("rotate portrait", .rotate(.portrait)),
+        // A recorded view from Documents/<name>.json, shown as if the Hub sent it.
+        ("view weather-compare", .view(name: "weather-compare")),
     ])
     func parses(_ line: String, _ expected: DebugCommand) {
         #expect(DebugCommand.parse(line) == expected)
     }
 
-    @Test(arguments: ["", "   ", "# comment", "say:", "timer", "timer -5", "timer abc", "show nope", "dance", "pair-code 482913", "pair-uri", "now-playing", "now-playing | x", "screenshot", "screenshot ../escape", "screenshot a b", "rotate", "rotate sideways"])
+    @Test(arguments: ["", "   ", "# comment", "say:", "timer", "timer -5", "timer abc", "show nope", "dance", "pair-code 482913", "pair-uri", "now-playing", "now-playing | x", "screenshot", "screenshot ../escape", "screenshot a b", "rotate", "rotate sideways", "view", "view ../escape", "view a b"])
     func rejects(_ line: String) {
         #expect(DebugCommand.parse(line) == nil)
     }

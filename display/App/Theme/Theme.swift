@@ -49,6 +49,11 @@ enum Theme {
     }
 
     static func radius(_ shape: MaterialShape) -> CGFloat { CGFloat(shape.radius) }
+
+    /// A weather icon layer's colour (`MaterialScheme.weather(_:)`), by day and by night.
+    static func weather(_ tint: WeatherTint) -> Color {
+        Color(light: light.weather(tint), dark: dark.weather(tint))
+    }
 }
 
 extension Color {

@@ -7,14 +7,24 @@ Either way nothing goes through TP-Link's cloud. See docs/kasa.md.
 
 import asyncio
 import math
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
 import kasa
 from kasa import Credentials, DeviceEncryptionType, Discover
+from pydantic import BaseModel, ConfigDict, field_validator
 
-from coco_hub.devices.errors import AuthRequired, DeviceError, Unreachable, Unsupported
+from coco_hub.devices.backend import DeviceBackend, DeviceHandle
+from coco_hub.devices.errors import (
+    AuthRequired,
+    DeviceError,
+    UnknownDevice,
+    Unreachable,
+    Unsupported,
+)
+from coco_hub.devices.model import Capability, DeviceState, OutletState
+from coco_hub.settings import BackendSettings
 
 DiscoverSingle = Callable[..., Awaitable[Any]]
 """``kasa.Discover.discover_single`` or a test fake with the same keyword arguments."""
@@ -131,3 +141,118 @@ async def disconnect(device: Any) -> None:
         await device.disconnect()
     except Exception:  # noqa: BLE001 - closing a connection must never fail the caller
         pass
+
+
+# --- DeviceBackend ------------------------------------------------------------------------
+
+
+class KasaOptions(BaseModel):
+    """``options`` of a ``backend = "kasa"`` device."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    host: str
+    """IP address or hostname. Give the plug a DHCP reservation so it doesn't move."""
+    mac: str | None = None
+    """If set, refuse to control a different device that has taken over ``host``."""
+    child: int | str | None = None
+    """One outlet of a multi-outlet plug or strip: 0-based index or the outlet's alias.
+    Unset: the whole device (every outlet)."""
+
+    @field_validator("host")
+    @classmethod
+    def _host(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("host must not be blank")
+        return value.strip()
+
+
+def _mac_key(mac: str) -> str:
+    return "".join(ch for ch in mac.lower() if ch in "0123456789abcdef")
+
+
+class KasaHandle(DeviceHandle):
+    def __init__(self, device: Any, target: Any) -> None:
+        self._device = device
+        self._target = target
+        self.alias = target.alias or device.alias or ""
+        self.capabilities = frozenset({Capability.POWER})
+        self._closed = False
+
+    async def _refresh(self) -> None:
+        try:
+            await self._device.update()
+        except Exception as exc:
+            raise translate(exc) from exc
+
+    async def get_state(self) -> DeviceState:
+        await self._refresh()
+        target = self._target
+        if target.children:
+            return DeviceState.from_outlets(
+                [
+                    OutletState(c.alias or f"outlet {i}", bool(c.is_on))
+                    for i, c in enumerate(target.children)
+                ]
+            )
+        return DeviceState.of(bool(target.is_on))
+
+    async def set_power(self, on: bool) -> None:
+        try:
+            await (self._target.turn_on() if on else self._target.turn_off())
+        except Exception as exc:
+            raise translate(exc) from exc
+
+    async def close(self) -> None:
+        if not self._closed:
+            self._closed = True
+            await disconnect(self._device)
+
+
+class KasaBackend(DeviceBackend):
+    name = "kasa"
+
+    def __init__(
+        self, settings: BackendSettings | None = None, *, discover: DiscoverSingle | None = None
+    ) -> None:
+        super().__init__(settings)
+        self._discover = discover
+
+    def _credentials(self) -> tuple[str, str] | None:
+        s = self.settings
+        if s.username and s.password is not None:
+            return (s.username, s.password.get_secret_value())
+        return None
+
+    def parse_options(self, options: Mapping[str, Any]) -> KasaOptions:
+        return KasaOptions.model_validate(dict(options))
+
+    async def connect(self, options: KasaOptions) -> KasaHandle:
+        # Legacy (XOR) devices never need the login, so try without it first and only
+        # send credentials to a device that asks (KLAP/AES).
+        try:
+            device = await connect(
+                options.host, timeout_s=self.settings.timeout_s, discover=self._discover
+            )
+        except AuthRequired:
+            if (creds := self._credentials()) is None:
+                raise
+            device = await connect(
+                options.host,
+                credentials=creds,
+                timeout_s=self.settings.timeout_s,
+                discover=self._discover,
+            )
+        if options.mac and _mac_key(options.mac) != _mac_key(device.mac or ""):
+            await disconnect(device)
+            raise Unreachable(
+                f"a different device is at {options.host} (MAC doesn't match the config)"
+            )
+        target = device
+        if options.child is not None:
+            try:
+                target = find_child(device, options.child)
+            except ValueError as exc:
+                await disconnect(device)
+                raise UnknownDevice(str(exc)) from exc
+        return KasaHandle(device, target)

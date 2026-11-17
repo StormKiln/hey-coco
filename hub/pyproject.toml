@@ -44,4 +44,4 @@ target-version = "py313"
 select = ["E", "F", "I", "UP", "B"]
 
 [tool.ruff.lint.isort]
-known-local-folder = ["conftest", "fake_kasa", "fake_ollama", "fake_spotify"]
+known-local-folder = ["backend_contract", "conftest", "fake_backend", "fake_kasa", "fake_ollama", "fake_spotify"]

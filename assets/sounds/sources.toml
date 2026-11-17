@@ -172,7 +172,7 @@ image = "File:GrizzlyBearJeanBeaufort.jpg"
 [[sound]]
 id = "monkey"
 name = "monkey"
-aliases = ["ooh ooh aah aah", "ape", "chimp"]
+aliases = ["ooh ooh aah aah", "ape"]
 category = "animal"
 audio = "File:Brown woolly monkey alarm call.wav"
 image = "File:Lagothrix lagotricha (male).jpg"
@@ -282,6 +282,132 @@ aliases = ["laughing kookaburra", "laughing bird"]
 category = "animal"
 audio = "File:Dacelo novaeguineae ANWC X00520.opus"
 image = "File:Laughing Kookaburra 1.jpg"
+
+# ---------------------------------------------------------------- more animals (#117)
+
+[[sound]]
+id = "zebra"
+name = "zebra"
+aliases = ["zebra bray", "grevy's zebra"]
+category = "animal"
+audio = "File:Grévys zebra (Sound Effects).ogg"
+start = 0.0
+end = 5.0
+image = "File:Grevy's Zebra Stallion.jpg"
+
+[[sound]]
+id = "chimpanzee"
+name = "chimpanzee"
+aliases = ["chimp", "pant hoot"]
+category = "animal"
+audio = "File:Pant-hoot call made by a male chimpanzee.ogg"
+image = "File:015 Chimpanzee at Kibale forest National Park Photo by Giles Laurent.jpg"
+
+[[sound]]
+id = "hyena"
+name = "hyena"
+aliases = ["hyaena", "spotted hyena", "laughing hyena"]
+category = "animal"
+audio = "File:Spotted Hyaena (Crocuta crocuta) (W1CDR0000381 BD12).ogg"
+start = 16.0
+end = 21.5
+image = "File:Spotted hyena (Crocuta crocuta).jpg"
+
+[[sound]]
+id = "camel"
+name = "camel"
+aliases = ["dromedary", "bactrian camel"]
+category = "animal"
+audio = "File:Cri du chameau.ogg"
+image = "File:Camelus bactrianus (55026866188).jpg"
+
+[[sound]]
+id = "deer"
+name = "deer"
+aliases = ["stag", "red deer", "deers"]
+category = "animal"
+audio = "File:Hirsch roehrt.ogg"
+image = "File:Cervus elaphus Luc Viatour 6.jpg"
+
+[[sound]]
+id = "elk"
+name = "elk"
+aliases = ["wapiti", "elk bugle", "bull elk"]
+category = "animal"
+audio = "File:American Elk Bugling.ogg"
+image = "File:Jasper.Wapiti-Hirsch.P1033401.jpg"
+
+[[sound]]
+id = "coyote"
+name = "coyote"
+aliases = ["coyote howl", "yip yip"]
+category = "animal"
+audio = "File:Pack of coyotes howling.ogg"
+image = "File:2009-Coyote-Yosemite.jpg"
+
+[[sound]]
+id = "seal"
+name = "seal"
+aliases = ["sea lion", "fur seal", "seal bark"]
+category = "animal"
+audio = "File:Arctocephalus forsteri - sound.ogg"
+image = "File:New Zealand fur seal (Arctocephalus forsteri) male Kangaroo Island.jpg"
+
+[[sound]]
+id = "dolphin"
+name = "dolphin"
+aliases = ["bottlenose dolphin", "porpoise"]
+category = "animal"
+audio = "File:161691 felixblume dolphin-screaming-underwater-in-caribbean-sea-mexico.wav"
+image = "File:Tursiops truncatus 01.jpg"
+
+[[sound]]
+id = "alligator"
+name = "alligator"
+aliases = ["gator", "crocodile", "croc", "alligator bellow"]
+category = "animal"
+audio = "File:Alligatorbellow1.ogg"
+image = "File:American Alligator.jpg"
+
+[[sound]]
+id = "rattlesnake"
+name = "rattlesnake"
+aliases = ["rattle snake", "rattler", "snake rattle"]
+category = "animal"
+audio = "File:Rattlesnake.ogg"
+image = "File:Crotalus cerastes mesquite springs CA-2.jpg"
+
+[[sound]]
+id = "cicada"
+name = "cicada"
+aliases = ["cicada bug", "locust"]
+category = "animal"
+audio = "File:Cicada calling in Irving, TX in June of 2012.ogg"
+image = "File:Cicada - Neotibicen linnei, Woodbridge, Virginia.jpg"
+
+[[sound]]
+id = "goose"
+name = "goose"
+aliases = ["geese", "gander", "gosling", "honking goose"]
+category = "animal"
+audio = "File:Geese Honking (loud).ogg"
+image = "File:Domestic Goose.jpg"
+
+[[sound]]
+id = "peacock"
+name = "peacock"
+aliases = ["peafowl", "peahen", "peacock call"]
+category = "animal"
+audio = "File:MalePeacockCall.ogg"
+image = "File:Peacock on tree (52077240794).jpg"
+
+[[sound]]
+id = "loon"
+name = "loon"
+aliases = ["common loon", "great northern diver", "loon call"]
+category = "animal"
+audio = "File:Loon yodel.ogg"
+image = "File:Gavia immer -Minocqua, Wisconsin, USA -swimming-8.jpg"
 
 # ---------------------------------------------------------------- emergency vehicles
 
@@ -460,3 +586,95 @@ aliases = ["sub", "dive alarm", "klaxon"]
 category = "vehicle"
 audio = "File:WWII submarine dive klaxon.ogg"
 image = "File:US Navy 040730-N-1234E-002 PCU Virginia (SSN 774) returns to the General Dynamics Electric Boat shipyard.jpg"
+
+# ---------------------------------------------------------------- more vehicles (#117)
+
+[[sound]]
+id = "ice_cream_truck"
+name = "ice cream truck"
+aliases = ["ice cream van", "ice cream man", "ice cream car"]
+category = "vehicle"
+audio = "File:WWS HomeIceCreamvan.ogg"
+image = "File:Hollywood Cone Ice Cream Truck 1.jpg"
+
+[[sound]]
+id = "fighter_jet"
+name = "fighter jet"
+aliases = ["jet fighter", "fighter plane", "military jet", "air show"]
+category = "vehicle"
+audio = "File:WWS SaabJ35DDraken8211passingtwotimes.ogg"
+image = "File:J 35F 1972 (cropped, removal of damage and dirt using clone tool).jpg"
+
+[[sound]]
+id = "scooter"
+name = "scooter"
+aliases = ["vespa", "moped", "motor scooter"]
+category = "vehicle"
+audio = "File:Vespa.ogg"
+image = "File:PerthVespa.jpg"
+
+[[sound]]
+id = "tram"
+name = "tram"
+aliases = ["streetcar", "street car", "trolley", "trolley car", "tram bell", "clang clang"]
+category = "vehicle"
+audio = "File:Het bellen van de Blauwe Tram - SoundCloud - Beeld en Geluid.ogg"
+image = "File:Muzeum MHD, tramvaje T3 8084 a 6149, zepředu.jpg"
+
+[[sound]]
+id = "go_kart"
+name = "go-kart"
+aliases = ["go kart", "go cart", "kart", "karting"]
+category = "vehicle"
+audio = "File:Wurstelprater Wien 2024 Bandito Rennbahn Go-Kart.ogg"
+image = "File:Kosmic TS28.JPG"
+
+[[sound]]
+id = "lawn_mower"
+name = "lawn mower"
+aliases = ["lawnmower", "mower", "grass cutter"]
+category = "vehicle"
+audio = "File:WWS Lawnmower.ogg"
+image = "File:Man using lawn mower to cut grass in backyard on a sunny day in summer.jpg"
+
+[[sound]]
+id = "forklift"
+name = "forklift"
+aliases = ["forklift truck", "fork lift"]
+category = "vehicle"
+audio = "File:WWS Forklifttruck.ogg"
+image = "File:Material Lift Truck.jpg"
+
+[[sound]]
+id = "motorboat"
+name = "motorboat"
+aliases = ["motor boat", "speedboat", "speed boat", "putt putt boat"]
+category = "vehicle"
+audio = "File:WWS MSThti.ogg"
+image = "File:Motorboat at Kankaria lake.JPG"
+
+[[sound]]
+id = "tugboat"
+name = "tugboat"
+aliases = ["tug boat", "tug", "steamboat", "steam boat", "steamboat whistle"]
+category = "vehicle"
+audio = "File:WWS Steamwhistle.ogg"
+start = 1.5
+end = 6.6
+image = "File:Canning (steam tugboat, 1954) in Swansea.jpg"
+
+[[sound]]
+id = "tank"
+name = "tank"
+aliases = ["army tank", "military tank", "sherman tank"]
+category = "vehicle"
+audio = "File:Sherman tank, met grote snelheid rijden - SoundCloud - Beeld en Geluid.ogg"
+image = "File:M4 Sherman tank - Flickr - Joost J. Bakker IJmuiden.jpg"
+
+[[sound]]
+id = "sleigh"
+name = "sleigh"
+aliases = ["sleigh bells", "santa's sleigh", "santa sleigh", "sled bells"]
+category = "vehicle"
+audio = "File:Sleigh bells.wav"
+image = "File:Horse-drawn sleighs 2012 G1.jpg"

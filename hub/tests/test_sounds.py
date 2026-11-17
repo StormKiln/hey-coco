@@ -32,13 +32,13 @@ def test_default_sounds_dir_is_repo_assets():
     assert DEFAULT_SOUNDS_DIR.resolve() == REPO_SOUNDS.resolve()
 
 
-def test_shipped_manifest_loads_with_about_fifty_sounds(library):
+def test_shipped_manifest_loads_with_about_eighty_sounds(library):
     sounds = library.all()
-    assert 45 <= len(sounds) <= 60
+    assert 75 <= len(sounds) <= 100
     categories = {s.category for s in sounds}
     assert categories == {"animal", "vehicle"}
-    assert sum(s.category == "animal" for s in sounds) >= 25
-    assert sum(s.category == "vehicle" for s in sounds) >= 15
+    assert sum(s.category == "animal" for s in sounds) >= 45
+    assert sum(s.category == "vehicle" for s in sounds) >= 30
 
 
 def test_shipped_files_exist_and_are_reasonable(library):
@@ -50,7 +50,7 @@ def test_shipped_files_exist_and_are_reasonable(library):
         assert image.is_file() and image.suffix == ".jpg", sound.id
         assert 0 < sound.duration_s <= 6.5, sound.id
         total += clip.stat().st_size + image.stat().st_size
-    assert total < 15_000_000
+    assert total < 20_000_000
 
 
 def test_shipped_licences_are_all_allowed(library):
@@ -117,6 +117,32 @@ def test_attribution_md_lists_every_sound():
         ("police car", "police_car"),
         ("helicopters", "helicopter"),
         ("ambulances", "ambulance"),
+        ("zebras", "zebra"),
+        ("geese", "goose"),
+        ("honk honk", "car_horn"),
+        ("peacocks", "peacock"),
+        ("chimp", "chimpanzee"),
+        ("monkeys", "monkey"),
+        ("sea lion", "seal"),
+        ("dolphins", "dolphin"),
+        ("gator", "alligator"),
+        ("crocodile", "alligator"),
+        ("rattlesnake", "rattlesnake"),
+        ("coyotes", "coyote"),
+        ("loon", "loon"),
+        ("ice cream truck", "ice_cream_truck"),
+        ("ice cream van", "ice_cream_truck"),
+        ("fighter jet", "fighter_jet"),
+        ("jet", "airplane"),
+        ("trams", "tram"),
+        ("streetcar", "tram"),
+        ("go kart", "go_kart"),
+        ("go-karts", "go_kart"),
+        ("lawnmower", "lawn_mower"),
+        ("forklift", "forklift"),
+        ("speedboat", "motorboat"),
+        ("tank", "tank"),
+        ("santa's sleigh", "sleigh"),
     ],
 )
 def test_find_matches_names_aliases_and_plurals(library, query, expected):

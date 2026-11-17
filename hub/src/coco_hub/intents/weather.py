@@ -7,8 +7,15 @@ location unless a place is named. A named place is geocoded (``weather.places``)
 read in its own timezone, and the answer starts by naming it ("Here's Paris, France."), or by
 saying which one it picked when the name is ambiguous ("There's more than one Portland, so
 here's Portland, Oregon.").
+
+Unless the place is home, a named place is compared with home (#111): the answer ends with one
+phrase about home ("That's 6 degrees warmer than at home.", "It's dry at home.") and the view
+carries home's numbers (``compare``). Periods line up on the place's local calendar and clock:
+"tonight in Portland" is compared with tonight at home on the same date, not with the same
+instants (which could be the small hours at home). Current conditions compare now with now.
 """
 
+import asyncio
 import re
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, replace
@@ -25,12 +32,12 @@ from coco_hub.intents.engine import (
     Match,
     Reply,
 )
-from coco_hub.protocol import UtteranceRequest, WeatherView
+from coco_hub.protocol import UtteranceRequest, WeatherComparison, WeatherView
 from coco_hub.weather import codes
 from coco_hub.weather.client import WeatherFetchError
 from coco_hub.weather.model import WET_PERCENT, Day, Forecast, Hour, representative_code
-from coco_hub.weather.places import Pick
-from coco_hub.weather.service import WeatherService
+from coco_hub.weather.places import Pick, Place, distance_km
+from coco_hub.weather.service import WeatherService, WeatherSnapshot
 from coco_hub.weather.spoken import (
     a_or_an,
     degrees,
@@ -50,6 +57,9 @@ LIKELY_PERCENT = 50
 POSSIBLE_PERCENT = 25
 OUTLOOK_HOURS = 12
 FEELS_LIKE_GAP = 2
+HOME_NAME = "Home"
+SAME_PLACE_KM = 5.0
+"""A named place this close to home is home: no comparison."""
 
 # --- When ------------------------------------------------------------------------------
 
@@ -192,15 +202,43 @@ def _chance(p: int, kind: str) -> str:
 # --- Handlers --------------------------------------------------------------------------
 
 WeatherAnswer = Callable[[Match, Forecast, datetime], str]
+WeatherCompare = Callable[[Match, Forecast, datetime, Forecast, datetime], str | None]
+"""``(match, place's forecast, place-local now, home's forecast, home_now) -> phrase``, where
+``home_now`` is the place's wall-clock time read in home's timezone (see the module doc)."""
 
 
-def weather_view(forecast: Forecast, now: datetime, place: str | None = None) -> WeatherView:
+def weather_view(
+    forecast: Forecast,
+    now: datetime,
+    place: str | None = None,
+    compare: WeatherComparison | None = None,
+) -> WeatherView:
     return WeatherView(
         current=forecast.current,
         hourly=forecast.hourly_after(now, VIEW_HOURS),
         daily=forecast.daily_from(now.date(), VIEW_DAYS),
         place=place,
+        compare=compare,
     )
+
+
+def home_comparison(place: Forecast, home: Forecast, now: datetime) -> WeatherComparison:
+    """Home's current conditions and home's days for the place's dates (place-local)."""
+    days = [home.day(date.fromisoformat(d.date)) for d in place.daily_from(now.date(), VIEW_DAYS)]
+    return WeatherComparison(
+        name=HOME_NAME,
+        current=home.current,
+        daily=[d.to_protocol(home.unit) for d in days if d is not None],
+    )
+
+
+async def home_beside(service: WeatherService, place: Place) -> WeatherSnapshot | None:
+    """Home's forecast to compare ``place`` with; None when home isn't set, ``place`` is home,
+    or home's weather can't be had (the place still answers)."""
+    home = service.home_coordinates
+    if home is None or distance_km(*home, place.lat, place.lon) <= SAME_PLACE_KM:
+        return None
+    return await service.get()
 
 
 def not_found(place: str) -> str:
@@ -213,9 +251,9 @@ def place_intro(pick: Pick) -> str:
     return f"Here's {pick.place.label}. "
 
 
-def _handler(say: WeatherAnswer) -> Callable[..., object]:
+def _handler(say: WeatherAnswer, compare: WeatherCompare) -> Callable[..., object]:
     """Wrap a ``(match, forecast, now) -> say`` function: fetch weather for home or for the
-    named place, attach the view."""
+    named place (compared with home by ``compare``), attach the view."""
 
     async def at_place(
         place: str, match: Match, ctx: IntentContext, service: WeatherService
@@ -224,12 +262,23 @@ def _handler(say: WeatherAnswer) -> Callable[..., object]:
             pick = await service.resolve(place)
             if pick is None:
                 return answer(not_found(place))
-            snapshot = await service.get_at(pick.place)
+            snapshot, home = await asyncio.gather(
+                service.get_at(pick.place), home_beside(service, pick.place)
+            )
         except WeatherFetchError:
             return answer(UNREACHABLE)
         now = ctx.clock().astimezone(ZoneInfo(pick.place.timezone))
         text = place_intro(pick) + say(match, snapshot.forecast, now)
-        return Reply(say=text, view=weather_view(snapshot.forecast, now, pick.place.label))
+        comparison = None
+        if home is not None:
+            # The place's wall clock in home's timezone: same date, same part of the day.
+            home_now = now.replace(tzinfo=ctx.tz)
+            phrase = compare(match, snapshot.forecast, now, home.forecast, home_now)
+            if phrase:
+                text += " " + phrase
+            comparison = home_comparison(snapshot.forecast, home.forecast, now)
+        view = weather_view(snapshot.forecast, now, pick.place.label, comparison)
+        return Reply(say=text, view=view)
 
     async def handle(match: Match, request: UtteranceRequest, ctx: IntentContext) -> Reply:
         service: WeatherService | None = ctx.services.get("weather")
@@ -374,6 +423,96 @@ def say_high_low(match: Match, forecast: Forecast, now: datetime) -> str:
             name, value = ("high", high) if want_high else ("low", low)
             sentences.append(f"{_cap(label)}'s {name} is {degrees(value)}.")
     return _over(period, " ".join(sentences))
+
+
+# --- Compared with home (#111) ---------------------------------------------------------
+
+
+def than_home(place: float, home: float) -> str:
+    """Compare as said: rounded first, so "11 vs 11" is the same even from 10.7 and 11.3."""
+    diff = round_temp(place) - round_temp(home)
+    if diff == 0:
+        return "About the same temperature as at home."
+    return f"That's {degrees(abs(diff))} {'warmer' if diff > 0 else 'colder'} than at home."
+
+
+def _period_temp(forecast: Forecast, period: Period, now: datetime, kind: str) -> float | None:
+    """``kind`` (high, low, mean) over ``period``: the days' highs/lows averaged for whole
+    days (mean means the highs), the hours' otherwise."""
+    if period.dates:
+        days = [d for x in period.dates if (d := forecast.day(x)) is not None]
+        if not days:
+            return None
+        return fmean(d.low if kind == "low" else d.high for d in days)
+    temps = [h.temp for h in _period_hours(forecast, period, now)]
+    if not temps:
+        return None
+    return {"high": max, "low": min}.get(kind, fmean)(temps)
+
+
+def _compare_temps(
+    when: str | None, kind: str, place: Forecast, now: datetime, home: Forecast, home_now: datetime
+) -> str | None:
+    period = resolve_period(when, now)
+    home_period = resolve_period(when, home_now)
+    if period.dates:
+        # Only days both forecasts cover, so the averages are like for like.
+        shared = tuple(d for d in period.dates if place.day(d) and home.day(d))
+        period = replace(period, dates=shared)
+        home_period = replace(home_period, dates=shared)
+        if not shared:
+            return None
+    p = _period_temp(place, period, now, kind)
+    h = _period_temp(home, home_period, home_now, kind)
+    return None if p is None or h is None else than_home(p, h)
+
+
+def compare_current(
+    match: Match, place: Forecast, now: datetime, home: Forecast, home_now: datetime
+) -> str | None:
+    return than_home(place.current.temp, home.current.temp)
+
+
+def compare_forecast(
+    match: Match, place: Forecast, now: datetime, home: Forecast, home_now: datetime
+) -> str | None:
+    when = match.slots.get("when")
+    period = resolve_period(when, now)
+    # What the answer said: the day's high, a night's low, or around a part of the day.
+    if period.dates:
+        kind = "high"
+    elif period.label.endswith(("tonight", "night")):
+        kind = "low"
+    else:
+        kind = "mean"
+    return _compare_temps(when, kind, place, now, home, home_now)
+
+
+def compare_high_low(
+    match: Match, place: Forecast, now: datetime, home: Forecast, home_now: datetime
+) -> str | None:
+    which = match.slots.get("which", "high")
+    kind = "low" if which in _LOW_WORDS else "high"  # "high and low" compares the highs
+    return _compare_temps(match.slots.get("when"), kind, place, now, home, home_now)
+
+
+def compare_rain(
+    match: Match, place: Forecast, now: datetime, home: Forecast, home_now: datetime
+) -> str | None:
+    place_hours = _period_hours(place, resolve_period(match.slots.get("when"), now), now)
+    home_hours = _period_hours(home, resolve_period(match.slots.get("when"), home_now), home_now)
+    if not place_hours or not home_hours:
+        return None
+    p = max(h.precip_probability for h in place_hours)
+    wettest = max(home_hours, key=lambda h: h.precip_probability)
+    h = wettest.precip_probability
+    if h >= LIKELY_PERCENT:
+        kind = codes.precip_kind(wettest.code) or ("snow" if "snow" in match.text else "rain")
+        tail = "too" if p >= LIKELY_PERCENT else "though"
+        return f"{_cap(kind)} is likely at home{',' if tail == 'though' else ''} {tail}."
+    if h < POSSIBLE_PERCENT:
+        return "Dry at home too." if p < POSSIBLE_PERCENT else "It's dry at home."
+    return f"At home, there's {a_or_an(h)} {h} percent chance."
 
 
 # --- Patterns --------------------------------------------------------------------------
@@ -524,7 +663,7 @@ def register(registry: IntentRegistry) -> None:
         Intent(
             "weather.current",
             patterns=_patterns(CURRENT_PATTERNS),
-            handler=_handler(say_current),
+            handler=_handler(say_current, compare_current),
             description=(
                 "weather or temperature outside right now, including how cold, chilly or warm "
                 "it is now"
@@ -536,7 +675,7 @@ def register(registry: IntentRegistry) -> None:
         Intent(
             "weather.forecast",
             patterns=_patterns(FORECAST_PATTERNS),
-            handler=_handler(say_forecast),
+            handler=_handler(say_forecast, compare_forecast),
             description=(
                 "what the weather will be like later (today, tonight, tomorrow, the weekend), "
                 "including what to wear"
@@ -548,7 +687,7 @@ def register(registry: IntentRegistry) -> None:
         Intent(
             "weather.rain",
             patterns=_patterns(RAIN_PATTERNS),
-            handler=_handler(say_rain),
+            handler=_handler(say_rain, compare_rain),
             description="only questions about rain, snow, showers, storms or umbrellas",
             llm_slots={"when": LLM_WHEN, "place": LLM_PLACE},
         )
@@ -557,7 +696,7 @@ def register(registry: IntentRegistry) -> None:
         Intent(
             "weather.high_low",
             patterns=_patterns(HIGH_LOW_PATTERNS),
-            handler=_handler(say_high_low),
+            handler=_handler(say_high_low, compare_high_low),
             description=(
                 "the forecast high or low temperature for a day or part of a day "
                 "(how hot or how cold it will get), not the temperature right now"

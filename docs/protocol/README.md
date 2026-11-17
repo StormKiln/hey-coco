@@ -172,7 +172,7 @@ says "Can't reach <host> — check the Mac".
 | `idle` | – |
 | `answer` | `text` |
 | `timers` | – (Display renders from its timer state) |
-| `weather` | `current: WeatherNow`, `hourly: [WeatherHour]`, `daily: [WeatherDay]`, `place` (nullable) — see below |
+| `weather` | `current: WeatherNow`, `hourly: [WeatherHour]`, `daily: [WeatherDay]`, `place` (nullable), `compare: WeatherComparison` (nullable) — see below |
 | `picture` | `query`, `images: [Image]` (first shown, "next" advances) — see below |
 | `sound` | `name`, `clip_url`, `image_url`, `attribution`, `caption` (nullable) — see below |
 | `youtube` | `video_id`, `title` |
@@ -181,6 +181,16 @@ says "Can't reach <host> — check the Mac".
 #### `place` in `weather` views
 
 `place` is `null` for home. For a place the person named ("what's the forecast in Portland", #93) it is how the Hub names it, e.g. `"Portland, Oregon"`, and the Display shows it as the screen's title. Its `hourly` times are instants as usual; its `daily` dates are that place's local dates. The `say` text names the place too, and says which one the Hub picked when the name was ambiguous.
+
+#### `compare` in `weather` views
+
+`compare` is home's weather beside a named place's (#111, `fixtures/action_weather_place.json`). It is `null` for home, when home isn't set, when the place is within 5 km of home, and when home's forecast can't be had (the place still answers). Otherwise `WeatherComparison`:
+
+- `name`: what to call it on screen, `"Home"`.
+- `current: WeatherNow`: home's conditions now (now vs now).
+- `daily: [WeatherDay]`: home's days for the **place's** `daily` dates — the place's local calendar dates, which may not be today at home across time zones — as far as home's forecast reaches (so it can be shorter). Match them to the place's days by `date`.
+
+The `say` text ends with one phrase about home: "That's 6 degrees warmer than at home.", "About the same temperature as at home.", or for rain questions "It's dry at home." / "Rain is likely at home too.". Parts of a day line up by the place's wall clock: "tonight in Portland" is compared with tonight at home on the same date.
 
 #### Media URLs in `picture` and `sound` views
 
@@ -243,6 +253,7 @@ and an old value is shown.
   `description`, `is_day`.
 - `WeatherHour`: `time`, `temp`, `unit`, `code`, `precip_probability` (0–100).
 - `WeatherDay`: `date` (`YYYY-MM-DD`), `high`, `low`, `unit`, `code`, `precip_probability`.
+- `WeatherComparison`: `name`, `current: WeatherNow`, `daily: [WeatherDay]` (see `compare` above).
 
 ## Home location
 

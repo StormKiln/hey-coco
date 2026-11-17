@@ -134,7 +134,8 @@ async def test_forecast_today_in_portland(ask):
         "There's more than one Portland, so here's Portland, Oregon. Today, expect "
     )
     assert fake.searches == ["portland"]
-    (forecast,) = fake.forecasts
+    # Portland's forecast, and home's to compare with (#111).
+    forecast, _home = sorted(fake.forecasts, key=lambda r: r.url.params["latitude"] != "45.52345")
     assert forecast.url.params["latitude"] == "45.52345"
     assert forecast.url.params["longitude"] == "-122.67621"
     assert forecast.url.params["timezone"] == "America/Los_Angeles"
@@ -210,7 +211,8 @@ async def test_places_are_looked_up_once(registry, home, portland_clock, make_se
     finally:
         await service.aclose()
     assert fake.searches == ["paris"]
-    assert len(fake.forecasts) == 1
+    # Paris once, and home once (to compare with, #111): both cached.
+    assert len(fake.forecasts) == 2
 
 
 def _registry_with_weather() -> IntentRegistry:

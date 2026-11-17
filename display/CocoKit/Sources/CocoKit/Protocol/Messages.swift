@@ -108,6 +108,17 @@ public struct WeatherDay: Codable, Sendable, Equatable {
     }
 }
 
+/// Home's weather beside a named place's (#111).
+public struct WeatherComparison: Codable, Sendable, Equatable {
+    /// "Home".
+    public var name: String
+    /// Home's conditions now.
+    public var current: WeatherNow
+    /// Home's days for the place's dates (the place's local calendar), as far as home's
+    /// forecast reaches; match them by `date`.
+    public var daily: [WeatherDay]
+}
+
 // MARK: - Idle
 
 public struct Night: Codable, Sendable, Equatable {

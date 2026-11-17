@@ -44,6 +44,25 @@ public protocol SpeechRecognizer: AnyObject {
     func cancel()
 }
 
+/// Mic audio that is already being captured, handed to a recognizer instead of it opening the
+/// mic itself (#112: what the wake-word mic heard from "hey coco" onward).
+public protocol SpeechAudioFeed: AnyObject, Sendable {
+    /// Samples per second of the 16-bit mono frames.
+    var sampleRate: Double { get }
+    /// Delivers what was captured so far, then each new frame, in order (on the mic's queue,
+    /// never the main actor), until `detach()`.
+    func attach(_ sink: @escaping @Sendable ([Int16]) -> Void)
+    func detach()
+}
+
+/// A recognizer that can also listen to audio captured elsewhere.
+@MainActor
+public protocol FeedableSpeechRecognizer: SpeechRecognizer {
+    /// Like `start()`, but listens to `audio` (detached again on `stop()` / `cancel()` / the
+    /// end of the utterance) instead of opening the mic.
+    func start(audio: any SpeechAudioFeed) throws -> AsyncThrowingStream<SpeechTranscript, any Error>
+}
+
 /// Speaks replies. `speak` returns once speech finishes or is stopped.
 @MainActor
 public protocol SpeechSynthesizer: AnyObject {

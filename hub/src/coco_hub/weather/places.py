@@ -16,6 +16,7 @@ Every pick also lists the other matches, most populous first (``alternatives``),
 Display's Settings can offer them when the home location is set by name (#96).
 """
 
+import math
 import re
 import unicodedata
 from dataclasses import dataclass, field
@@ -48,6 +49,17 @@ def _key(text: str) -> str:
     """Lowercase ASCII words: ``Île-de-France`` -> ``ile de france``."""
     text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
     return " ".join(re.sub(r"[^a-z0-9]+", " ", text.lower()).split())
+
+
+EARTH_RADIUS_KM = 6371.0
+
+
+def distance_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Great-circle distance (haversine)."""
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dp, dl = p2 - p1, math.radians(lon2 - lon1)
+    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    return 2 * EARTH_RADIUS_KM * math.asin(math.sqrt(a))
 
 
 @dataclass(frozen=True)

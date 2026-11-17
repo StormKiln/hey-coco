@@ -81,7 +81,8 @@
         "precip_probability": 20
       }
     ],
-    "place": null
+    "place": null,
+    "compare": null
   },
   "commands": [],
   "intent": "weather.current",

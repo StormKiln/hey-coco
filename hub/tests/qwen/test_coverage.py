@@ -29,6 +29,8 @@ QWEN_VISIBLE = {
     "picture.next",
     "sound.play",
     "sound.again",
+    "calendar.day",
+    "calendar.find",
 }
 
 

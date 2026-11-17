@@ -209,3 +209,19 @@
 {"text": "is it gonna be sunny in Portland Oregon tomorrow", "intent": "weather.forecast", "slots": {"when": "tomorrow", "place": "Portland"}}
 {"text": "how hot is it over in Phoenix right now", "intent": "weather.current", "slots": {"place": "Phoenix"}}
 {"text": "should grandma bring an umbrella in Vancouver this weekend", "intent": "weather.rain", "slots": {"when": "this_weekend", "place": "Vancouver"}}
+{"text": "what's going on today", "intent": "calendar.day", "slots": {"day": "today"}}
+{"text": "what's on tomorrow", "intent": "calendar.day", "slots": {"day": "tomorrow"}}
+{"text": "what's on the calendar this weekend", "intent": "calendar.day", "slots": {"day": "this_weekend"}}
+{"text": "what's on Saturday", "intent": "calendar.day", "slots": {"day": "saturday"}}
+{"text": "anything on Friday", "intent": "calendar.day", "slots": {"day": "friday"}}
+{"text": "what do we have going on tomorrow", "intent": "calendar.day", "slots": {"day": "tomorrow"}}
+{"text": "are we busy on Sunday", "intent": "calendar.day", "slots": {"day": "sunday"}}
+{"text": "is the family doing anything fun tomorrow", "intent": "calendar.day", "slots": {"day": "tomorrow"}}
+{"text": "when is soccer practice", "intent": "calendar.find", "slots": {"query": "soccer practice"}}
+{"text": "when's the dentist", "intent": "calendar.find", "slots": {"query": "dentist"}}
+{"text": "when is grandma's call", "intent": "calendar.find", "slots": {"query": "grandma's call"}}
+{"text": "remind me when the bake sale is", "intent": "calendar.find", "slots": {"query": "bake sale"}}
+{"text": "what is today", "intent": "date.today", "slots": {}}
+{"text": "how does tomorrow look", "intent": "weather.forecast", "slots": {"when": "tomorrow"}}
+{"text": "what's today looking like", "intent": "weather.forecast", "slots": {"when": "today"}}
+{"text": "what's the weather tomorrow", "intent": "weather.forecast", "slots": {"when": "tomorrow"}}

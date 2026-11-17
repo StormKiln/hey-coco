@@ -19,12 +19,22 @@ def _intent_modules() -> list[Callable[[IntentRegistry], None]]:
     # coco_hub.timers.service), which import coco_hub.intents.normalize, which runs this
     # package's __init__ first. Eager imports made ``import coco_hub.timers.service`` fail
     # with a circular import unless something else had imported coco_hub.intents already.
-    from coco_hub.intents import builtin, media, music, pictures, sounds, timers, weather
+    from coco_hub.intents import (
+        builtin,
+        calendar,
+        media,
+        music,
+        pictures,
+        sounds,
+        timers,
+        weather,
+    )
 
     return [
         builtin.register,
         timers.register,
         weather.register,
+        calendar.register,
         media.register,
         pictures.register,
         sounds.register,

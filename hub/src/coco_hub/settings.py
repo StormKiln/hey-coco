@@ -13,7 +13,15 @@ from pathlib import Path
 from typing import Annotated, Any, Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SecretStr,
+    ValidationError,
+    field_validator,
+    model_validator,
+)
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -53,6 +61,8 @@ class Night(BaseModel):
     start: time = time(21, 30)
     end: time = time(6, 30)
     dark_after_idle_s: Annotated[int, Field(ge=0)] = 300
+    hide_calendar: bool = False
+    """Leave calendar events off the home screen during night hours (#142)."""
 
     _hhmm = field_validator("start", "end", mode="before")(_parse_hhmm)
 
@@ -191,6 +201,56 @@ class DeviceConfig(BaseModel):
         return value.strip() if value else value
 
 
+_CALENDAR_KEYS = {"source", "name", "color", "show_on_idle", "busy_only"}
+
+
+class CalendarConfig(BaseModel):
+    """One ``[[calendars]]`` entry (#137, docs/calendar.md). Keys other than the common ones
+    below belong to the source (``coco_hub.calendar.sources``), e.g. ``url`` for ``ics``,
+    and are validated into ``options``. Errors never echo the entry: URLs can be secrets."""
+
+    model_config = ConfigDict(frozen=True, hide_input_in_errors=True)
+
+    source: str
+    """Which ``coco_hub.calendar.sources`` reads it, e.g. ``"ics"``."""
+    name: str | None = None
+    """Shown on the iPad and said aloud. Default: the calendar's own name from the feed."""
+    color: Annotated[str, Field(pattern=r"^#[0-9A-Fa-f]{6}$")] | None = None
+    """``#RRGGBB``. Default: one of a fixed palette, by position."""
+    show_on_idle: bool = True
+    """List its events on the home screen (voice answers include it either way)."""
+    busy_only: bool = False
+    """Show and say "Busy" instead of event titles."""
+    options: BaseModel
+    """The source's own settings (its ``Options`` model)."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _source_options(cls, data: object) -> object:
+        if not isinstance(data, dict) or "options" in data:
+            return data
+        from coco_hub.calendar.sources import SOURCES, source_class
+
+        source = data.get("source")
+        if not isinstance(source, str) or source not in SOURCES:
+            known = ", ".join(sorted(SOURCES))
+            raise ValueError(f"calendar source must be one of: {known}")
+        rest = {k: v for k, v in data.items() if k not in _CALENDAR_KEYS}
+        try:
+            options = source_class(source).Options.model_validate(rest)
+        except ValidationError as exc:
+            problems = "; ".join(
+                f"{'.'.join(str(p) for p in e['loc']) or source}: {e['msg']}" for e in exc.errors()
+            )
+            raise ValueError(f"{source} calendar: {problems}") from None
+        return {k: v for k, v in data.items() if k in _CALENDAR_KEYS} | {"options": options}
+
+    @field_validator("color")
+    @classmethod
+    def _upper(cls, v: str | None) -> str | None:
+        return v.upper() if v else v
+
+
 MIN_TOKEN_LENGTH = 24
 _PLACEHOLDER_TOKENS = {"changeme", "password", "token", "secret", "test"}
 
@@ -240,6 +300,7 @@ class Settings(BaseSettings):
     diagnostics: Diagnostics = Diagnostics()
     backends: dict[str, BackendSettings] = {}
     devices: list[DeviceConfig] = []
+    calendars: list[CalendarConfig] = []
 
     @field_validator("data_dir", "sounds_dir", "log_dir")
     @classmethod

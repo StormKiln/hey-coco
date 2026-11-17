@@ -177,6 +177,7 @@ says "Can't reach <host> — check the Mac".
 | `sound` | `name`, `clip_url`, `image_url`, `attribution`, `caption` (nullable) — see below |
 | `youtube` | `video_id`, `title` |
 | `now_playing` | – (Display renders from now-playing events) |
+| `calendar` | `title`, `query` (nullable), `days: [CalendarDay]`, `stale`, `fetched_at` (nullable) — see Calendar types |
 
 #### `place` in `weather` views
 
@@ -241,11 +242,34 @@ player handles them, and the Display reports its Apple Music now-playing locally
 ```json
 {"server_time": "…", "timezone": "America/Toronto",
  "weather": {"current": WeatherNow, "hourly": [WeatherHour …6+], "stale": false} | null,
+ "calendar": {"days": [CalendarDay today, CalendarDay tomorrow], "stale": false,
+              "fetched_at": "…" | null, "hide_at_night": false} | null,
  "night": {"start": "21:30", "end": "06:30", "dark_after_idle_s": 300}}
 ```
 
 `weather` is `null` when the Hub has never fetched it; `stale: true` when the last fetch failed
 and an old value is shown.
+
+`calendar` is `null` when no calendars are configured: the home screen then looks exactly as it
+did before calendars. Otherwise it holds today's and tomorrow's events (Hub dates) from calendars
+with `show_on_idle`, straight from the Hub's cache (the Hub never waits on a fetch for this).
+`stale` is true when some calendar's last fetch failed, it never fetched, or its data is older
+than 35 minutes; `fetched_at` is the oldest calendar's last good fetch (`null` if one never
+fetched). `hide_at_night` is the Hub's `night.hide_calendar`. The Display drops events that
+have already ended by its own clock (`fixtures/idle_info_calendar.json`).
+
+### Calendar types
+
+- `CalendarDay`: `date` (`YYYY-MM-DD`, Hub-local), `events: [CalendarEvent]` — everything
+  overlapping that date, all-day first, then by start.
+- `CalendarEvent`: `id` (stable per occurrence, opaque), `title`, `start`, `end`, `all_day`,
+  `calendar: {"name", "color": "#RRGGBB" | null}`, `busy_only`. All-day events run from
+  Hub-local midnight to the midnight after their last day (end exclusive), so a multi-day event
+  appears on each of its days. `busy_only` events (private events, or a `busy_only` calendar)
+  have the title `Busy`: show the time only.
+- `calendar` views (`fixtures/action_calendar.json`) use the same days for voice answers:
+  `title` names what's shown (`Today`, `Saturday`, `This weekend`, or the search), `query` is
+  the searched text for "when is X" (else `null`).
 
 ### Weather types
 
@@ -389,7 +413,8 @@ instead of failing the request.
               "spotify": {"configured": true, "logged_in": true},
               "night": Night, "log_transcripts": true},
  "health": {"ollama": OllamaHealth, "weather": WeatherHealth,
-            "youtube": YoutubeHealth, "spotify": SpotifyHealth},
+            "youtube": YoutubeHealth, "spotify": SpotifyHealth,
+            "calendars": [CalendarHealth …one per configured calendar]},
  "utterances": [UtteranceTrace …up to 20, newest first]}
 ```
 
@@ -401,6 +426,9 @@ instead of failing the request.
   - `WeatherHealth`: `fetched_at` (nullable), `stale`.
   - `YoutubeHealth`: `quota_used`, `quota_limit` (API units today, Pacific day).
   - `SpotifyHealth`: `device_visible`, `device_name` (nullable).
+  - `CalendarHealth`: `index` (1-based position in `[[calendars]]`), `fetched_at` (nullable:
+    never fetched), `stale`. Never a calendar's name or URL. `[]` when no calendars are
+    configured; the Display treats a missing key (older Hubs) as `[]`.
 - `UtteranceTrace`: `ts`, `text`, `source`, `view` (the request's `context.view`), `intent`,
   `matched_by`, `say`, `latency_ms`, `error`. `intent`, `matched_by` and `say` are `null` and
   `error` is set (`"<ExceptionType>: <message>"`) when handling failed.

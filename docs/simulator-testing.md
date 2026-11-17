@@ -56,7 +56,7 @@ cat "$docs/coco-debug-log.txt"
 Commands (`DebugCommand`): `pair <fingerprint>`, `pair-code <fingerprint> <code>`,
 `pair-uri <cocohub://pair?...>`, `say: <text>`, `timer <seconds> [name]`, `stop-alarm`,
 `show idle|timers|now_playing`, `night sleep|wake`, `forget`, `screenshot <name>`,
-`rotate portrait|landscape`, `now-playing <title> [| <artist>]` / `now-playing off` (music as
+`rotate portrait|landscape`, `idle <name>`, `now-playing <title> [| <artist>]` / `now-playing off` (music as
 the Hub would report it, to look at Now Playing without Spotify), and `view <name>`. Pairing still
 requires the fingerprint to match the one the app sees.
 
@@ -66,6 +66,13 @@ requires the fingerprint to match the one the app sees.
 hard to reach live, such as weather beside home with rain on one side. Weather hours and days are
 filtered by the clock, so write the fixture with times from now. It needs no Hub, but a Hub-relative
 media path (`/v1/media/…`) only loads while connected.
+
+`idle <name>` uses the `IdleInfo` JSON in `$docs/<name>.json` (the protocol's `/v1/idle` answer,
+e.g. `docs/protocol/fixtures/idle_info_calendar.json`) as if the Hub had sent it: the home screen
+with recorded weather and calendars (#142). Events that have ended and weather hours that have passed
+drop off by the clock, so write it with times from now, and with fictional events only. A connected
+Hub's next fetch replaces it, so use it with the Hub unreachable (e.g. `-CocoDebugPort` pointing at
+a closed port).
 
 To try the easier pairing (#89) without a camera, launch without `-CocoDebugToken` (or send
 `forget`), so the app looks for a Hub to pair with, and run the pair command against the scratch

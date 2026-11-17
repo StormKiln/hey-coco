@@ -83,12 +83,16 @@ private final class FakeDiagnosticsHub: HubAPI {
         #expect(model.uptime == "12 h 5 m")
         #expect(model.versionLine == "0.1.0 (3e190cd)")
 
-        #expect(model.healthRows.map(\.name) == ["Ollama", "Weather", "YouTube", "Spotify"])
-        #expect(model.healthRows.map(\.status) == [.ok, .warn, .ok, .error])
+        #expect(model.healthRows.map(\.name) == [
+            "Ollama", "Weather", "YouTube", "Spotify", "Calendar 1", "Calendar 2",
+        ])
+        #expect(model.healthRows.map(\.status) == [.ok, .warn, .ok, .error, .ok, .error])
         #expect(model.healthRows[0].summary == "reachable · model loaded")
         #expect(model.healthRows[1].summary == "last fetch failed · stale · fetched 45 min ago")
         #expect(model.healthRows[2].summary == "quota 300 / 9000")
         #expect(model.healthRows[3].summary == "Kitchen iPad not visible · timed out")
+        #expect(model.healthRows[4].summary == "fetched 5 min ago")
+        #expect(model.healthRows[5].summary == "address or sign-in refused · stale")
 
         let rows = model.utteranceRows
         #expect(rows.count == 4)
@@ -103,6 +107,15 @@ private final class FakeDiagnosticsHub: HubAPI {
         #expect(rows[2].matchedBy == "—")
         #expect(rows[2].error == "SpotifyError: HTTP 502")
         #expect(rows[3].when == "5 min ago")
+    }
+
+    @Test func olderHubWithoutCalendarsStillDecodes() throws {
+        let json = String(decoding: try Fixtures.data("diagnostics"), as: UTF8.self)
+        let start = try #require(json.range(of: ",\n    \"calendars\""))
+        let end = try #require(json.range(of: "]", range: start.upperBound..<json.endIndex))
+        let older = json.replacingCharacters(in: start.lowerBound..<end.upperBound, with: "")
+        let decoded = try CocoJSON.decoder.decode(HubDiagnostics.self, from: Data(older.utf8))
+        #expect(decoded.health.calendars.isEmpty)
     }
 
     @Test func failedLoadKeepsTheLastGoodDataAndReportsTheError() async throws {

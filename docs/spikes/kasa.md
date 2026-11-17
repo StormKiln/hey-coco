@@ -22,10 +22,15 @@ unsupported.
 
 Recorded without household details (no names, addresses or MACs).
 
-| Device class | Protocol | Login needed | p50 read | p95 read | Toggle |
-| --- | --- | --- | --- | --- | --- |
-| _pending: owner runs the probe_ | | | | | |
+| Device | Protocol | Login needed | p50 read | p95 read |
+| --- | --- | --- | --- | --- |
+| Device 1 | legacy (XOR) | No | 40 ms | 129 ms |
 
 ## Findings
 
-_Pending the first real-device run._
+- Auth: the legacy local protocol answered with no credentials.
+  KLAP/AES (login) is covered by fake-device tests only.
+- 10 state reads over Wi-Fi: p50 40 ms, p95 129 ms.
+  Connect (one discovery query + first read): ~1 s.
+  Both fit inside the Hub's 2 s per-call limit.
+- Not measured: `--toggle` switching latency.

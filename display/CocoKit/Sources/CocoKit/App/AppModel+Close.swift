@@ -5,10 +5,10 @@ import Foundation
 extension ViewSpec {
     /// Full-screen results whose only other way out is waiting for a timeout get a big Close
     /// (X) button. Idle is home; weather, timers and now playing have a Home button; YouTube
-    /// has its own close button.
+    /// has its own close button. Calendar answers (#143) also time out back to idle.
     public var showsCloseButton: Bool {
         switch self {
-        case .answer, .picture, .sound: true
+        case .answer, .picture, .sound, .calendar: true
         default: false
         }
     }

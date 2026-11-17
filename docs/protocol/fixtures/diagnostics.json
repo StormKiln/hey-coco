@@ -34,7 +34,11 @@
       "device_visible": false,
       "device_name": "Kitchen iPad",
       "detail": "timed out"
-    }
+    },
+    "calendars": [
+      {"index": 1, "status": "ok", "fetched_at": "2026-11-14T20:00:00Z", "stale": false, "detail": null},
+      {"index": 2, "status": "error", "fetched_at": null, "stale": true, "detail": "address or sign-in refused"}
+    ]
   },
   "utterances": [
     {

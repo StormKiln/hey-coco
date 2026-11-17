@@ -2,6 +2,7 @@
   "server_time": "2026-11-14T15:04:05Z",
   "timezone": "America/Toronto",
   "weather": null,
+  "calendar": null,
   "night": {
     "start": "21:30",
     "end": "06:30",

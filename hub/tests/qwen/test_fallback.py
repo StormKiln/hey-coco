@@ -395,3 +395,14 @@ async def test_transcripts_stay_out_of_logs_when_disabled(ctx, caplog):
         await run(fb, "my secret kitchen sentence", ctx)
     assert "my secret kitchen sentence" not in caplog.text
     assert "<transcript hidden>" in caplog.text
+
+
+async def test_slot_values_stay_out_of_logs_when_disabled(ctx, caplog):
+    # Slots repeat what was said (an event to find, a timer name): same rule as the text.
+    fake = FakeOllama(reply("timer.create", {"name": "secret dumplings", "duration_s": 600}))
+    fb = fallback(fake)
+    fb.log_transcripts = False
+    with caplog.at_level("INFO", logger="coco_hub.qwen.fallback"):
+        await run(fb, "ten minutes for the secret dumplings", ctx)
+    assert "secret dumplings" not in caplog.text
+    assert "timer.create" in caplog.text and "name" in caplog.text

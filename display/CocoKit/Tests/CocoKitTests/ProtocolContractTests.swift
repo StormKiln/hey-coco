@@ -120,6 +120,21 @@ func everyFixtureDecodesWithItsModel(name: String) throws {
         return
     }
     #expect(weather.place == "Portland, Oregon")
+    // #111: home's weather for the same dates, to show beside it.
+    let compare = try #require(weather.compare)
+    #expect(compare.name == "Home")
+    #expect(compare.current.temp == -1.5)
+    #expect(compare.daily.map(\.date) == ["2026-11-14", "2026-11-15"])
+    #expect(compare.daily[0].high == -1.0)
+}
+
+@Test func weatherActionWithoutAComparison() throws {
+    let action = try Fixtures.decode(Action.self, "action_weather")
+    guard case .weather(let weather) = action.view else {
+        Issue.record("expected weather view, got \(String(describing: action.view))")
+        return
+    }
+    #expect(weather.compare == nil)
 }
 
 @Test func commandsDecodeInOrder() throws {

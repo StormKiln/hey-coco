@@ -10,7 +10,7 @@ PLIST_DEST := $(HOME)/Library/LaunchAgents/$(SERVICE_LABEL).plist
 HUB_LOG_DIR := $(HOME)/Library/Logs/CocoHub
 LAUNCH_DOMAIN = gui/$$(id -u)
 
-.PHONY: help hub-setup hub-sync hub-run hub-test hub-resilience hub-lint hub-fingerprint hub-pair hub-eval hub-fmt hub-render-plist hub-install-service hub-uninstall-service hub-logs hub-logs-launchd hub-diag spotify-login spotify-spike sounds-build display-gen display-build display-run-sim display-testflight-check display-testflight-preflight display-archive display-archive-unsigned display-artifact display-testflight-upload display-testflight testflight-status display-icon wakeword-train display-build-mac display-run-mac display-test kit-test test lint repo-check check-workflows ci-xcode
+.PHONY: help hub-setup hub-sync hub-run hub-test hub-resilience hub-lint hub-fingerprint hub-pair hub-eval hub-fmt hub-render-plist hub-install-service hub-uninstall-service hub-logs hub-logs-launchd hub-diag spotify-login spotify-spike kasa-probe sounds-build display-gen display-build display-run-sim display-testflight-check display-testflight-preflight display-archive display-archive-unsigned display-artifact display-testflight-upload display-testflight testflight-status display-icon wakeword-train display-build-mac display-run-mac display-test kit-test test lint repo-check check-workflows ci-xcode
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-18s %s\n", $$1, $$2}'
@@ -74,6 +74,10 @@ spotify-login: ## Print the URL to connect Spotify (open it in a browser on the 
 
 spotify-spike: hub-sync ## Spike #5: log iPad visibility in Spotify (ARGS="--hours 10 --cold-start-every 30")
 	cd hub && uv run python -m coco_hub.media.spotify.spike $(ARGS)
+
+kasa-probe: hub-sync ## Spike #132: probe one Kasa plug, read-only (HOST=<ip> [ARGS="--toggle --child 0"])
+	@test -n "$(HOST)" || { echo 'usage: make kasa-probe HOST=<ip> [ARGS="--toggle"]'; exit 2; }
+	cd hub && uv run python -m coco_hub.devices.backends.kasa_probe --host "$(HOST)" $(ARGS)
 
 hub-fingerprint: hub-sync ## Print the Hub's TLS fingerprint (compare it with the iPad when pairing)
 	@cd hub && uv run --quiet python -m coco_hub --fingerprint

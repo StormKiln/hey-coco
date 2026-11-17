@@ -8,7 +8,7 @@ and, if its patterns capture slots, ``llm_slots`` (see ``engine.LlmSlot``;
 ``durations.llm_duration_slot()`` for durations).
 """
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Any
 
 from coco_hub.intents.engine import IntentRegistry
@@ -38,8 +38,19 @@ def __getattr__(name: str) -> Any:
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
-def build_registry() -> IntentRegistry:
+def build_registry(
+    *,
+    device_names: Callable[[], Mapping[str, str]] | None = None,
+    include_devices: bool = True,
+) -> IntentRegistry:
+    """``device_names`` is ``DeviceService.spoken_names``: device intents match whatever names
+    it returns at the time (none without it). ``include_devices=False`` is for tests that
+    compare matching with and without device intents."""
+    from coco_hub.intents import devices
+
     registry = IntentRegistry()
     for register in _intent_modules():
         register(registry)
+    if include_devices:
+        devices.register(registry, device_names)
     return registry

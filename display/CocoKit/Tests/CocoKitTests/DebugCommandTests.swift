@@ -35,12 +35,14 @@ import Testing
         ("rotate portrait", .rotate(.portrait)),
         // A recorded view from Documents/<name>.json, shown as if the Hub sent it.
         ("view weather-compare", .view(name: "weather-compare")),
+        // #142: a recorded /v1/idle answer from Documents/<name>.json (e.g. fictional calendars).
+        ("idle home-busy", .idle(name: "home-busy")),
     ])
     func parses(_ line: String, _ expected: DebugCommand) {
         #expect(DebugCommand.parse(line) == expected)
     }
 
-    @Test(arguments: ["", "   ", "# comment", "say:", "timer", "timer -5", "timer abc", "show nope", "dance", "pair-code 482913", "pair-uri", "now-playing", "now-playing | x", "screenshot", "screenshot ../escape", "screenshot a b", "rotate", "rotate sideways", "view", "view ../escape", "view a b"])
+    @Test(arguments: ["", "   ", "# comment", "say:", "timer", "timer -5", "timer abc", "show nope", "dance", "pair-code 482913", "pair-uri", "now-playing", "now-playing | x", "screenshot", "screenshot ../escape", "screenshot a b", "rotate", "rotate sideways", "view", "view ../escape", "view a b", "idle", "idle ../escape", "idle a b"])
     func rejects(_ line: String) {
         #expect(DebugCommand.parse(line) == nil)
     }

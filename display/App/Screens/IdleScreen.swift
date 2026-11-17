@@ -28,11 +28,24 @@ struct IdleScreen: View {
                         .m3Font(.headlineSmall, weight: .regular)
                         .foregroundStyle(Theme.primary)
                     Spacer(minLength: 24)
-                    ForecastView(idle: idle, now: context.date, connection: model.connection)
+                    // Calendar data only adds a column; the clock above never waits on it.
+                    if let calendar = calendarContent(at: context.date) {
+                        ForecastCalendarLayout {
+                            ForecastView(idle: idle, now: context.date, connection: model.connection)
+                            Rectangle().fill(Theme.outlineVariant)
+                            HomeCalendarColumn(content: calendar)
+                        }
                         .padding(.horizontal, 32)
                         .padding(.vertical, 24)
                         .frame(maxWidth: 960)
                         .m3Surface(Theme.surfaceContainerLow, shape: .extraLarge, elevation: .level1)
+                    } else {
+                        ForecastView(idle: idle, now: context.date, connection: model.connection)
+                            .padding(.horizontal, 32)
+                            .padding(.vertical, 24)
+                            .frame(maxWidth: 960)
+                            .m3Surface(Theme.surfaceContainerLow, shape: .extraLarge, elevation: .level1)
+                    }
                     if !timers.timers.isEmpty {
                         ActiveTimersStrip(timers: timers) { model.show(.timers) }
                             .padding(.top, 28)
@@ -57,6 +70,16 @@ struct IdleScreen: View {
             .buttonStyle(MaterialButtonStyle(colors: .tonal, elevation: .level1))
             .padding(32)
         }
+    }
+}
+
+extension IdleScreen {
+    /// Today's and tomorrow's events (#142), re-evaluated by the minute against the iPad's clock;
+    /// nil (the forecast card alone, as before calendars) when none are configured or hidden at night.
+    fileprivate func calendarContent(at date: Date) -> HomeCalendarContent? {
+        guard let info = idle.info else { return nil }
+        return HomeCalendar.content(
+            info.calendar, timeZone: TimeZone(identifier: info.timezone) ?? .current, night: info.night, now: date)
     }
 }
 
@@ -95,6 +118,8 @@ private struct ForecastView: View {
                         .m3Font(.titleMedium, weight: .regular)
                         .foregroundStyle(Theme.onSurfaceVariant)
                         .lineLimit(1)
+                        // Only when squeezed beside the calendar (#142); full size otherwise.
+                        .minimumScaleFactor(0.75)
                 }
                 HourlyStrip(hours: idle.upcomingHours(count: 6, at: now))
                 if status == .stale {

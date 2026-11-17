@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, FastAPI
 
 from coco_hub import db, diagnostics, discovery, events, home, identity
 from coco_hub.auth import require_token
+from coco_hub.calendar.service import CalendarService
 from coco_hub.devices.backend import DeviceBackend
 from coco_hub.devices.service import DeviceService
 from coco_hub.errors import install_error_handlers
@@ -43,6 +44,7 @@ def create_app(
     *,
     clock: Callable[[], datetime] = _utc_now,
     weather: WeatherService | None = None,
+    calendar: CalendarService | None = None,
     ollama_transport: httpx.AsyncBaseTransport | None = None,
     spotify_transport: httpx.AsyncBaseTransport | None = None,
     device_backends: Mapping[str, DeviceBackend] | None = None,
@@ -50,6 +52,7 @@ def create_app(
     weather = weather or WeatherService(settings, clock=clock)
     # Built here so bad [[devices]] config fails startup loudly; connects in the lifespan.
     devices = DeviceService.from_settings(settings, backends=device_backends)
+    calendar = calendar or CalendarService(settings, clock=clock)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -57,6 +60,13 @@ def create_app(
         # A home location set from the Display (#96) overrides the config file's.
         if (saved_home := home.load(app.state.db)) is not None:
             weather.set_home(saved_home)
+        calendar.attach_db(app.state.db)
+        # Only with [[calendars]] configured: the idle screen never waits on this (#139).
+        calendar_task = (
+            asyncio.create_task(calendar.run(), name="calendar-refresh")
+            if calendar.configured
+            else None
+        )
         timers = TimerService(
             app.state.db,
             clock=clock,
@@ -114,6 +124,11 @@ def create_app(
                 with suppress(asyncio.CancelledError):
                     await weather_task
             await weather.aclose()
+            if calendar_task is not None:
+                calendar_task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await calendar_task
+            await calendar.aclose()
             if advertiser is not None:
                 await advertiser.stop()
             timer_task.cancel()
@@ -142,7 +157,7 @@ def create_app(
     # handlers as `ctx.services`), and the Qwen fallback replaces `app.state.fallback`.
     app.state.intents = build_registry(device_names=devices.spoken_names)
     app.state.engine = RulesEngine(app.state.intents)
-    app.state.services = {"weather": weather, "devices": devices}
+    app.state.services = {"weather": weather, "devices": devices, "calendar": calendar}
     app.state.fallback = no_fallback
     app.state.qwen = None
     if settings.qwen.enabled:

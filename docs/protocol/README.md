@@ -389,7 +389,8 @@ instead of failing the request.
               "spotify": {"configured": true, "logged_in": true},
               "night": Night, "log_transcripts": true},
  "health": {"ollama": OllamaHealth, "weather": WeatherHealth,
-            "youtube": YoutubeHealth, "spotify": SpotifyHealth},
+            "youtube": YoutubeHealth, "spotify": SpotifyHealth,
+            "calendars": [CalendarHealth …one per configured calendar]},
  "utterances": [UtteranceTrace …up to 20, newest first]}
 ```
 
@@ -401,6 +402,9 @@ instead of failing the request.
   - `WeatherHealth`: `fetched_at` (nullable), `stale`.
   - `YoutubeHealth`: `quota_used`, `quota_limit` (API units today, Pacific day).
   - `SpotifyHealth`: `device_visible`, `device_name` (nullable).
+  - `CalendarHealth`: `index` (1-based position in `[[calendars]]`), `fetched_at` (nullable:
+    never fetched), `stale`. Never a calendar's name or URL. `[]` when no calendars are
+    configured; the Display treats a missing key (older Hubs) as `[]`.
 - `UtteranceTrace`: `ts`, `text`, `source`, `view` (the request's `context.view`), `intent`,
   `matched_by`, `say`, `latency_ms`, `error`. `intent`, `matched_by` and `say` are `null` and
   `error` is set (`"<ExceptionType>: <message>"`) when handling failed.

@@ -24,6 +24,7 @@ from typing import Any, TypeVar
 from fastapi import APIRouter, Request
 
 from coco_hub.protocol import (
+    CalendarHealth,
     Diagnostics,
     DiagnosticsHealth,
     DiagnosticsSettings,
@@ -44,6 +45,12 @@ TRACE_BUFFER_SIZE = 100
 TRACES_IN_RESPONSE = 20
 CHECK_TIMEOUT_S = 1.5
 WEATHER_STALE_AFTER = timedelta(minutes=30)
+CALENDAR_ERRORS = {
+    "unreachable": "last fetch failed",
+    "auth_required": "address or sign-in refused",
+    "bad_feed": "feed not readable",
+    "error": "fetch crashed",
+}
 
 T = TypeVar("T")
 
@@ -207,6 +214,34 @@ class DiagnosticsService:
             detail="last fetch failed" if failed else ("stale" if stale else None),
         )
 
+    def _calendars(self, calendar: Any) -> list[CalendarHealth]:
+        if calendar is None or not calendar.configured:
+            return []
+        rows = []
+        for s in calendar.status():
+            if s.error == "auth_required":
+                status = "error"
+            elif s.fetched_at is None:
+                status = "error" if s.error else "warn"
+            else:
+                status = "warn" if s.stale else "ok"
+            if s.error is not None:
+                detail = CALENDAR_ERRORS.get(s.error, "last fetch failed")
+            elif s.fetched_at is None:
+                detail = "not fetched yet"
+            else:
+                detail = "stale" if s.stale else None
+            rows.append(
+                CalendarHealth(
+                    index=s.index,
+                    status=status,
+                    fetched_at=s.fetched_at,
+                    stale=s.stale,
+                    detail=detail,
+                )
+            )
+        return rows
+
     async def _youtube(self, youtube: Any) -> YoutubeHealth:
         if youtube is None or not youtube.configured:
             limit = self.settings.youtube.daily_quota
@@ -267,7 +302,16 @@ class DiagnosticsService:
             self._guard(self._youtube(services.get("youtube")), youtube_err, "youtube"),
             self._guard(self._spotify(services.get("spotify")), spotify_err, "spotify"),
         )
-        return DiagnosticsHealth(ollama=ollama, weather=weather, youtube=youtube, spotify=spotify)
+        try:
+            calendars = self._calendars(services.get("calendar"))
+        except Exception as exc:  # best-effort, like the checks above
+            logging.getLogger(__name__).warning(
+                "diagnostics: calendar check failed: %s", type(exc).__name__
+            )
+            calendars = []
+        return DiagnosticsHealth(
+            ollama=ollama, weather=weather, youtube=youtube, spotify=spotify, calendars=calendars
+        )
 
     async def snapshot(self, state: Any) -> Diagnostics:
         return Diagnostics(

@@ -19,38 +19,36 @@ struct SoundScreen: View {
     var body: some View {
         VStack(spacing: 28) {
             RemoteImage(reference: payload.imageURL, contentMode: .fit)
-                .frame(maxWidth: 720, maxHeight: 520)
-                .clipShape(RoundedRectangle(cornerRadius: 36, style: .continuous))
+                .frame(maxWidth: 640, maxHeight: 440)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.radius(.extraLarge), style: .continuous))
+                .shadow(color: .black.opacity(0.12), radius: 18, y: 6)
                 .accessibilityHidden(true)
             Text(payload.name.capitalized)
-                .font(.system(size: 72, weight: .bold, design: .rounded))
+                .m3Font(.displaySmall, weight: .bold)
+                .foregroundStyle(Theme.onSurface)
             // What Coco used to say over the clip (#94): shown, not spoken.
             if let caption = payload.caption {
                 Text(caption)
-                    .font(.system(size: 40, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.secondary)
+                    .m3Font(.titleLarge)
+                    .foregroundStyle(Theme.onSurfaceVariant)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
                     .minimumScaleFactor(0.7)
             }
             Button(action: replay) {
                 Label("Play again", systemImage: "arrow.counterclockwise")
-                    .font(.system(size: 32, weight: .semibold, design: .rounded))
-                    .padding(.horizontal, 36)
-                    .padding(.vertical, 18)
-                    .background(.tint.opacity(0.15), in: Capsule())
+                    .m3Font(.titleSmall)
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(.tint)
+            .buttonStyle(MaterialButtonStyle(colors: .filled, elevation: .level1))
             .disabled(loadedClip == nil)
             if failed {
                 Text("Couldn't play the sound.")
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
+                    .m3Font(.bodyMedium)
+                    .foregroundStyle(Theme.error)
             }
             Text(payload.attribution)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+                .m3Font(.labelSmall, weight: .regular)
+                .foregroundStyle(Theme.onSurfaceVariant)
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
         }

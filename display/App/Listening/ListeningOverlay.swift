@@ -12,14 +12,16 @@ struct ListeningOverlay: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.35)
+            // M3 scrim.
+            Color.black.opacity(0.32)
                 .ignoresSafeArea()
                 .contentShape(Rectangle())
                 .onTapGesture(perform: dismiss)
             card
-                .padding(40)
+                .padding(48)
                 .frame(maxWidth: 900)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 32, style: .continuous))
+                // An M3 dialog: extra-large corners on a high, tinted surface.
+                .m3Surface(Theme.surfaceContainerHigh, shape: .extraLarge, elevation: .level3)
                 .padding(.horizontal, 48)
                 // Keep clear of the mic button.
                 .padding(.bottom, 160)
@@ -34,49 +36,56 @@ struct ListeningOverlay: View {
         case .listening(let partial):
             VStack(spacing: 20) {
                 Label("Listening…", systemImage: "waveform")
-                    .font(.system(size: 32, weight: .medium, design: .rounded))
-                    .foregroundStyle(.secondary)
+                    .m3Font(.titleSmall, weight: .medium)
+                    .labelStyle(MaterialLabelStyle())
+                    .foregroundStyle(Theme.primary)
                     .symbolEffect(.variableColor.iterative)
                 Text(partial.isEmpty ? "Go ahead, I'm listening." : partial)
-                    .font(.system(size: 52, weight: .semibold, design: .rounded))
-                    .foregroundStyle(partial.isEmpty ? .secondary : .primary)
+                    .m3Font(.headlineMedium)
+                    .foregroundStyle(partial.isEmpty ? Theme.onSurfaceVariant : Theme.onSurface)
                     .multilineTextAlignment(.center)
                     .minimumScaleFactor(0.5)
             }
         case .thinking(let heard):
             VStack(spacing: 24) {
                 Text(heard)
-                    .font(.system(size: 44, weight: .semibold, design: .rounded))
+                    .m3Font(.headlineSmall)
+                    .foregroundStyle(Theme.onSurface)
                     .multilineTextAlignment(.center)
                     .minimumScaleFactor(0.5)
                 ProgressView()
                     .controlSize(.extraLarge)
+                    .tint(Theme.primary)
                 Text("Thinking…")
-                    .font(.system(size: 28, design: .rounded))
-                    .foregroundStyle(.secondary)
+                    .m3Font(.bodyMedium)
+                    .foregroundStyle(Theme.onSurfaceVariant)
             }
         case .speaking(let reply):
             Text(reply)
-                .font(.system(size: 52, weight: .semibold, design: .rounded))
+                .m3Font(.headlineMedium)
+                .foregroundStyle(Theme.onSurface)
                 .multilineTextAlignment(.center)
                 .minimumScaleFactor(0.4)
         case .error(let message):
             Label(message, systemImage: "exclamationmark.triangle")
-                .font(.system(size: 40, weight: .semibold, design: .rounded))
+                .m3Font(.titleLarge)
+                .labelStyle(MaterialLabelStyle())
+                .foregroundStyle(Theme.error)
                 .multilineTextAlignment(.center)
         case .permissionNeeded(let permission):
             VStack(spacing: 24) {
                 Image(systemName: "mic.slash")
-                    .font(.system(size: 64))
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 56))
+                    .foregroundStyle(Theme.onErrorContainer)
+                    .frame(width: 112, height: 112)
+                    .m3Surface(Theme.errorContainer, shape: nil)
                 Text(Self.explanation(for: permission))
-                    .font(.system(size: 34, weight: .semibold, design: .rounded))
+                    .m3Font(.titleMedium)
+                    .foregroundStyle(Theme.onSurface)
                     .multilineTextAlignment(.center)
                 if Self.settingsCanFix(permission), let url = URL(string: UIApplication.openSettingsURLString) {
                     Button("Open Settings") { openURL(url) }
-                        .font(.system(size: 30, weight: .semibold, design: .rounded))
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.large)
+                        .buttonStyle(MaterialButtonStyle(colors: .filled))
                 }
             }
         }

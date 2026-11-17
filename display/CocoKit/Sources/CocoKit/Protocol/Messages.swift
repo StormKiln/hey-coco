@@ -245,6 +245,18 @@ public struct NowPlaying: Codable, Sendable, Equatable {
     public var artworkURL: String?
     public var isPlaying: Bool
 
+    public init(
+        source: Source, title: String, artist: String, album: String? = nil, artworkURL: String? = nil,
+        isPlaying: Bool
+    ) {
+        self.source = source
+        self.title = title
+        self.artist = artist
+        self.album = album
+        self.artworkURL = artworkURL
+        self.isPlaying = isPlaying
+    }
+
     enum CodingKeys: String, CodingKey {
         case source, title, artist, album
         case artworkURL = "artwork_url"

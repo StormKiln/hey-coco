@@ -32,6 +32,7 @@ struct DiagnosticsScreen: View {
             if !diagnostics.healthRows.isEmpty { healthSection }
             if diagnostics.diagnostics != nil { utterancesSection }
         }
+        .m3FormStyle()
         .navigationTitle("Diagnostics")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -99,7 +100,7 @@ struct DiagnosticsScreen: View {
             case .loading where diagnostics.diagnostics == nil, .idle:
                 HStack { ProgressView(); Text("Loading…").foregroundStyle(.secondary) }
             case .failed(let message):
-                Label(message, systemImage: "exclamationmark.triangle").foregroundStyle(.red)
+                Label(message, systemImage: "exclamationmark.triangle").foregroundStyle(Theme.error)
             default:
                 EmptyView()
             }
@@ -147,7 +148,7 @@ struct DiagnosticsScreen: View {
                         .font(.subheadline.monospaced())
                         .foregroundStyle(.secondary)
                     if let error = u.error {
-                        Text(error).font(.subheadline).foregroundStyle(.red)
+                        Text(error).font(.subheadline).foregroundStyle(Theme.error)
                     }
                 }
                 .padding(.vertical, 2)
@@ -167,7 +168,7 @@ struct DiagnosticsScreen: View {
         switch status {
         case .ok: .green
         case .warn: .orange
-        case .error: .red
+        case .error: Theme.error
         case .off, .unknown: .gray
         }
     }

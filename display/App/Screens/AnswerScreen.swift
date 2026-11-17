@@ -8,12 +8,18 @@ struct AnswerScreen: View {
     var body: some View {
         ScrollView {
             Text(text)
-                .font(.system(size: 64, weight: .semibold, design: .rounded))
+                .m3Font(.headlineLarge)
+                .foregroundStyle(Theme.onSurface)
                 .multilineTextAlignment(.center)
                 .minimumScaleFactor(0.4)
+                .padding(.horizontal, 56)
+                .padding(.vertical, 48)
                 .frame(maxWidth: 1000)
+                // An M3 card: the reply on a raised, tinted surface.
+                .m3Surface(Theme.surfaceContainerLow, shape: .extraLarge, elevation: .level1)
                 .padding(.horizontal, 64)
-                .padding(.top, 96)
+                // Below the Close button (top right: 84pt down, 112pt tall).
+                .padding(.top, 212)
                 // Leave room for the mic button.
                 .padding(.bottom, 200)
                 .frame(maxWidth: .infinity)

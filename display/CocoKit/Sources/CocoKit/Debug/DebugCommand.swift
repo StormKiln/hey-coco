@@ -12,7 +12,11 @@ import Foundation
 ///     pair-uri cocohub://pair?v=1&…           → as if this QR code was scanned
 ///     timer 300 eggs                          → a touch timer (seconds, optional name)
 ///     stop-alarm                              → as if the Stop button was tapped
-///     show idle | show timers                 → navigate
+///     show idle | show timers | show now_playing → navigate
+///     now-playing Bedtime Stories | Stephen Fry → music playing, as the Hub reports Spotify
+///     now-playing off                         → nothing playing
+///     screenshot idle-day                     → the app's windows to Documents/idle-day.png
+///     rotate landscape | rotate portrait      → ask iPadOS to rotate the interface
 ///     night sleep | night wake                → night mode
 ///     forget                                  → Forget Hub (clears pin and token)
 public enum DebugCommand: Equatable, Sendable {
@@ -25,6 +29,15 @@ public enum DebugCommand: Equatable, Sendable {
     case show(ViewType)
     case night(NightAction)
     case forgetHub
+    /// What the Hub would report as playing (`nil`: nothing), to look at Now Playing (#113).
+    case nowPlaying(NowPlaying?)
+    /// Draws the app's own windows (no system permission alerts over them) to
+    /// `Documents/<name>.png`. Names are letters, digits, `-` and `_` only.
+    case screenshot(name: String)
+    /// Asks iPadOS for this interface orientation (`simctl` can't rotate a simulator).
+    case rotate(Orientation)
+
+    public enum Orientation: String, Sendable { case portrait, landscape }
 
     public enum NightAction: String, Sendable { case sleep, wake }
 
@@ -34,6 +47,9 @@ public enum DebugCommand: Equatable, Sendable {
         if line.lowercased().hasPrefix("say:") {
             let text = line.dropFirst(4).trimmingCharacters(in: .whitespaces)
             return text.isEmpty ? nil : .say(text)
+        }
+        if line.lowercased().hasPrefix("now-playing ") {
+            return parseNowPlaying(line.dropFirst("now-playing ".count))
         }
         let words = line.split(separator: " ").map(String.init)
         switch (words.first?.lowercased(), words.count) {
@@ -53,11 +69,29 @@ public enum DebugCommand: Equatable, Sendable {
             return ViewType(rawValue: words[1].lowercased()).map(DebugCommand.show)
         case ("night", 2):
             return NightAction(rawValue: words[1].lowercased()).map(DebugCommand.night)
+        case ("screenshot", 2):
+            let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_"))
+            let name = words[1]
+            return name.unicodeScalars.allSatisfy(allowed.contains) ? .screenshot(name: name) : nil
+        case ("rotate", 2):
+            return Orientation(rawValue: words[1].lowercased()).map(DebugCommand.rotate)
         case ("forget", 1):
             return .forgetHub
         default:
             return nil
         }
+    }
+
+    private static func parseNowPlaying(_ rest: Substring) -> DebugCommand? {
+        let rest = rest.trimmingCharacters(in: .whitespaces)
+        if rest.lowercased() == "off" { return .nowPlaying(nil) }
+        let parts = rest.split(separator: "|", maxSplits: 1, omittingEmptySubsequences: false)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+        guard let title = parts.first, !title.isEmpty else { return nil }
+        return .nowPlaying(
+            NowPlaying(
+                source: .spotify, title: title, artist: parts.count > 1 ? parts[1] : "", album: nil,
+                artworkURL: nil, isPlaying: true))
     }
 
     public static func parseAll(_ text: String) -> [DebugCommand] {

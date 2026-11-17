@@ -27,20 +27,25 @@ struct YouTubeScreen: View {
             Button(action: close) {
                 Image(systemName: "xmark")
                     .font(.system(size: 34, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 88, height: 88)
-                    .background(.black.opacity(0.55), in: Circle())
             }
+            // Fixed dark (the light scheme's inverse surface) over the video.
+            .buttonStyle(
+                MaterialIconButtonStyle(
+                    colors: MaterialColors(container: Color(Theme.light.inverseSurface).opacity(0.7), content: .white),
+                    diameter: 88, elevation: .level2))
             .padding(24)
             .accessibilityLabel("Close video")
         }
     }
 
     private func message(_ text: String) -> some View {
-        Text(text)
-            .font(.system(size: 40, weight: .semibold, design: .rounded))
-            .foregroundStyle(.white)
+        Label(text, systemImage: "exclamationmark.triangle")
+            .m3Font(.titleLarge)
+            .labelStyle(MaterialLabelStyle())
+            .foregroundStyle(Color(Theme.dark.onSurface))
             .multilineTextAlignment(.center)
+            .padding(40)
+            .m3Surface(Color(Theme.dark.surfaceContainerHigh), shape: .extraLarge)
             .padding(48)
     }
 

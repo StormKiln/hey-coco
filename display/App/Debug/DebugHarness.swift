@@ -1,6 +1,7 @@
 #if DEBUG
 import CocoKit
 import Foundation
+import UIKit
 
 /// Drives the app from outside for end-to-end runs in the simulator, without taps
 /// (`docs/simulator-testing.md`). DEBUG builds only: release and TestFlight builds compile none of
@@ -69,6 +70,7 @@ enum DebugHarness {
             switch type {
             case .idle: model.show(.idle)
             case .timers: model.show(.timers)
+            case .nowPlaying: model.show(.nowPlaying)
             default: note = "show \(type.rawValue) needs a Hub reply; use say:"
             }
         case .night(.sleep):
@@ -77,12 +79,48 @@ enum DebugHarness {
             model.perform(.screenWake)
         case .forgetHub:
             do { try model.forgetHub() } catch { note = "forget failed: \(error)" }
+        case .nowPlaying(let nowPlaying):
+            model.media.nowPlayingChanged(nowPlaying)
+        case .rotate(let orientation):
+            let mask: UIInterfaceOrientationMask = orientation == .portrait ? .portrait : .landscapeLeft
+            for scene in UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }) {
+                scene.requestGeometryUpdate(.iOS(interfaceOrientations: mask)) { error in
+                    print("rotate failed: \(error)")
+                }
+            }
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+        case .screenshot(let name):
+            // Let animations settle before drawing.
+            try? await Task.sleep(nanoseconds: 600_000_000)
+            note = screenshot(to: documents.appendingPathComponent("\(name).png"))
         }
         // Let the reply land (views, events) before recording the state.
         try? await Task.sleep(nanoseconds: 300_000_000)
         // A pairing URI holds the token: never write it to the log.
         let label = if case .pairURI = command { "pairURI(<redacted>)" } else { "\(command)" }
         log("\(label)\(note.isEmpty ? "" : " — \(note)")", model: model)
+    }
+
+    /// Draws the app's own windows, bottom to top, so a system permission alert (which the
+    /// simulator can't dismiss without a tap) never covers the screen being checked.
+    private static func screenshot(to url: URL) -> String {
+        let windows = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .filter { !$0.isHidden }
+            .sorted { $0.windowLevel < $1.windowLevel }
+        guard let bounds = windows.first?.screen.bounds else { return "screenshot failed: no window" }
+        let image = UIGraphicsImageRenderer(bounds: bounds).image { _ in
+            for window in windows {
+                window.drawHierarchy(in: window.frame, afterScreenUpdates: true)
+            }
+        }
+        do {
+            try image.pngData()?.write(to: url)
+            return "screenshot \(url.lastPathComponent)"
+        } catch {
+            return "screenshot failed: \(error)"
+        }
     }
 
     private static var documents: URL {

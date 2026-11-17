@@ -39,6 +39,12 @@ USER_AGENT = "coco-hub/0.1 (+https://github.com/StormKiln/hey-coco)"
 DEFAULT_TIMEOUT = httpx.Timeout(20.0, connect=5.0)
 MAX_BYTES = 20 * 1024 * 1024
 """Refuse bigger feeds (a large shared calendar is well under 1 MB)."""
+MAX_OCCURRENCES = 5000
+"""Refuse a window with more occurrences than this (a busy calendar has a few hundred in two
+weeks; ``FREQ=SECONDLY`` would have over a million)."""
+DEADLINE_S = 60.0
+"""The whole download, however slowly the bytes trickle in (httpx's timeout is per read)."""
+MAX_REDIRECTS = 5
 _SCHEMES = {"https": "https", "http": "http", "webcal": "https", "webcals": "https"}
 _PRIVATE = {"PRIVATE", "CONFIDENTIAL"}
 _REJECTED = {401, 403, 404, 410}
@@ -75,7 +81,9 @@ class IcsSource:
         tz: ZoneInfo,
         transport: httpx.AsyncBaseTransport | None = None,
         timeout: httpx.Timeout = DEFAULT_TIMEOUT,
+        deadline_s: float = DEADLINE_S,
     ) -> None:
+        self._deadline_s = deadline_s
         self._url = options.url
         self._tz = tz
         self._transport = transport
@@ -90,12 +98,17 @@ class IcsSource:
                 transport=self._transport,
                 timeout=self._timeout,
                 follow_redirects=True,
+                max_redirects=MAX_REDIRECTS,
                 headers={"User-Agent": USER_AGENT, "Accept": "text/calendar, */*;q=0.5"},
             )
         return self._http
 
     async def fetch(self, start: datetime, end: datetime) -> FetchResult:
-        raw = await self._download()
+        try:
+            async with asyncio.timeout(self._deadline_s):
+                raw = await self._download()
+        except TimeoutError:
+            raise Unreachable("timed out") from None
         try:
             return await asyncio.to_thread(parse, raw, start, end, self._tz)
         except BadFeed:
@@ -149,7 +162,14 @@ def parse(raw: bytes, start: datetime, end: datetime, tz: ZoneInfo) -> FetchResu
     calendar = x_wr_timezone.to_standard(icalendar.Calendar.from_ical(raw))
     name = str(calendar.get("X-WR-CALNAME", "")).strip() or None
     events = []
-    for component in recurring_ical_events.of(calendar).between(start, end):
+    # ``after`` is lazy and in start order (``between`` builds the whole list first), so a
+    # runaway rule stops at MAX_OCCURRENCES instead of exhausting memory.
+    for count, component in enumerate(recurring_ical_events.of(calendar).after(start), 1):
+        if count > MAX_OCCURRENCES:
+            raise BadFeed("too many occurrences")
+        dtstart = component.get("DTSTART")
+        if dtstart is not None and _local(dtstart.dt, tz) >= end:
+            break
         if str(component.get("STATUS", "")).upper() == "CANCELLED":
             continue
         if (event := _event(component, tz)) is not None:

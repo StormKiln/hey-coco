@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -144,3 +145,32 @@ def test_hub_timezone_is_required():
     with pytest.raises(TypeError):
         IcsSource(IcsOptions(url=SecretStr(SECRET)))  # type: ignore[call-arg]
     assert IcsSource(IcsOptions(url=SecretStr(SECRET)), tz=ZoneInfo("UTC"))
+
+
+async def test_runaway_recurrence_is_a_bad_feed():
+    feed = Feed()
+    feed.body = (
+        b"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:tick@example.invalid\r\n"
+        b"SUMMARY:Tick\r\nDTSTART:20261123T000000Z\r\nDTEND:20261123T000001Z\r\n"
+        b"RRULE:FREQ=SECONDLY\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+    )
+    with pytest.raises(BadFeed):
+        await make(feed).fetch(at(2026, 11, 23), at(2026, 12, 7))
+
+
+async def test_a_slow_trickle_hits_the_overall_deadline():
+    class Trickle(httpx.AsyncByteStream):
+        async def __aiter__(self):
+            yield b"BEGIN:VCALENDAR\r\n"
+            while True:
+                await asyncio.sleep(0.01)
+                yield b"X"
+
+    headers = {"Content-Type": "text/calendar"}
+    transport = httpx.MockTransport(
+        lambda request: httpx.Response(200, stream=Trickle(), headers=headers)
+    )
+    options = IcsOptions(url=SecretStr(SECRET))
+    source = IcsSource(options, tz=TZ, transport=transport, deadline_s=0.1)
+    with pytest.raises(Unreachable):
+        await source.fetch(at(2026, 11, 23), at(2026, 11, 24))

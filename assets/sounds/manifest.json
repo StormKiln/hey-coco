@@ -627,8 +627,7 @@
       "name": "monkey",
       "aliases": [
         "ooh ooh aah aah",
-        "ape",
-        "chimp"
+        "ape"
       ],
       "category": "animal",
       "clip": "clips/monkey.m4a",
@@ -1069,6 +1068,482 @@
         "start": null,
         "end": null,
         "start_used": 1.6
+      }
+    },
+    {
+      "id": "zebra",
+      "name": "zebra",
+      "aliases": [
+        "zebra bray",
+        "grevy's zebra"
+      ],
+      "category": "animal",
+      "clip": "clips/zebra.m4a",
+      "image": "images/zebra.jpg",
+      "duration_s": 5.0,
+      "audio_attribution": {
+        "author": "DiegoC472",
+        "license": "CC BY-SA 4.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Gr%C3%A9vys_zebra_(Sound_Effects).ogg"
+      },
+      "image_attribution": {
+        "author": "Rainbirder",
+        "license": "CC BY-SA 2.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Grevy%27s_Zebra_Stallion.jpg"
+      },
+      "curation": {
+        "audio_file": "File:Grévys zebra (Sound Effects).ogg",
+        "image_file": "File:Grevy's Zebra Stallion.jpg",
+        "start": 0.0,
+        "end": 5.0,
+        "start_used": 0.0
+      }
+    },
+    {
+      "id": "chimpanzee",
+      "name": "chimpanzee",
+      "aliases": [
+        "chimp",
+        "pant hoot"
+      ],
+      "category": "animal",
+      "clip": "clips/chimpanzee.m4a",
+      "image": "images/chimpanzee.jpg",
+      "duration_s": 6.0,
+      "audio_attribution": {
+        "author": "Pawel Fedurek et al.",
+        "license": "CC BY 4.0",
+        "license_url": "https://creativecommons.org/licenses/by/4.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Pant-hoot_call_made_by_a_male_chimpanzee.ogg"
+      },
+      "image_attribution": {
+        "author": "Giles Laurent",
+        "license": "CC BY-SA 4.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:015_Chimpanzee_at_Kibale_forest_National_Park_Photo_by_Giles_Laurent.jpg"
+      },
+      "curation": {
+        "audio_file": "File:Pant-hoot call made by a male chimpanzee.ogg",
+        "image_file": "File:015 Chimpanzee at Kibale forest National Park Photo by Giles Laurent.jpg",
+        "start": null,
+        "end": null,
+        "start_used": 1.7
+      }
+    },
+    {
+      "id": "hyena",
+      "name": "hyena",
+      "aliases": [
+        "hyaena",
+        "spotted hyena",
+        "laughing hyena"
+      ],
+      "category": "animal",
+      "clip": "clips/hyena.m4a",
+      "image": "images/hyena.jpg",
+      "duration_s": 5.5,
+      "audio_attribution": {
+        "author": "This file has been provided by the British Library from its digital collections. Links to the British Library's website may be broken as the library recovers from a October 2023 cyber attack, and will be updated once material becomes accessible online. For more information on the attack see: https://www.bl.uk/about/cyber-attack It is also made available on a British Library website .",
+        "license": "CC BY 4.0",
+        "license_url": "https://creativecommons.org/licenses/by/4.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Spotted_Hyaena_(Crocuta_crocuta)_(W1CDR0000381_BD12).ogg"
+      },
+      "image_attribution": {
+        "author": "Charles J. Sharp",
+        "license": "CC BY-SA 4.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Spotted_hyena_(Crocuta_crocuta).jpg"
+      },
+      "curation": {
+        "audio_file": "File:Spotted Hyaena (Crocuta crocuta) (W1CDR0000381 BD12).ogg",
+        "image_file": "File:Spotted hyena (Crocuta crocuta).jpg",
+        "start": 16.0,
+        "end": 21.5,
+        "start_used": 16.0
+      }
+    },
+    {
+      "id": "camel",
+      "name": "camel",
+      "aliases": [
+        "dromedary",
+        "bactrian camel"
+      ],
+      "category": "animal",
+      "clip": "clips/camel.m4a",
+      "image": "images/camel.jpg",
+      "duration_s": 5.6,
+      "audio_attribution": {
+        "author": "J.P Longre. S. Mercier. M.Harry. P. Louisons. C. Ferry. G. Muys. K. Lens. B. Picard. V. Sandrilli. H. Van Hoeven. L. Rodriguez. B. Couderc",
+        "license": "CC BY-SA 3.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Cri_du_chameau.ogg"
+      },
+      "image_attribution": {
+        "author": "Christian Ursilva from Copenhagen, Denmark",
+        "license": "CC BY-SA 4.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Camelus_bactrianus_(55026866188).jpg"
+      },
+      "curation": {
+        "audio_file": "File:Cri du chameau.ogg",
+        "image_file": "File:Camelus bactrianus (55026866188).jpg",
+        "start": null,
+        "end": null,
+        "start_used": 0.0
+      }
+    },
+    {
+      "id": "deer",
+      "name": "deer",
+      "aliases": [
+        "stag",
+        "red deer",
+        "deers"
+      ],
+      "category": "animal",
+      "clip": "clips/deer.m4a",
+      "image": "images/deer.jpg",
+      "duration_s": 5.99,
+      "audio_attribution": {
+        "author": "Jugrü",
+        "license": "CC BY-SA 3.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Hirsch_roehrt.ogg"
+      },
+      "image_attribution": {
+        "author": "Lviatour",
+        "license": "CC BY-SA 3.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Cervus_elaphus_Luc_Viatour_6.jpg"
+      },
+      "curation": {
+        "audio_file": "File:Hirsch roehrt.ogg",
+        "image_file": "File:Cervus elaphus Luc Viatour 6.jpg",
+        "start": null,
+        "end": null,
+        "start_used": 0.8
+      }
+    },
+    {
+      "id": "elk",
+      "name": "elk",
+      "aliases": [
+        "wapiti",
+        "elk bugle",
+        "bull elk"
+      ],
+      "category": "animal",
+      "clip": "clips/elk.m4a",
+      "image": "images/elk.jpg",
+      "duration_s": 5.2,
+      "audio_attribution": {
+        "author": "Jim Pisarowicz",
+        "license": "Public domain",
+        "license_url": "https://en.wikipedia.org/wiki/Public_domain",
+        "source_url": "https://commons.wikimedia.org/wiki/File:American_Elk_Bugling.ogg"
+      },
+      "image_attribution": {
+        "author": "Membeth",
+        "license": "CC0",
+        "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Jasper.Wapiti-Hirsch.P1033401.jpg"
+      },
+      "curation": {
+        "audio_file": "File:American Elk Bugling.ogg",
+        "image_file": "File:Jasper.Wapiti-Hirsch.P1033401.jpg",
+        "start": null,
+        "end": null,
+        "start_used": 0.0
+      }
+    },
+    {
+      "id": "coyote",
+      "name": "coyote",
+      "aliases": [
+        "coyote howl",
+        "yip yip"
+      ],
+      "category": "animal",
+      "clip": "clips/coyote.m4a",
+      "image": "images/coyote.jpg",
+      "duration_s": 6.0,
+      "audio_attribution": {
+        "author": "Rybkovich",
+        "license": "CC BY-SA 4.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Pack_of_coyotes_howling.ogg"
+      },
+      "image_attribution": {
+        "author": "Yathin S Krishnappa",
+        "license": "CC BY-SA 3.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:2009-Coyote-Yosemite.jpg"
+      },
+      "curation": {
+        "audio_file": "File:Pack of coyotes howling.ogg",
+        "image_file": "File:2009-Coyote-Yosemite.jpg",
+        "start": null,
+        "end": null,
+        "start_used": 5.2
+      }
+    },
+    {
+      "id": "seal",
+      "name": "seal",
+      "aliases": [
+        "sea lion",
+        "fur seal",
+        "seal bark"
+      ],
+      "category": "animal",
+      "clip": "clips/seal.m4a",
+      "image": "images/seal.jpg",
+      "duration_s": 6.0,
+      "audio_attribution": {
+        "author": "Department of Conservation",
+        "license": "CC BY 4.0",
+        "license_url": "https://creativecommons.org/licenses/by/4.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Arctocephalus_forsteri_-_sound.ogg"
+      },
+      "image_attribution": {
+        "author": "Charles J. Sharp",
+        "license": "CC BY-SA 4.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:New_Zealand_fur_seal_(Arctocephalus_forsteri)_male_Kangaroo_Island.jpg"
+      },
+      "curation": {
+        "audio_file": "File:Arctocephalus forsteri - sound.ogg",
+        "image_file": "File:New Zealand fur seal (Arctocephalus forsteri) male Kangaroo Island.jpg",
+        "start": null,
+        "end": null,
+        "start_used": 15.1
+      }
+    },
+    {
+      "id": "dolphin",
+      "name": "dolphin",
+      "aliases": [
+        "bottlenose dolphin",
+        "porpoise"
+      ],
+      "category": "animal",
+      "clip": "clips/dolphin.m4a",
+      "image": "images/dolphin.jpg",
+      "duration_s": 6.0,
+      "audio_attribution": {
+        "author": "The user Felix.Blume https://freesound.org/people/felix.blume/",
+        "license": "CC0",
+        "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+        "source_url": "https://commons.wikimedia.org/wiki/File:161691_felixblume_dolphin-screaming-underwater-in-caribbean-sea-mexico.wav"
+      },
+      "image_attribution": {
+        "author": "NASA",
+        "license": "Public domain",
+        "license_url": "https://en.wikipedia.org/wiki/Public_domain",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Tursiops_truncatus_01.jpg"
+      },
+      "curation": {
+        "audio_file": "File:161691 felixblume dolphin-screaming-underwater-in-caribbean-sea-mexico.wav",
+        "image_file": "File:Tursiops truncatus 01.jpg",
+        "start": null,
+        "end": null,
+        "start_used": 35.4
+      }
+    },
+    {
+      "id": "alligator",
+      "name": "alligator",
+      "aliases": [
+        "gator",
+        "crocodile",
+        "croc",
+        "alligator bellow"
+      ],
+      "category": "animal",
+      "clip": "clips/alligator.m4a",
+      "image": "images/alligator.jpg",
+      "duration_s": 6.0,
+      "audio_attribution": {
+        "author": "Wikimedia Commons user Borisblue",
+        "license": "Public domain",
+        "license_url": "https://en.wikipedia.org/wiki/Public_domain",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Alligatorbellow1.ogg"
+      },
+      "image_attribution": {
+        "author": "User:Postdlf",
+        "license": "CC BY-SA 3.0",
+        "license_url": "http://creativecommons.org/licenses/by-sa/3.0/",
+        "source_url": "https://commons.wikimedia.org/wiki/File:American_Alligator.jpg"
+      },
+      "curation": {
+        "audio_file": "File:Alligatorbellow1.ogg",
+        "image_file": "File:American Alligator.jpg",
+        "start": null,
+        "end": null,
+        "start_used": 14.1
+      }
+    },
+    {
+      "id": "rattlesnake",
+      "name": "rattlesnake",
+      "aliases": [
+        "rattle snake",
+        "rattler",
+        "snake rattle"
+      ],
+      "category": "animal",
+      "clip": "clips/rattlesnake.m4a",
+      "image": "images/rattlesnake.jpg",
+      "duration_s": 6.0,
+      "audio_attribution": {
+        "author": "Wikimedia Commons user Borisblue",
+        "license": "Public domain",
+        "license_url": "https://en.wikipedia.org/wiki/Public_domain",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Rattlesnake.ogg"
+      },
+      "image_attribution": {
+        "author": "derivative work: Victorrocha ( talk · contribs ) Crotalus_cerastes_mesquite_springs_CA.JPG : Tigerhawkvok ( talk · contribs )",
+        "license": "CC BY-SA 3.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Crotalus_cerastes_mesquite_springs_CA-2.jpg"
+      },
+      "curation": {
+        "audio_file": "File:Rattlesnake.ogg",
+        "image_file": "File:Crotalus cerastes mesquite springs CA-2.jpg",
+        "start": null,
+        "end": null,
+        "start_used": 0.0
+      }
+    },
+    {
+      "id": "cicada",
+      "name": "cicada",
+      "aliases": [
+        "cicada bug",
+        "locust"
+      ],
+      "category": "animal",
+      "clip": "clips/cicada.m4a",
+      "image": "images/cicada.jpg",
+      "duration_s": 6.0,
+      "audio_attribution": {
+        "author": "Dhkurt",
+        "license": "CC BY-SA 3.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Cicada_calling_in_Irving,_TX_in_June_of_2012.ogg"
+      },
+      "image_attribution": {
+        "author": "Judy Gallagher",
+        "license": "CC BY 2.0",
+        "license_url": "https://creativecommons.org/licenses/by/2.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Cicada_-_Neotibicen_linnei,_Woodbridge,_Virginia.jpg"
+      },
+      "curation": {
+        "audio_file": "File:Cicada calling in Irving, TX in June of 2012.ogg",
+        "image_file": "File:Cicada - Neotibicen linnei, Woodbridge, Virginia.jpg",
+        "start": null,
+        "end": null,
+        "start_used": 0.2
+      }
+    },
+    {
+      "id": "goose",
+      "name": "goose",
+      "aliases": [
+        "geese",
+        "gander",
+        "gosling",
+        "honking goose"
+      ],
+      "category": "animal",
+      "clip": "clips/goose.m4a",
+      "image": "images/goose.jpg",
+      "duration_s": 6.0,
+      "audio_attribution": {
+        "author": "U.S. Fish and Wildlife Service",
+        "license": "Public domain",
+        "license_url": "https://en.wikipedia.org/wiki/Public_domain",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Geese_Honking_(loud).ogg"
+      },
+      "image_attribution": {
+        "author": "JJ Harrison",
+        "license": "CC BY-SA 3.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Domestic_Goose.jpg"
+      },
+      "curation": {
+        "audio_file": "File:Geese Honking (loud).ogg",
+        "image_file": "File:Domestic Goose.jpg",
+        "start": null,
+        "end": null,
+        "start_used": 1.4
+      }
+    },
+    {
+      "id": "peacock",
+      "name": "peacock",
+      "aliases": [
+        "peafowl",
+        "peahen",
+        "peacock call"
+      ],
+      "category": "animal",
+      "clip": "clips/peacock.m4a",
+      "image": "images/peacock.jpg",
+      "duration_s": 6.0,
+      "audio_attribution": {
+        "author": "Perlscrypt",
+        "license": "CC BY-SA 3.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:MalePeacockCall.ogg"
+      },
+      "image_attribution": {
+        "author": "Kandukuru Nagarjun from Bangalore, India",
+        "license": "CC BY 2.0",
+        "license_url": "https://creativecommons.org/licenses/by/2.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Peacock_on_tree_(52077240794).jpg"
+      },
+      "curation": {
+        "audio_file": "File:MalePeacockCall.ogg",
+        "image_file": "File:Peacock on tree (52077240794).jpg",
+        "start": null,
+        "end": null,
+        "start_used": 0.1
+      }
+    },
+    {
+      "id": "loon",
+      "name": "loon",
+      "aliases": [
+        "common loon",
+        "great northern diver",
+        "loon call"
+      ],
+      "category": "animal",
+      "clip": "clips/loon.m4a",
+      "image": "images/loon.jpg",
+      "duration_s": 6.0,
+      "audio_attribution": {
+        "author": "D. Gordon E. Robertson",
+        "license": "CC BY-SA 3.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Loon_yodel.ogg"
+      },
+      "image_attribution": {
+        "author": "John Picken from Chicago, USA",
+        "license": "CC BY 2.0",
+        "license_url": "https://creativecommons.org/licenses/by/2.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Gavia_immer_-Minocqua,_Wisconsin,_USA_-swimming-8.jpg"
+      },
+      "curation": {
+        "audio_file": "File:Loon yodel.ogg",
+        "image_file": "File:Gavia immer -Minocqua, Wisconsin, USA -swimming-8.jpg",
+        "start": null,
+        "end": null,
+        "start_used": 0.3
       }
     },
     {
@@ -1757,6 +2232,366 @@
         "start": null,
         "end": null,
         "start_used": 0.0
+      }
+    },
+    {
+      "id": "ice_cream_truck",
+      "name": "ice cream truck",
+      "aliases": [
+        "ice cream van",
+        "ice cream man",
+        "ice cream car"
+      ],
+      "category": "vehicle",
+      "clip": "clips/ice_cream_truck.m4a",
+      "image": "images/ice_cream_truck.jpg",
+      "duration_s": 5.7,
+      "audio_attribution": {
+        "author": "Work With Sounds / Torsten Nilsson",
+        "license": "CC BY 4.0",
+        "license_url": "https://creativecommons.org/licenses/by/4.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:WWS_HomeIceCreamvan.ogg"
+      },
+      "image_attribution": {
+        "author": "Joekelsey",
+        "license": "CC BY-SA 3.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Hollywood_Cone_Ice_Cream_Truck_1.jpg"
+      },
+      "curation": {
+        "audio_file": "File:WWS HomeIceCreamvan.ogg",
+        "image_file": "File:Hollywood Cone Ice Cream Truck 1.jpg",
+        "start": null,
+        "end": null,
+        "start_used": 0.0
+      }
+    },
+    {
+      "id": "fighter_jet",
+      "name": "fighter jet",
+      "aliases": [
+        "jet fighter",
+        "fighter plane",
+        "military jet",
+        "air show"
+      ],
+      "category": "vehicle",
+      "clip": "clips/fighter_jet.m4a",
+      "image": "images/fighter_jet.jpg",
+      "duration_s": 6.0,
+      "audio_attribution": {
+        "author": "Work With Sounds / Torsten Nilsson",
+        "license": "CC BY 4.0",
+        "license_url": "https://creativecommons.org/licenses/by/4.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:WWS_SaabJ35DDraken8211passingtwotimes.ogg"
+      },
+      "image_attribution": {
+        "author": "Blockhaj",
+        "license": "CC BY-SA 4.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:J_35F_1972_(cropped,_removal_of_damage_and_dirt_using_clone_tool).jpg"
+      },
+      "curation": {
+        "audio_file": "File:WWS SaabJ35DDraken8211passingtwotimes.ogg",
+        "image_file": "File:J 35F 1972 (cropped, removal of damage and dirt using clone tool).jpg",
+        "start": null,
+        "end": null,
+        "start_used": 30.9
+      }
+    },
+    {
+      "id": "scooter",
+      "name": "scooter",
+      "aliases": [
+        "vespa",
+        "moped",
+        "motor scooter"
+      ],
+      "category": "vehicle",
+      "clip": "clips/scooter.m4a",
+      "image": "images/scooter.jpg",
+      "duration_s": 6.0,
+      "audio_attribution": {
+        "author": "Zyance",
+        "license": "CC BY-SA 3.0",
+        "license_url": "http://creativecommons.org/licenses/by-sa/3.0/",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Vespa.ogg"
+      },
+      "image_attribution": {
+        "author": "No machine-readable author provided. Kylet assumed (based on copyright claims).",
+        "license": "CC BY 2.5",
+        "license_url": "https://creativecommons.org/licenses/by/2.5",
+        "source_url": "https://commons.wikimedia.org/wiki/File:PerthVespa.jpg"
+      },
+      "curation": {
+        "audio_file": "File:Vespa.ogg",
+        "image_file": "File:PerthVespa.jpg",
+        "start": null,
+        "end": null,
+        "start_used": 28.3
+      }
+    },
+    {
+      "id": "tram",
+      "name": "tram",
+      "aliases": [
+        "streetcar",
+        "street car",
+        "trolley",
+        "trolley car",
+        "tram bell",
+        "clang clang"
+      ],
+      "category": "vehicle",
+      "clip": "clips/tram.m4a",
+      "image": "images/tram.jpg",
+      "duration_s": 6.0,
+      "audio_attribution": {
+        "author": "Beeld en Geluid",
+        "license": "CC BY-SA 3.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Het_bellen_van_de_Blauwe_Tram_-_SoundCloud_-_Beeld_en_Geluid.ogg"
+      },
+      "image_attribution": {
+        "author": "ŠJů ( cs:ŠJů )",
+        "license": "CC BY-SA 3.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Muzeum_MHD,_tramvaje_T3_8084_a_6149,_zep%C5%99edu.jpg"
+      },
+      "curation": {
+        "audio_file": "File:Het bellen van de Blauwe Tram - SoundCloud - Beeld en Geluid.ogg",
+        "image_file": "File:Muzeum MHD, tramvaje T3 8084 a 6149, zepředu.jpg",
+        "start": null,
+        "end": null,
+        "start_used": 3.0
+      }
+    },
+    {
+      "id": "go_kart",
+      "name": "go-kart",
+      "aliases": [
+        "go kart",
+        "go cart",
+        "kart",
+        "karting"
+      ],
+      "category": "vehicle",
+      "clip": "clips/go_kart.m4a",
+      "image": "images/go_kart.jpg",
+      "duration_s": 6.0,
+      "audio_attribution": {
+        "author": "DrTrumpet",
+        "license": "CC BY-SA 4.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Wurstelprater_Wien_2024_Bandito_Rennbahn_Go-Kart.ogg"
+      },
+      "image_attribution": {
+        "author": "Oscar3kings",
+        "license": "CC BY-SA 3.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Kosmic_TS28.JPG"
+      },
+      "curation": {
+        "audio_file": "File:Wurstelprater Wien 2024 Bandito Rennbahn Go-Kart.ogg",
+        "image_file": "File:Kosmic TS28.JPG",
+        "start": null,
+        "end": null,
+        "start_used": 12.8
+      }
+    },
+    {
+      "id": "lawn_mower",
+      "name": "lawn mower",
+      "aliases": [
+        "lawnmower",
+        "mower",
+        "grass cutter"
+      ],
+      "category": "vehicle",
+      "clip": "clips/lawn_mower.m4a",
+      "image": "images/lawn_mower.jpg",
+      "duration_s": 6.0,
+      "audio_attribution": {
+        "author": "Work With Sounds / Werstas",
+        "license": "CC BY 4.0",
+        "license_url": "https://creativecommons.org/licenses/by/4.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:WWS_Lawnmower.ogg"
+      },
+      "image_attribution": {
+        "author": "Shixart1985",
+        "license": "CC BY 2.0",
+        "license_url": "https://creativecommons.org/licenses/by/2.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Man_using_lawn_mower_to_cut_grass_in_backyard_on_a_sunny_day_in_summer.jpg"
+      },
+      "curation": {
+        "audio_file": "File:WWS Lawnmower.ogg",
+        "image_file": "File:Man using lawn mower to cut grass in backyard on a sunny day in summer.jpg",
+        "start": null,
+        "end": null,
+        "start_used": 47.4
+      }
+    },
+    {
+      "id": "forklift",
+      "name": "forklift",
+      "aliases": [
+        "forklift truck",
+        "fork lift"
+      ],
+      "category": "vehicle",
+      "clip": "clips/forklift.m4a",
+      "image": "images/forklift.jpg",
+      "duration_s": 6.0,
+      "audio_attribution": {
+        "author": "Work With Sounds / Werstas",
+        "license": "CC BY 4.0",
+        "license_url": "https://creativecommons.org/licenses/by/4.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:WWS_Forklifttruck.ogg"
+      },
+      "image_attribution": {
+        "author": "Mrbobax",
+        "license": "CC BY-SA 4.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Material_Lift_Truck.jpg"
+      },
+      "curation": {
+        "audio_file": "File:WWS Forklifttruck.ogg",
+        "image_file": "File:Material Lift Truck.jpg",
+        "start": null,
+        "end": null,
+        "start_used": 37.3
+      }
+    },
+    {
+      "id": "motorboat",
+      "name": "motorboat",
+      "aliases": [
+        "motor boat",
+        "speedboat",
+        "speed boat",
+        "putt putt boat"
+      ],
+      "category": "vehicle",
+      "clip": "clips/motorboat.m4a",
+      "image": "images/motorboat.jpg",
+      "duration_s": 6.09,
+      "audio_attribution": {
+        "author": "Work With Sounds / Werstas",
+        "license": "CC BY 4.0",
+        "license_url": "https://creativecommons.org/licenses/by/4.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:WWS_MSThti.ogg"
+      },
+      "image_attribution": {
+        "author": "Kondicherry",
+        "license": "CC BY-SA 3.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Motorboat_at_Kankaria_lake.JPG"
+      },
+      "curation": {
+        "audio_file": "File:WWS MSThti.ogg",
+        "image_file": "File:Motorboat at Kankaria lake.JPG",
+        "start": null,
+        "end": null,
+        "start_used": 15.9
+      }
+    },
+    {
+      "id": "tugboat",
+      "name": "tugboat",
+      "aliases": [
+        "tug boat",
+        "tug",
+        "steamboat",
+        "steam boat",
+        "steamboat whistle"
+      ],
+      "category": "vehicle",
+      "clip": "clips/tugboat.m4a",
+      "image": "images/tugboat.jpg",
+      "duration_s": 5.1,
+      "audio_attribution": {
+        "author": "Work With Sounds / Konrad Gutkowski",
+        "license": "CC BY 4.0",
+        "license_url": "https://creativecommons.org/licenses/by/4.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:WWS_Steamwhistle.ogg"
+      },
+      "image_attribution": {
+        "author": "Alexey Komarov",
+        "license": "CC BY-SA 4.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Canning_(steam_tugboat,_1954)_in_Swansea.jpg"
+      },
+      "curation": {
+        "audio_file": "File:WWS Steamwhistle.ogg",
+        "image_file": "File:Canning (steam tugboat, 1954) in Swansea.jpg",
+        "start": 1.5,
+        "end": 6.6,
+        "start_used": 1.5
+      }
+    },
+    {
+      "id": "tank",
+      "name": "tank",
+      "aliases": [
+        "army tank",
+        "military tank",
+        "sherman tank"
+      ],
+      "category": "vehicle",
+      "clip": "clips/tank.m4a",
+      "image": "images/tank.jpg",
+      "duration_s": 6.0,
+      "audio_attribution": {
+        "author": "Beeld en Geluid",
+        "license": "CC BY-SA 3.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Sherman_tank,_met_grote_snelheid_rijden_-_SoundCloud_-_Beeld_en_Geluid.ogg"
+      },
+      "image_attribution": {
+        "author": "Joost J. Bakker",
+        "license": "CC BY 2.0",
+        "license_url": "https://creativecommons.org/licenses/by/2.0",
+        "source_url": "https://commons.wikimedia.org/wiki/File:M4_Sherman_tank_-_Flickr_-_Joost_J._Bakker_IJmuiden.jpg"
+      },
+      "curation": {
+        "audio_file": "File:Sherman tank, met grote snelheid rijden - SoundCloud - Beeld en Geluid.ogg",
+        "image_file": "File:M4 Sherman tank - Flickr - Joost J. Bakker IJmuiden.jpg",
+        "start": null,
+        "end": null,
+        "start_used": 40.1
+      }
+    },
+    {
+      "id": "sleigh",
+      "name": "sleigh",
+      "aliases": [
+        "sleigh bells",
+        "santa's sleigh",
+        "santa sleigh",
+        "sled bells"
+      ],
+      "category": "vehicle",
+      "clip": "clips/sleigh.m4a",
+      "image": "images/sleigh.jpg",
+      "duration_s": 6.0,
+      "audio_attribution": {
+        "author": "The Midnite Wolf",
+        "license": "CC0",
+        "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Sleigh_bells.wav"
+      },
+      "image_attribution": {
+        "author": "George Chernilevsky",
+        "license": "Public domain",
+        "license_url": "https://en.wikipedia.org/wiki/Public_domain",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Horse-drawn_sleighs_2012_G1.jpg"
+      },
+      "curation": {
+        "audio_file": "File:Sleigh bells.wav",
+        "image_file": "File:Horse-drawn sleighs 2012 G1.jpg",
+        "start": null,
+        "end": null,
+        "start_used": 0.9
       }
     }
   ]

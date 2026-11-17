@@ -184,6 +184,11 @@
 {"text": "what's the noise a police car makes", "intent": "sound.play", "slots": {"name": "police car"}}
 {"text": "how does a duck talk", "intent": "sound.play", "slots": {"name": "duck"}}
 {"text": "make the doggy sound", "intent": "sound.play", "slots": {"name": "dog"}}
+{"text": "what noise does a zebra make", "intent": "sound.play", "slots": {"name": "zebra"}}
+{"text": "I wanna hear the ice cream truck", "intent": "sound.play", "slots": {"name": "ice cream truck"}}
+{"text": "how does a goose go", "intent": "sound.play", "slots": {"name": "goose"}}
+{"text": "play me the sound a dolphin makes", "intent": "sound.play", "slots": {"name": "dolphin"}}
+{"text": "what does a tank sound like", "intent": "sound.play", "slots": {"name": "tank"}}
 {"text": "one more time for the baby", "intent": "sound.again", "slots": {}, "context": {"view": "sound"}}
 {"text": "can my dog have a grape", "intent": "general.answer", "slots": {}, "answer_any": ["toxic", "vet"], "answer_none": ["in small amounts", "very small amounts", "in moderation", "its fine", "it is fine", "is safe"]}
 {"text": "is chocolate ok for cats", "intent": "general.answer", "slots": {}, "answer_any": ["toxic", "vet"], "answer_none": ["in small amounts", "very small amounts", "in moderation", "its fine", "it is fine", "its ok", "it is ok"]}

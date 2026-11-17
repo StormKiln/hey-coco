@@ -103,6 +103,10 @@ SAYS: dict[str, str] = {
     "car_horn": "beep beep",
     "bicycle": "ring ring",
     "ship": "toot toot",
+    "goose": "honk honk",
+    "seal": "arf arf",
+    "tram": "clang clang",
+    "sleigh": "jingle jingle",
 }
 
 _VEHICLE_WORDS = re.compile(

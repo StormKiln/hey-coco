@@ -1,5 +1,5 @@
 {
-  "say": "There's more than one Portland, so here's Portland, Oregon. Today, expect overcast skies, with a high of 11 and a low of 6. There's a 34 percent chance of rain.",
+  "say": "There's more than one Portland, so here's Portland, Oregon. Today, expect overcast skies, with a high of 11 and a low of 6. There's a 34 percent chance of rain. That's 6 degrees warmer than at home.",
   "view": {
     "type": "weather",
     "current": {
@@ -81,7 +81,37 @@
         "precip_probability": 20
       }
     ],
-    "place": "Portland, Oregon"
+    "place": "Portland, Oregon",
+    "compare": {
+      "name": "Home",
+      "current": {
+        "time": "2026-11-14T15:00:00Z",
+        "temp": -1.5,
+        "feels_like": -6.0,
+        "unit": "C",
+        "code": 71,
+        "description": "Slight snow",
+        "is_day": true
+      },
+      "daily": [
+        {
+          "date": "2026-11-14",
+          "high": -1.0,
+          "low": -7.5,
+          "unit": "C",
+          "code": 71,
+          "precip_probability": 60
+        },
+        {
+          "date": "2026-11-15",
+          "high": 0.5,
+          "low": -6.0,
+          "unit": "C",
+          "code": 3,
+          "precip_probability": 10
+        }
+      ]
+    }
   },
   "commands": [],
   "intent": "weather.forecast",

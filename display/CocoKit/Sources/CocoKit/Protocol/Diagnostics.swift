@@ -119,11 +119,40 @@ public struct SpotifyHealth: Codable, Sendable, Equatable {
     }
 }
 
+/// One configured calendar, by position only: never its name or URL (#139).
+public struct CalendarHealth: Codable, Sendable, Equatable {
+    public var index: Int
+    public var status: CheckStatus
+    public var fetchedAt: Date?
+    public var stale: Bool
+    public var detail: String?
+
+    enum CodingKeys: String, CodingKey {
+        case index, status, stale, detail
+        case fetchedAt = "fetched_at"
+    }
+}
+
 public struct DiagnosticsHealth: Codable, Sendable, Equatable {
     public var ollama: OllamaHealth
     public var weather: WeatherHealth
     public var youtube: YoutubeHealth
     public var spotify: SpotifyHealth
+    /// Empty when no calendars are configured (and from Hubs older than #139).
+    public var calendars: [CalendarHealth]
+
+    enum CodingKeys: String, CodingKey {
+        case ollama, weather, youtube, spotify, calendars
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        ollama = try c.decode(OllamaHealth.self, forKey: .ollama)
+        weather = try c.decode(WeatherHealth.self, forKey: .weather)
+        youtube = try c.decode(YoutubeHealth.self, forKey: .youtube)
+        spotify = try c.decode(SpotifyHealth.self, forKey: .spotify)
+        calendars = try c.decodeIfPresent([CalendarHealth].self, forKey: .calendars) ?? []
+    }
 }
 
 public struct HubDiagnostics: Codable, Sendable, Equatable {

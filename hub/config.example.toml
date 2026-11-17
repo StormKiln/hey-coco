@@ -94,3 +94,14 @@ daily_quota = 9000        # API units/day before Coco refuses searches (a search
 # backend = "kasa"               # no name: uses that outlet's name from the Kasa app
 # options = { host = "192.0.2.11", child = 0 }   # child: 0-based index or outlet name
 #                                # mac = "..." refuses a different device at that address
+
+# Calendars (docs/calendar.md). One [[calendars]] block per calendar; none = no calendar on the
+# home screen and "what's going on today?" says calendars aren't set up. The url is a secret
+# (anyone with it can read the calendar): keep it in this gitignored file only.
+# [[calendars]]
+# source = "ics"                  # an iCal feed, e.g. Google's "Secret address in iCal format"
+# url = "https://calendar.google.com/calendar/ical/.../private-.../basic.ics"
+# name = "Family"                 # default: the calendar's own name
+# color = "#33B679"               # #RRGGBB; default: one per position
+# show_on_idle = true             # list its events on the home screen
+# busy_only = false               # show and say "Busy" instead of titles

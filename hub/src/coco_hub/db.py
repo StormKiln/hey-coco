@@ -107,6 +107,18 @@ MIGRATIONS: list[Migration] = [
         );
         """,
     ),
+    Migration(
+        7,
+        "create calendar cache",
+        """
+        CREATE TABLE calendar_cache (
+            cal_key TEXT PRIMARY KEY,
+            feed_name TEXT,
+            events TEXT NOT NULL,
+            fetched_at TEXT NOT NULL
+        );
+        """,
+    ),
 ]
 
 _SCHEMA_MIGRATIONS = """

@@ -532,11 +532,22 @@ class SpotifyHealth(Message):
     detail: str | None
 
 
+class CalendarHealth(Message):
+    """One ``[[calendars]]`` entry, by position: never its name or URL."""
+
+    index: int
+    status: CheckStatus
+    fetched_at: UtcDatetime | None
+    stale: bool
+    detail: str | None
+
+
 class DiagnosticsHealth(Message):
     ollama: OllamaHealth
     weather: WeatherHealth
     youtube: YoutubeHealth
     spotify: SpotifyHealth
+    calendars: list[CalendarHealth] = []
 
 
 class Diagnostics(Message):

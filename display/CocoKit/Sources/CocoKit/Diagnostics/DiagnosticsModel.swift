@@ -192,7 +192,16 @@ public final class DiagnosticsModel {
             DiagnosticsHealthRow(name: "Weather", status: h.weather.status, summary: weather.joined(separator: " · ")),
             DiagnosticsHealthRow(name: "YouTube", status: h.youtube.status, summary: youtube.joined(separator: " · ")),
             DiagnosticsHealthRow(name: "Spotify", status: h.spotify.status, summary: spotify.joined(separator: " · ")),
-        ]
+        ] + h.calendars.map { cal in
+            var parts: [String] = []
+            if let detail = cal.detail { parts.append(detail) }
+            if cal.stale && cal.detail != "stale" { parts.append("stale") }
+            if let fetched = cal.fetchedAt {
+                parts.append("fetched \(DiagnosticsFormat.relative(fetched, now: now))")
+            }
+            return DiagnosticsHealthRow(
+                name: "Calendar \(cal.index)", status: cal.status, summary: parts.joined(separator: " · "))
+        }
     }
 
     /// Newest first. Times are relative to the Hub's `server_time`, so the iPad's clock skew

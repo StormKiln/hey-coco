@@ -1,0 +1,48 @@
+{
+  "device": {
+    "id": "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+    "is_active": true,
+    "is_private_session": false,
+    "is_restricted": false,
+    "name": "Kitchen iPad",
+    "supports_volume": true,
+    "type": "Tablet",
+    "volume_percent": 40
+  },
+  "repeat_state": "off",
+  "shuffle_state": false,
+  "timestamp": 1794682800000,
+  "context": {
+    "type": "artist",
+    "uri": "spotify:artist:4RaffiArtistId0000000a",
+    "href": "https://api.spotify.com/v1/artists/4RaffiArtistId0000000a"
+  },
+  "progress_ms": 1200,
+  "is_playing": true,
+  "currently_playing_type": "track",
+  "item": {
+    "type": "track",
+    "id": "3BananaPhoneTrackId000a",
+    "uri": "spotify:track:3BananaPhoneTrackId000a",
+    "name": "Bananaphone",
+    "duration_ms": 189000,
+    "popularity": 55,
+    "artists": [
+      {
+        "type": "artist",
+        "id": "4RaffiArtistId0000000a",
+        "name": "Raffi",
+        "uri": "spotify:artist:4RaffiArtistId0000000a"
+      }
+    ],
+    "album": {
+      "type": "album",
+      "album_type": "album",
+      "id": "5BananaphoneAlbumId000a",
+      "name": "Bananaphone",
+      "uri": "spotify:album:5BananaphoneAlbumId000a",
+      "images": []
+    }
+  },
+  "actions": {"disallows": {"resuming": true}}
+}

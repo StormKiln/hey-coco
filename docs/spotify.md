@@ -61,6 +61,29 @@ music requests get "Spotify isn't set up yet."
    the wrong one; keep Spotify signed out (or closed) on the other iPad, or leave
    `device_name` unset so Coco uses the active device.
 
+5. **Let Coco wake Spotify and come back (#116).** When the iPad has dropped out of the device
+   list, Coco opens Spotify with the Spotify iOS SDK, which plays what you asked for and
+   sends the iPad straight back to Coco. That needs the *same* Spotify app (same Client ID)
+   to know about the Coco Display iOS app. At <https://developer.spotify.com/dashboard>, open
+   the app, *Settings* → *Edit*:
+   - **Redirect URIs:** add exactly `cocokitchen-spotify://callback` and keep the existing
+     `https://127.0.0.1:8765/spotify/callback` (the Hub's login still uses it).
+   - **APIs used** ("Which API/SDKs are you planning to use?"): keep **Web API** and also
+     tick **iOS**.
+   - **iOS app bundles** / **Bundle ID:** `com.stormkiln.heycoco.display` (the app's
+     `PRODUCT_BUNDLE_IDENTIFIER`; if you overrode it in `display/Signing.local.xcconfig`,
+     use that value instead).
+   - Save.
+
+   Nothing changes in `hub/config.local.toml`: the Hub sends its `spotify.client_id` to the
+   Display with each wake. The first SDK wake shows Spotify's consent screen on the iPad
+   (your Spotify app, e.g. "Coco Hub", wants to control playback): someone has to tap
+   *Agree* once; after that Spotify returns to Coco by itself.
+
+   Without this step (or if the SDK fails) Coco falls back to opening the plain `spotify:`
+   link, which works but leaves Spotify in front until someone switches back to Coco.
+   The Display's diagnostics screen shows the last wake ("Spotify wake").
+
 ## Where the tokens live
 
 The refresh token and the current access token are stored in the Hub's SQLite database
@@ -96,12 +119,21 @@ owner).
   device list. Open the Spotify app on the iPad and retry. Before saying this, the Hub asks
   the Display to open Spotify itself (`spotify.wake_requested`), then lists devices every
   `spotify.wake_poll_s` (default 1 s) for up to `spotify.wake_wait_s` (default 12 s; 0 turns
-  it off). That only works with **Guided Access
-  off**, and leaves Spotify in front; under Guided Access iOS won't switch apps, so the
-  Display does nothing. Whether the iPad stays listed on its own under Guided Access is what
+  it off). That only works with **Guided Access off**; under Guided Access iOS won't switch
+  apps, so the Display does nothing. For a play request the Display uses the Spotify iOS SDK
+  (setup step 5), which starts the music and brings Coco back to the front; otherwise (a
+  volume change, the SDK not set up, or the SDK failed) it opens the plain `spotify:` link and
+  Spotify stays in front. Whether the iPad stays listed on its own under Guided Access is what
   spike #5 measures: `make spotify-spike`, procedure and decision rule in
   `docs/spikes/spotify-test-procedure.md`. If it doesn't, switch to Apple Music
   (`docs/apple-music.md`).
+- **Spotify opens but Coco doesn't come back.** Check the diagnostics screen's "Spotify wake"
+  row. "Opened Spotify (no client ID from the Hub)": the Hub has no `spotify.client_id`.
+  "Spotify SDK failed: …": the redirect URI or bundle ID in step 5 doesn't match, or Spotify
+  never redirected; Coco uses the plain link for an hour, then tries the SDK again.
+  "Spotify SDK: back in Coco, Spotify said unknown_error": a known Spotify SDK 5.x issue
+  (spotify/ios-sdk#474); Coco is back and the Hub starts the music through the Web API, so
+  nothing to fix.
 - **"Spotify needs a Premium account for that."** Playback control needs Premium.
 - **"Spotify won't let me change the iPad's volume."** Some iOS devices report
   `supports_volume: false`; use the iPad's volume buttons.

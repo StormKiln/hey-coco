@@ -3,9 +3,11 @@ import pytest
 from coco_hub.media.spotify.client import (
     Device,
     Item,
+    Playback,
     SpotifyClient,
     parse_currently_playing,
     parse_devices,
+    parse_playback,
     parse_search,
 )
 from coco_hub.media.spotify.errors import (
@@ -125,6 +127,26 @@ def test_parse_currently_playing():
 
 
 # --- requests ----------------------------------------------------------------------------
+
+
+def test_parse_playback():
+    assert parse_playback(fixture("playback_state")) == Playback(
+        device_id=IPAD_ID,
+        is_playing=True,
+        context_uri="spotify:artist:4RaffiArtistId0000000a",
+        item_uri="spotify:track:3BananaPhoneTrackId000a",
+    )
+    assert parse_playback({"is_playing": False}) == Playback(
+        device_id=None, is_playing=False, context_uri=None, item_uri=None
+    )
+    assert parse_playback(None) is None
+
+
+async def test_playback_204_is_none(client, fake):
+    fake.set("GET", "/v1/me/player", json_response(204))
+    assert await client.playback() is None
+    fake.set("GET", "/v1/me/player", json_response(200, "playback_state"))
+    assert (await client.playback()).device_id == IPAD_ID
 
 
 async def test_search_sends_query_types_and_bearer(client, fake):

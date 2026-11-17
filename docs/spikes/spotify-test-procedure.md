@@ -16,9 +16,10 @@ When the iPad is missing from the device list, the Hub asks the Display to open 
 app (`spotify.wake_requested` on the event stream, `docs/protocol/README.md`). The Display
 does that only when **Guided Access is off**: under Guided Access iOS won't switch to another
 app, so the Display does nothing, and after `spotify.wake_wait_s` Coco says "Open Spotify on
-the iPad once, then try again." Even without Guided Access, opening Spotify leaves Spotify in
-front (iOS gives Coco no way to come back by itself). So in the kitchen setup the wake can't
-help: Spotify only works if the iPad stays listed on its own. That is what this run measures.
+the iPad once, then try again." (Without Guided Access, the Display wakes Spotify through the
+Spotify iOS SDK, which brings Coco back to the front, #116.) So in the kitchen setup the wake
+can't help: Spotify only works if the iPad stays listed on its own. That is what this run
+measures.
 
 ## Before you start
 
@@ -85,7 +86,8 @@ JSONL log out of git.
 
 ## Not covered by this tool
 
-Issue #5 also asks about the Spotify iOS SDK's App Remote as a wake path. That needs Spotify
-iOS SDK integration in the Display and, like the URL scheme, brings the Spotify app to the
-front, which Guided Access blocks. If the run above fails, App Remote is unlikely to rescue it
-in the Guided Access setup; test it only if the household would drop Guided Access.
+Issue #5 also asks about the Spotify iOS SDK's App Remote as a wake path. The Display now
+uses it (#116: `authorizeAndPlayURI`, then Spotify redirects back to Coco), but like the URL
+scheme it brings the Spotify app to the front, which Guided Access blocks. If the run above
+fails, App Remote doesn't rescue it in the Guided Access setup; it only helps if the household
+drops Guided Access.

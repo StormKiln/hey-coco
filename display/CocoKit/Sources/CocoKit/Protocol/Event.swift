@@ -14,8 +14,8 @@ public struct Event: Codable, Sendable, Equatable {
         case nowPlaying(NowPlaying?)
         case settingsChanged(night: Night)
         /// The Hub can't see the iPad in Spotify's device list (#5): open Spotify, unless
-        /// Guided Access is on (`SpotifyWake`).
-        case spotifyWakeRequested(deviceName: String?)
+        /// Guided Access is on (`SpotifyWake`); for a play request through the Spotify SDK (#116).
+        case spotifyWakeRequested(SpotifyWakeRequest)
         case unknown(String)
 
         public var type: String {
@@ -47,6 +47,8 @@ public struct Event: Codable, Sendable, Equatable {
         case serverTime = "server_time"
         case nowPlaying = "now_playing"
         case deviceName = "device_name"
+        case play, uri
+        case clientID = "client_id"
     }
 
     public init(from decoder: any Decoder) throws {
@@ -71,8 +73,13 @@ public struct Event: Codable, Sendable, Equatable {
         case "settings.changed":
             kind = .settingsChanged(night: try container.decode(Night.self, forKey: .night))
         case "spotify.wake_requested":
+            // play / uri / client_id since #116; absent from an older Hub.
             kind = .spotifyWakeRequested(
-                deviceName: try container.decodeIfPresent(String.self, forKey: .deviceName))
+                SpotifyWakeRequest(
+                    deviceName: try container.decodeIfPresent(String.self, forKey: .deviceName),
+                    play: try container.decodeIfPresent(Bool.self, forKey: .play) ?? false,
+                    uri: try container.decodeIfPresent(String.self, forKey: .uri),
+                    clientID: try container.decodeIfPresent(String.self, forKey: .clientID)))
         default: kind = .unknown(type)
         }
     }
@@ -90,8 +97,11 @@ public struct Event: Codable, Sendable, Equatable {
             try container.encode(timer, forKey: .timer)
         case .nowPlaying(let nowPlaying): try container.encode(nowPlaying, forKey: .nowPlaying)
         case .settingsChanged(let night): try container.encode(night, forKey: .night)
-        case .spotifyWakeRequested(let deviceName):
-            try container.encode(deviceName, forKey: .deviceName)
+        case .spotifyWakeRequested(let request):
+            try container.encode(request.deviceName, forKey: .deviceName)
+            try container.encode(request.play, forKey: .play)
+            try container.encode(request.uri, forKey: .uri)
+            try container.encode(request.clientID, forKey: .clientID)
         case .unknown: break
         }
     }

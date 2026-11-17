@@ -20,10 +20,21 @@ extension AppModel {
         switch event.kind {
         case .hello(_, let nowPlaying), .nowPlaying(let nowPlaying):
             media.nowPlayingChanged(nowPlaying)
-        case .spotifyWakeRequested:
-            spotifyWaker?.wakeRequested()
+        case .spotifyWakeRequested(let request):
+            spotifyWaker?.wakeRequested(request)
         default:
             break
+        }
+    }
+
+    /// A URL the app was opened with: Spotify's redirect after an SDK wake (#116). Returns
+    /// false for anything else (a `cocohub://` pairing link isn't registered as a URL type;
+    /// pairing links come from the QR scanner).
+    @discardableResult
+    public func handleOpenURL(_ url: URL) -> Bool {
+        switch IncomingURL(url) {
+        case .spotifyCallback: spotifyWaker?.handleOpenURL(url) ?? false
+        case .pairing, .unknown: false
         }
     }
 }

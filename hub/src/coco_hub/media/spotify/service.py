@@ -8,7 +8,8 @@ network and every call raises ``SpotifyNotConfigured`` ("Spotify isn't set up ye
 Device targeting: the device named ``spotify.device_name`` (case-insensitive), else the
 active device, else the only one. If it isn't in the device list, the ``DeviceWaker`` gets one
 chance to bring it back (polling the list, #95) before Coco says "Open Spotify on the iPad
-once, then try again."
+once, then try again." A play wake names the URI, which the Display's Spotify SDK may already
+start while waking Spotify (#116); then ``play`` doesn't start it a second time.
 
 Now playing: ``run()`` polls ``currently-playing`` and publishes a ``now_playing`` event when
 it changes. It polls every 5 s for 10 minutes after any Spotify command, then every 60 s while
@@ -63,10 +64,17 @@ class DeviceWaker(Protocol):
 
     After trying, it calls ``appeared`` (which lists devices again) until that returns True,
     and returns True only then. Spotify drops an idle iPad from the device list; spike #5.
+    ``play`` (#116): the wake is for playing ``uri`` (None: whatever Spotify last played), so
+    the Display may start it while waking Spotify; without ``play`` it must not start music.
     """
 
     async def wake(
-        self, device_name: str | None, appeared: Callable[[], Awaitable[bool]]
+        self,
+        device_name: str | None,
+        appeared: Callable[[], Awaitable[bool]],
+        *,
+        play: bool = False,
+        uri: str | None = None,
     ) -> bool: ...
 
 
@@ -74,7 +82,14 @@ class NoopWaker:
     """Does nothing (tests, and ``spotify.wake_wait_s = 0``). The Hub's real waker is
     ``coco_hub.media.spotify.waker.DisplayWaker``."""
 
-    async def wake(self, device_name: str | None, appeared: Callable[[], Awaitable[bool]]) -> bool:
+    async def wake(
+        self,
+        device_name: str | None,
+        appeared: Callable[[], Awaitable[bool]],
+        *,
+        play: bool = False,
+        uri: str | None = None,
+    ) -> bool:
         return False
 
 
@@ -194,7 +209,16 @@ class SpotifyService:
     # --- devices -----------------------------------------------------------------------
 
     async def target_device(self) -> Device:
+        device, _ = await self._target_device()
+        return device
+
+    async def _target_device(
+        self, *, play: bool = False, uri: str | None = None
+    ) -> tuple[Device, bool]:
+        """The device to use, and whether it had to be woken first (the wake may already
+        have started ``uri`` there, #116)."""
         device = choose_device(await self._client.devices(), self.device_name)
+        woken = False
         if device is None:
             found: Device | None = None
 
@@ -203,11 +227,19 @@ class SpotifyService:
                 found = choose_device(await self._client.devices(), self.device_name)
                 return found is not None
 
-            if await self._waker.wake(self.device_name, appeared):
-                device = found
+            if await self._waker.wake(self.device_name, appeared, play=play, uri=uri):
+                device, woken = found, True
         if device is None:
             raise SpotifyNoDevice(f"device {self.device_name or '(any)'} not visible")
-        return device
+        return device, woken
+
+    async def _already_playing(self, device: Device, uri: str | None) -> bool:
+        """True when ``device`` is playing ``uri`` (None: anything) right now: the Display's
+        Spotify SDK wake started it (#116), so the Web API mustn't restart it."""
+        state = await self._client.playback()
+        if state is None or not state.is_playing or state.device_id != device.id:
+            return False
+        return uri is None or uri in (state.context_uri, state.item_uri)
 
     async def visible_device(self) -> Device | None:
         """The device we'd play on, if Spotify sees it now; never wakes one (diagnostics)."""
@@ -226,8 +258,11 @@ class SpotifyService:
         ``shuffle`` turns Spotify's shuffle on once it is playing there (left as is
         otherwise)."""
         self.ensure_ready()
-        device = await self.target_device()
-        if item is None:
+        uri = item.uri if item is not None else None
+        device, woken = await self._target_device(play=True, uri=uri)
+        if woken and await self._already_playing(device, uri):
+            log.info("Spotify already plays %s on the iPad after the wake", uri or "something")
+        elif item is None:
             await self._client.play(device.id)
         elif item.kind == "track":
             await self._client.play(device.id, uris=[item.uri])

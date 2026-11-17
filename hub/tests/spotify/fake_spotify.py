@@ -36,6 +36,7 @@ class FakeSpotify:
             ("POST", TOKEN_PATH): json_response(200, "token_refreshed"),
             ("GET", "/v1/me/player/devices"): json_response(200, "devices"),
             ("GET", "/v1/me/player/currently-playing"): json_response(204),
+            ("GET", "/v1/me/player"): json_response(204),
             ("GET", "/v1/search"): json_response(200, "search_raffi"),
             ("PUT", "/v1/me/player/play"): json_response(204),
             ("PUT", "/v1/me/player/pause"): json_response(204),

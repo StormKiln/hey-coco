@@ -209,7 +209,27 @@ func everyFixtureDecodesWithItsModel(name: String) throws {
 
 @Test func spotifyWakeRequestedEventDecodes() throws {
     let event = try Fixtures.decode(Event.self, "event_spotify_wake_requested")
-    #expect(event.kind == .spotifyWakeRequested(deviceName: "Kitchen iPad"))
+    #expect(
+        event.kind
+            == .spotifyWakeRequested(
+                SpotifyWakeRequest(
+                    deviceName: "Kitchen iPad", play: true,
+                    uri: "spotify:artist:4RaffiArtistId0000000a",
+                    clientID: "0123456789abcdef0123456789abcdef")))
     let encoded = try Fixtures.jsonObject(CocoJSON.encoder.encode(event))
     #expect(encoded == (try Fixtures.jsonObject(Fixtures.data("event_spotify_wake_requested"))))
+}
+
+@Test func spotifyWakeRequestedOpenOnlyEventDecodes() throws {
+    let event = try Fixtures.decode(Event.self, "event_spotify_wake_requested_open_only")
+    #expect(event.kind == .spotifyWakeRequested(SpotifyWakeRequest()))
+    let encoded = try Fixtures.jsonObject(CocoJSON.encoder.encode(event))
+    #expect(encoded == (try Fixtures.jsonObject(Fixtures.data("event_spotify_wake_requested_open_only"))))
+}
+
+@Test func spotifyWakeRequestedFromAnOlderHubDecodes() throws {
+    // Before #116 the event had only device_name: a plain open, as before.
+    let json = #"{"type": "spotify.wake_requested", "server_time": "2026-11-14T15:04:05Z", "device_name": "iPad"}"#
+    let event = try CocoJSON.decoder.decode(Event.self, from: Data(json.utf8))
+    #expect(event.kind == .spotifyWakeRequested(SpotifyWakeRequest(deviceName: "iPad")))
 }

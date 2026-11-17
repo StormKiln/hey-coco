@@ -16,6 +16,11 @@ packages:
   OnnxRuntime:
     url: https://github.com/microsoft/onnxruntime-swift-package-manager
     exactVersion: 1.24.2
+  # Spotify iOS SDK (#116, docs/spotify.md): wakes Spotify with SPTAppRemote and comes back.
+  # App target only, so CocoKit and `swift test` stay SDK-free.
+  SpotifyiOS:
+    url: https://github.com/spotify/ios-sdk
+    exactVersion: 5.0.1
 targets:
   CocoDisplay:
     type: application
@@ -37,6 +42,13 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSBonjourServices: [_coco._tcp]
+        # Spotify iOS SDK (#116): it checks the Spotify app is installed (canOpenURL), and
+        # Spotify redirects back to cocokitchen-spotify://callback (SpotifyWake.redirectURL,
+        # registered on the Spotify app in the developer dashboard, docs/spotify.md).
+        LSApplicationQueriesSchemes: [spotify]
+        CFBundleURLTypes:
+          - CFBundleURLName: com.stormkiln.heycoco.spotify-callback
+            CFBundleURLSchemes: [cocokitchen-spotify]
         # No NSAppTransportSecurity exception (#54): the Hub serves HTTPS/WSS (TLS 1.2+, ECDHE,
         # P-256/SHA-256 cert). Its certificate is self-signed, and CocoKit's
         # PinningSessionDelegate does the trust evaluation (exact match with the paired pin).
@@ -46,6 +58,7 @@ targets:
       - package: CocoKit
       - package: OnnxRuntime
         product: onnxruntime
+      - package: SpotifyiOS
     # ONNX Runtime is a static library, linked into the app binary. Xcode's package handling
     # still embeds an empty stub onnxruntime.framework (binary minos 18.0, Info.plist 15.1)
     # that nothing loads, and App Store Connect rejects it as ITMS-90208. `embed: false` on the

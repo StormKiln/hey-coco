@@ -127,3 +127,11 @@ def test_migration_creates_the_token_table(tmp_path):
         assert "spotify_tokens" in tables
     finally:
         conn.close()
+
+
+def test_the_wake_sends_the_configured_client_id(configured, fake):
+    """#116: the Display's Spotify iOS SDK needs the Spotify app's (public) client id; the Hub
+    sends its own ``spotify.client_id`` so the app never hard-codes it."""
+    with _client(configured, fake) as client:
+        waker = client.app.state.services["spotify"]._waker
+        assert waker._client_id == "client-123"

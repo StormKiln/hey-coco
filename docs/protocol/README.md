@@ -329,15 +329,32 @@ Every event has `type` and `server_time`.
 | `timer.created` / `timer.updated` / `timer.fired` / `timer.dismissed` / `timer.cancelled` | `timer` |
 | `now_playing` | `now_playing: NowPlaying \| null` |
 | `settings.changed` | `night` (same shape as `IdleInfo.night`) |
-| `spotify.wake_requested` | `device_name` (nullable): the iPad's Spotify Connect name |
+| `spotify.wake_requested` | `device_name` (nullable): the iPad's Spotify Connect name; `play`: bool; `uri` (nullable): what to play; `client_id` (nullable): the Spotify app's client ID |
 
-`spotify.wake_requested` (#5, `fixtures/event_spotify_wake_requested.json`): Spotify doesn't
-list the iPad, so the Hub asks the Display to open the Spotify app, then lists devices every
-`spotify.wake_poll_s` (1 s) until the iPad is back or `spotify.wake_wait_s` (12 s) has passed
-(#95). The event itself is unchanged. The Display opens the `spotify:` URL scheme
-only when Guided Access is off (and at most once a minute); under Guided Access it does
-nothing and the Hub says "Open Spotify on the iPad once, then try again." The Display sends
-nothing back. The Hub only publishes it while a Display is connected.
+`spotify.wake_requested` (#5, `fixtures/event_spotify_wake_requested.json`,
+`fixtures/event_spotify_wake_requested_open_only.json`): Spotify doesn't list the iPad, so the
+Hub asks the Display to open the Spotify app, then lists devices every `spotify.wake_poll_s`
+(1 s) until the iPad is back or `spotify.wake_wait_s` (12 s) has passed (#95). The Display
+opens Spotify only when Guided Access is off (and at most once a minute); under Guided Access
+it does nothing and the Hub says "Open Spotify on the iPad once, then try again." The Display
+sends nothing back. The Hub only publishes it while a Display is connected.
+
+How the Display opens Spotify (#116):
+
+- `play: true` (the Hub is about to play something): through the Spotify iOS SDK,
+  `SPTAppRemote.authorizeAndPlayURI(uri)` with `client_id` and the redirect URI
+  `cocokitchen-spotify://callback`. Spotify starts `uri` (`null`: the SDK's blank string, the
+  user's last song) and redirects back to Coco, so Coco is in front again. `client_id` is the
+  Hub's `spotify.client_id` (public, not a secret), so the app doesn't hard-code it.
+- Otherwise, or when the SDK can't be used (no `client_id`, a `uri` that isn't `spotify:…`,
+  Spotify not reachable through the SDK, or no redirect after the last SDK wake: then for an
+  hour), the plain `spotify:` scheme, which leaves Spotify in front.
+
+`play: false` (a volume change while the iPad isn't listed): the SDK always starts music, so
+the plain scheme. After a play wake the Hub checks `/me/player`: if the iPad already plays
+`uri` (as the context or the track; with `uri` `null`, anything), it doesn't start it again.
+`play`, `uri` and `client_id` are new in #116; a Display treats them as `false` / `null` when
+absent.
 
 `NowPlaying`: `source` (`spotify`|`apple_music`), `title`, `artist`, `album` (nullable),
 `artwork_url` (nullable), `is_playing`.

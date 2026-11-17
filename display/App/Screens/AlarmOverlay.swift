@@ -13,7 +13,7 @@ struct AlarmOverlay: View {
             TimelineView(.periodic(from: .now, by: 0.6)) { context in
                 let flash = !reduceMotion && Int(context.date.timeIntervalSinceReferenceDate / 0.6) % 2 == 0
                 ZStack {
-                    (flash ? Color.orange : Color.red)
+                    (flash ? Theme.alarmOrange : Theme.alarmRed)
                         .ignoresSafeArea()
                         .animation(.easeInOut(duration: 0.3), value: flash)
                     VStack(spacing: 40) {
@@ -21,22 +21,24 @@ struct AlarmOverlay: View {
                             .font(.system(size: 120))
                             .symbolEffect(.bounce, options: .repeating, isActive: !reduceMotion)
                         Text(title)
-                            .font(.system(size: 88, weight: .bold, design: .rounded))
+                            .m3Font(.displaySmall, weight: .bold)
                             .multilineTextAlignment(.center)
                             .minimumScaleFactor(0.4)
                             .lineLimit(2)
                         Text("Time's up")
-                            .font(.system(size: 48, weight: .medium, design: .rounded))
+                            .m3Font(.headlineMedium, weight: .medium)
                         Button {
                             Task { await timers.stopAlarms() }
                         } label: {
-                            Text("Stop")
+                            Label("Stop", systemImage: "stop")
                                 .font(.system(size: 96, weight: .heavy, design: .rounded))
-                                .foregroundStyle(.red)
+                                .labelStyle(MaterialLabelStyle())
                                 .frame(width: 520, height: 200)
-                                .background(.white, in: RoundedRectangle(cornerRadius: 48, style: .continuous))
                         }
-                        .buttonStyle(.plain)
+                        // An extra-large M3 filled button: white on the flashing red/orange.
+                        .buttonStyle(
+                            MaterialButtonStyle(
+                                colors: MaterialColors(container: .white, content: Theme.alarmRed), elevation: .level3))
                         .accessibilityLabel("Stop alarm")
                     }
                     .foregroundStyle(.white)

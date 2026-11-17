@@ -19,14 +19,14 @@ struct CloseButton: View {
         } label: {
             Image(systemName: "xmark")
                 .font(.system(size: 46, weight: .heavy))
-                .foregroundStyle(.white)
-                .frame(width: 112, height: 112)
-                // Dark disc with a white ring: reads on a photo and on the light screens.
-                .background(.black.opacity(0.6), in: Circle())
-                .overlay(Circle().strokeBorder(.white.opacity(0.9), lineWidth: 4))
-                .contentShape(Circle())
+                // A white ring: reads on a photo and on the light screens.
+                .overlay(Circle().strokeBorder(.white.opacity(0.9), lineWidth: 4).frame(width: 112, height: 112))
         }
-        .buttonStyle(.plain)
+        // M3 inverse surface (dark by day, light at night), fixed dark here so it reads on photos.
+        .buttonStyle(
+            MaterialIconButtonStyle(
+                colors: MaterialColors(container: Color(Theme.light.inverseSurface).opacity(0.8), content: .white),
+                diameter: 112, elevation: .level2))
         .accessibilityLabel("Close")
     }
 }

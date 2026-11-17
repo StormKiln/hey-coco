@@ -54,7 +54,7 @@ struct HomeLocationView: View {
                 Section { ProgressView().frame(maxWidth: .infinity) }
             }
             if case .failed(let message) = location.status {
-                Section { Text(message).foregroundStyle(.red) }
+                Section { Text(message).foregroundStyle(Theme.error) }
             }
             if !location.choices.isEmpty {
                 Section {
@@ -89,6 +89,7 @@ struct HomeLocationView: View {
                 Text("The location set in the Hub's config file on the Mac.")
             }
         }
+        .m3FormStyle()
         .navigationTitle("Home location")
     }
 

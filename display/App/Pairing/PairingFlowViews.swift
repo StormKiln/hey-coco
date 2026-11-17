@@ -22,18 +22,18 @@ struct ScanPairingView: View {
                 if working {
                     ProgressView("Pairing…")
                         .padding(24)
-                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+                        .m3Surface(Theme.surfaceContainerHigh, shape: .medium, elevation: .level2)
                 }
             }
             .frame(maxWidth: .infinity, minHeight: 320, maxHeight: 480)
-            .clipShape(RoundedRectangle(cornerRadius: 20))
+            .clipShape(RoundedRectangle(cornerRadius: Theme.radius(.extraLarge), style: .continuous))
             if let error {
-                Text(error).foregroundStyle(.red).multilineTextAlignment(.center)
+                Text(error).foregroundStyle(Theme.error).multilineTextAlignment(.center)
                 Button("Scan again") {
                     self.error = nil
                     attempt += 1
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(MaterialButtonStyle(colors: .tonal, size: .medium))
             }
         }
     }
@@ -97,15 +97,14 @@ struct EnterCodeView: View {
                 }
                 .onSubmit { if valid { Task { await submit() } } }
             if let error {
-                Text(error).foregroundStyle(.red).multilineTextAlignment(.center)
+                Text(error).foregroundStyle(Theme.error).multilineTextAlignment(.center)
             }
             Button {
                 Task { await submit() }
             } label: {
                 if working { ProgressView() } else { Text("Pair") }
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
+            .buttonStyle(MaterialButtonStyle(colors: .filled, size: .medium))
             .disabled(!valid || working)
             Text("If the fingerprint doesn't match, don't enter the code: another device is pretending to be Coco Hub.")
                 .font(.footnote)

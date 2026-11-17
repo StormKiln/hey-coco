@@ -19,12 +19,26 @@ import Testing
          .pairCode(fingerprint: "FE3D-45AB-301C-3A25-BF52-AD89", code: "482913")),
         ("pair-uri cocohub://pair?v=1&host=h&port=1&token=t&cert=ab",
          .pairURI("cocohub://pair?v=1&host=h&port=1&token=t&cert=ab")),
+        ("show now_playing", .show(.nowPlaying)),
+        // #113: music as the Hub would report it, to look at Now Playing without Spotify.
+        ("now-playing Harry Potter Bedtime Stories | Stephen Fry",
+         .nowPlaying(NowPlaying(
+            source: .spotify, title: "Harry Potter Bedtime Stories", artist: "Stephen Fry", album: nil,
+            artworkURL: nil, isPlaying: true))),
+        ("now-playing Lullabies", .nowPlaying(NowPlaying(
+            source: .spotify, title: "Lullabies", artist: "", album: nil, artworkURL: nil, isPlaying: true))),
+        ("now-playing off", .nowPlaying(nil)),
+        // The app's own windows to Documents/<name>.png (no system alerts over them).
+        ("screenshot idle-day", .screenshot(name: "idle-day")),
+        // simctl can't rotate the simulator; the app asks for an orientation itself.
+        ("rotate landscape", .rotate(.landscape)),
+        ("rotate portrait", .rotate(.portrait)),
     ])
     func parses(_ line: String, _ expected: DebugCommand) {
         #expect(DebugCommand.parse(line) == expected)
     }
 
-    @Test(arguments: ["", "   ", "# comment", "say:", "timer", "timer -5", "timer abc", "show nope", "dance", "pair-code 482913", "pair-uri"])
+    @Test(arguments: ["", "   ", "# comment", "say:", "timer", "timer -5", "timer abc", "show nope", "dance", "pair-code 482913", "pair-uri", "now-playing", "now-playing | x", "screenshot", "screenshot ../escape", "screenshot a b", "rotate", "rotate sideways"])
     func rejects(_ line: String) {
         #expect(DebugCommand.parse(line) == nil)
     }

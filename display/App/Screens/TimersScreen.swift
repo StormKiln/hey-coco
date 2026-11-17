@@ -35,8 +35,9 @@ struct TimersScreen: View {
             }
             if timers.hasPendingSync {
                 Label("Saved on this iPad. Will sync with Coco Hub when it's back.", systemImage: "icloud.slash")
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
+                    .m3Font(.labelMedium, weight: .medium)
+                    .labelStyle(MaterialLabelStyle())
+                    .foregroundStyle(Theme.onSurfaceVariant)
             }
         }
         .padding(.top, 72)
@@ -57,23 +58,20 @@ struct TimersScreen: View {
                 model.show(.idle)
             } label: {
                 Label("Clock", systemImage: "chevron.left")
-                    .font(.title2.weight(.medium))
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 12)
             }
+            .buttonStyle(MaterialButtonStyle(colors: .tonal, size: .medium))
             Spacer()
             Text("Timers")
-                .font(.system(size: 48, weight: .semibold, design: .rounded))
+                .m3Font(.headlineMedium)
+                .foregroundStyle(Theme.onSurface)
             Spacer()
             Button {
                 showingPresets = true
             } label: {
                 Label("New timer", systemImage: "plus")
-                    .labelStyle(.iconOnly)
                     .font(.system(size: 40, weight: .semibold))
-                    .frame(width: 88, height: 88)
-                    .background(.tint.opacity(0.15), in: Circle())
             }
+            .buttonStyle(MaterialIconButtonStyle(colors: .primaryContainer, diameter: 88, elevation: .level1))
             .accessibilityLabel("New timer")
             .popover(isPresented: $showingPresets) {
                 PresetPicker { minutes in
@@ -88,9 +86,15 @@ struct TimersScreen: View {
     private var emptyState: some View {
         VStack(spacing: 32) {
             Spacer()
+            Image(systemName: "timer")
+                .font(.system(size: 72, weight: .medium))
+                .foregroundStyle(Theme.onSecondaryContainer)
+                .frame(width: 144, height: 144)
+                .m3Surface(Theme.secondaryContainer, shape: nil)
+                .accessibilityHidden(true)
             Text("No timers")
-                .font(.system(size: 56, weight: .semibold, design: .rounded))
-                .foregroundStyle(.secondary)
+                .m3Font(.headlineMedium)
+                .foregroundStyle(Theme.onSurfaceVariant)
             PresetGrid(start: start)
                 .frame(maxWidth: 720)
             Spacer()
@@ -113,50 +117,52 @@ private struct TimerCard: View {
         VStack(spacing: 12) {
             HStack {
                 Text(timer.displayName)
-                    .font(.system(size: 40, weight: .semibold, design: .rounded))
+                    .m3Font(.titleLarge)
+                    .foregroundStyle(timer.isRinging ? Theme.onErrorContainer : Theme.onSurface)
                     .lineLimit(1)
                 if timer.isLocalOnly {
                     Image(systemName: "icloud.slash")
                         .font(.title2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.onSurfaceVariant)
                         .accessibilityLabel("Only on this iPad")
                 }
             }
             Text(timer.isRinging ? "Time's up" : TimerFormat.countdown(remaining))
-                .font(.system(size: 120, weight: .medium, design: .rounded))
+                .m3Font(.displayMedium)
                 .monospacedDigit()
                 .minimumScaleFactor(0.4)
                 .lineLimit(1)
-                .foregroundStyle(timer.isRinging ? .red : .primary)
+                .foregroundStyle(timer.isRinging ? Theme.onErrorContainer : Theme.primary)
             HStack(spacing: 20) {
                 if timer.isRinging {
-                    CardButton(title: "Stop", systemImage: "stop.fill", tint: .red, action: stop)
+                    CardButton(title: "Stop", systemImage: "stop.fill", colors: .danger, action: stop)
                 } else {
-                    CardButton(title: "+1 min", systemImage: "plus", tint: .accentColor, action: addMinute)
-                    CardButton(title: "Cancel", systemImage: "xmark", tint: .secondary, action: cancel)
+                    CardButton(title: "+1 min", systemImage: "plus", colors: .tonal, action: addMinute)
+                    CardButton(title: "Cancel", systemImage: "xmark", colors: .outlined, action: cancel)
                 }
             }
         }
         .padding(32)
         .frame(maxWidth: .infinity)
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 32, style: .continuous))
+        // An M3 card; a ringing one turns to the error container.
+        .m3Surface(
+            timer.isRinging ? Theme.errorContainer : Theme.surfaceContainerLow, shape: .extraLarge,
+            elevation: .level1)
     }
 }
 
 private struct CardButton: View {
     let title: String
     let systemImage: String
-    let tint: Color
+    let colors: MaterialColors
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Label(title, systemImage: systemImage)
-                .font(.system(size: 28, weight: .semibold, design: .rounded))
-                .frame(minWidth: 160, minHeight: 72)
+                .frame(minWidth: 120)
         }
-        .buttonStyle(.bordered)
-        .tint(tint)
+        .buttonStyle(MaterialButtonStyle(colors: colors))
     }
 }
 
@@ -170,10 +176,11 @@ private struct PresetGrid: View {
                     start(minutes)
                 } label: {
                     Text("\(minutes) min")
-                        .font(.system(size: 40, weight: .semibold, design: .rounded))
+                        .m3Font(.titleLarge)
                         .frame(maxWidth: .infinity, minHeight: 110)
                 }
-                .buttonStyle(.borderedProminent)
+                // Large M3 buttons: the seed's primary container, rounded (not pill) in a grid.
+                .buttonStyle(PresetButtonStyle())
             }
         }
     }
@@ -185,10 +192,23 @@ private struct PresetPicker: View {
     var body: some View {
         VStack(spacing: 24) {
             Text("New timer")
-                .font(.system(size: 36, weight: .semibold, design: .rounded))
+                .m3Font(.titleMedium)
+                .foregroundStyle(Theme.onSurface)
             PresetGrid(start: start)
         }
         .padding(32)
         .frame(width: 600)
+    }
+}
+
+/// A preset tile: primary container, extra-large corners, a state layer when pressed.
+private struct PresetButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        let shape = RoundedRectangle(cornerRadius: Theme.radius(.extraLarge), style: .continuous)
+        return configuration.label
+            .foregroundStyle(Theme.onPrimaryContainer)
+            .background(shape.fill(Theme.primaryContainer))
+            .overlay(shape.fill(Theme.onPrimaryContainer.opacity(configuration.isPressed ? 0.12 : 0)))
+            .contentShape(shape)
     }
 }

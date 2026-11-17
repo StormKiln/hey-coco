@@ -86,8 +86,11 @@ struct WakeWordIndicator: View {
     var body: some View {
         if let text {
             Label(text, systemImage: "ear.trianglebadge.exclamationmark")
-                .font(.footnote)
-                .foregroundStyle(.tertiary)
+                .m3Font(.labelSmall, weight: .medium)
+                .foregroundStyle(Theme.onSurfaceVariant)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .m3Surface(Theme.surfaceContainerHigh, shape: .small)
                 .accessibilityLabel(text)
         }
     }

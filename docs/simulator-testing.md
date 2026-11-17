@@ -55,8 +55,10 @@ cat "$docs/coco-debug-log.txt"
 
 Commands (`DebugCommand`): `pair <fingerprint>`, `pair-code <fingerprint> <code>`,
 `pair-uri <cocohub://pair?...>`, `say: <text>`, `timer <seconds> [name]`, `stop-alarm`,
-`show idle|timers`, `night sleep|wake`, `forget`. Pairing still requires the fingerprint to match
-the one the app sees.
+`show idle|timers|now_playing`, `night sleep|wake`, `forget`, `screenshot <name>`,
+`rotate portrait|landscape`, and `now-playing <title> [| <artist>]` / `now-playing off` (music as
+the Hub would report it, to look at Now Playing without Spotify). Pairing still requires the
+fingerprint to match the one the app sees.
 
 To try the easier pairing (#89) without a camera, launch without `-CocoDebugToken` (or send
 `forget`), so the app looks for a Hub to pair with, and run the pair command against the scratch
@@ -71,6 +73,10 @@ code shows "No camera available".
 ```sh
 xcrun simctl io <udid> screenshot /tmp/coco.png
 ```
+
+A permission alert (microphone, notifications) the simulator can't dismiss without a tap covers
+that screenshot. The `screenshot <name>` command draws only the app's own windows, to
+`$docs/<name>.png`. For dark mode (what night mode shows): `xcrun simctl ui <udid> appearance dark`.
 
 Night mode follows the Hub's `[night]` window; `night sleep` only works inside it. Stop the
 scratch Hub when done.

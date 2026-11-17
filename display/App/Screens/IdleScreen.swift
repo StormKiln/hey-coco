@@ -17,17 +17,22 @@ struct IdleScreen: View {
                 VStack(spacing: 0) {
                     Spacer(minLength: 24)
                     Text(context.date, format: .dateTime.hour().minute())
-                        .font(.system(size: 220, weight: .light, design: .rounded))
+                        .m3Font(.displayLarge)
                         .monospacedDigit()
+                        .foregroundStyle(Theme.onSurface)
                         .minimumScaleFactor(0.5)
                         .lineLimit(1)
                         // Hidden: 5 taps on the clock open diagnostics (#45).
                         .onTapGesture(count: 5) { openDiagnostics() }
                     Text(context.date, format: .dateTime.weekday(.wide).month(.wide).day())
-                        .font(.system(size: 44, weight: .regular, design: .rounded))
-                        .foregroundStyle(.secondary)
+                        .m3Font(.headlineSmall, weight: .regular)
+                        .foregroundStyle(Theme.primary)
                     Spacer(minLength: 24)
                     ForecastView(idle: idle, now: context.date, connection: model.connection)
+                        .padding(.horizontal, 32)
+                        .padding(.vertical, 24)
+                        .frame(maxWidth: 960)
+                        .m3Surface(Theme.surfaceContainerLow, shape: .extraLarge, elevation: .level1)
                     if !timers.timers.isEmpty {
                         ActiveTimersStrip(timers: timers) { model.show(.timers) }
                             .padding(.top, 28)
@@ -48,12 +53,8 @@ struct IdleScreen: View {
                 model.show(.timers)
             } label: {
                 Label("Timers", systemImage: "timer")
-                    .font(.title2.weight(.medium))
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 16)
-                    .background(.thinMaterial, in: Capsule())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(MaterialButtonStyle(colors: .tonal, elevation: .level1))
             .padding(32)
         }
     }
@@ -87,25 +88,31 @@ private struct ForecastView: View {
                     WeatherIcon(code: weather.current.code, isDay: weather.current.isDay)
                         .font(.system(size: 72))
                     Text(WeatherFormat.temperature(weather.current.temp))
-                        .font(.system(size: 88, weight: .medium, design: .rounded))
+                        .m3Font(.displaySmall)
                         .monospacedDigit()
+                        .foregroundStyle(Theme.onSurface)
                     Text(weather.current.description)
-                        .font(.system(size: 36, design: .rounded))
-                        .foregroundStyle(.secondary)
+                        .m3Font(.titleMedium, weight: .regular)
+                        .foregroundStyle(Theme.onSurfaceVariant)
                         .lineLimit(1)
                 }
                 HourlyStrip(hours: idle.upcomingHours(count: 6, at: now))
                 if status == .stale {
                     Label(staleText, systemImage: "clock.badge.exclamationmark")
-                        .font(.title3)
-                        .foregroundStyle(.orange)
+                        .m3Font(.labelMedium)
+                        .labelStyle(MaterialLabelStyle())
+                        .foregroundStyle(Theme.onTertiaryContainer)
+                        .padding(.horizontal, 20)
+                        .frame(minHeight: 48)
+                        .m3Surface(Theme.tertiaryContainer, shape: .medium)
                 }
             } else if status == .unavailable || !stillConnecting {
                 Label("Forecast unavailable", systemImage: "icloud.slash")
-                    .font(.system(size: 32, design: .rounded))
-                    .foregroundStyle(.secondary)
+                    .m3Font(.bodyLarge)
+                    .labelStyle(MaterialLabelStyle())
+                    .foregroundStyle(Theme.onSurfaceVariant)
             } else {
-                ProgressView().controlSize(.large)
+                ProgressView().controlSize(.large).tint(Theme.primary)
             }
         }
     }
@@ -124,17 +131,18 @@ private struct HourlyStrip: View {
             ForEach(hours, id: \.time) { hour in
                 VStack(spacing: 10) {
                     Text(WeatherFormat.hourLabel(hour.time))
-                        .font(.system(size: 26, weight: .medium, design: .rounded))
-                        .foregroundStyle(.secondary)
+                        .m3Font(.labelMedium, weight: .medium)
+                        .foregroundStyle(Theme.onSurfaceVariant)
                     WeatherIcon(code: hour.code, isDay: WeatherFormat.isDaytime(hour.time))
                         .font(.system(size: 40))
                         .frame(height: 48)
                     Text(WeatherFormat.temperature(hour.temp))
-                        .font(.system(size: 36, weight: .medium, design: .rounded))
+                        .m3Font(.titleMedium, weight: .medium)
                         .monospacedDigit()
+                        .foregroundStyle(Theme.onSurface)
                     Text(WeatherForecast.precipText(hour.precipProbability) ?? " ")
-                        .font(.system(size: 22, design: .rounded))
-                        .foregroundStyle(.blue)
+                        .m3Font(.labelSmall, weight: .medium)
+                        .foregroundStyle(Theme.info)
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -160,17 +168,13 @@ private struct ActiveTimersStrip: View {
                                 .monospacedDigit()
                                 .fontWeight(.semibold)
                         }
-                        .font(.system(size: 30, design: .rounded))
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 14)
-                        .background(timer.isRinging ? AnyShapeStyle(.red.opacity(0.3)) : AnyShapeStyle(.thinMaterial), in: Capsule())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(MaterialChipStyle(colors: timer.isRinging ? .alertChip : .accentChip))
                 }
                 if timers.timers.count > 4 {
                     Text("+\(timers.timers.count - 4)")
-                        .font(.system(size: 30, design: .rounded))
-                        .foregroundStyle(.secondary)
+                        .m3Font(.titleSmall, weight: .medium)
+                        .foregroundStyle(Theme.onSurfaceVariant)
                 }
             }
         }

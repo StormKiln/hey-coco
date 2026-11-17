@@ -22,7 +22,7 @@ struct PictureScreen: View {
                 caption(for: image)
             } else {
                 Text("No pictures of \(payload.query).")
-                    .font(.system(size: 44, weight: .semibold, design: .rounded))
+                    .m3Font(.headlineSmall)
                     .foregroundStyle(.white.opacity(0.8))
             }
         }
@@ -47,18 +47,22 @@ struct PictureScreen: View {
         VStack(alignment: .leading, spacing: 6) {
             Spacer()
             Text(PictureCaption.tidy(image.title, author: image.author, fallback: payload.query))
-                .font(.system(size: 34, weight: .semibold, design: .rounded))
+                .m3Font(.titleMedium)
                 .lineLimit(2)
             HStack {
                 Text(image.attributionLine)
-                    .font(.footnote)
+                    .m3Font(.labelSmall, weight: .regular)
                     .opacity(0.75)
                     .lineLimit(1)
                 Spacer()
                 if carousel.canAdvance {
                     Text("\(carousel.index + 1) of \(carousel.images.count)")
-                        .font(.footnote.monospacedDigit())
-                        .opacity(0.75)
+                        .m3Font(.labelMedium)
+                        .monospacedDigit()
+                        .padding(.horizontal, 16)
+                        .frame(minHeight: 40)
+                        // A badge-like chip on the photo.
+                        .m3Surface(.black.opacity(0.45), shape: nil)
                 }
             }
         }

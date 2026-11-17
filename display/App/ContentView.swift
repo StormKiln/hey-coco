@@ -12,7 +12,7 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            Color(.systemBackground).ignoresSafeArea()
+            Theme.surface.ignoresSafeArea()
             ScreenView(view: model.currentView, idleInfo: model.idleInfo)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .contentShape(Rectangle())
@@ -38,10 +38,10 @@ struct ContentView: View {
                 showingSettings = true
             } label: {
                 Image(systemName: "gearshape")
-                    .font(.title2)
-                    .padding(20)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 30, weight: .medium))
             }
+            .buttonStyle(MaterialIconButtonStyle(colors: .init(container: .clear, content: Theme.onSurfaceVariant), diameter: 72))
+            .padding(8)
             .accessibilityLabel("Settings")
         }
         .sheet(isPresented: $showingSettings) {
@@ -93,6 +93,9 @@ struct ContentView: View {
         .environment(model)
         .environment(model.timerStore)
         .environment(model.idleModel)
+        // Material 3 (#113): the seed's primary for system controls, filled symbols.
+        .tint(Theme.primary)
+        .symbolVariant(.fill)
     }
 }
 
@@ -121,8 +124,8 @@ struct ScreenView: View {
             NowPlayingScreen()
         default:
             Text(view.type)
-                .font(.system(size: 48, weight: .semibold, design: .rounded))
-                .foregroundStyle(.secondary)
+                .m3Font(.headlineMedium)
+                .foregroundStyle(Theme.onSurfaceVariant)
         }
     }
 }
@@ -140,12 +143,16 @@ struct ConnectionBanner: View {
         if let message {
             Button(action: openSettings) {
                 Label(message.text, systemImage: message.icon)
-                    .font(.title3.weight(.medium))
+                    .m3Font(.labelMedium, weight: .medium)
+                    .labelStyle(MaterialLabelStyle())
                     .multilineTextAlignment(.leading)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
-                    // A capsule while it fits on one line; long messages wrap into a rounded box.
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                    .foregroundStyle(Theme.inverseOnSurface)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 14)
+                    .frame(minHeight: 56)
+                    // M3 snackbar colours: an inverse surface, so it reads over any screen. A
+                    // capsule while it fits on one line; long messages wrap into a rounded box.
+                    .m3Surface(Theme.inverseSurface, shape: .extraLarge, elevation: .level2)
             }
             .buttonStyle(.plain)
             // Clear of the wake-word hint (top left) and the gear (top right).
@@ -197,10 +204,13 @@ struct PairingView: View {
             ScrollView {
                 VStack(spacing: 28) {
                     Image(systemName: "lock.shield")
-                        .font(.system(size: 64))
-                        .foregroundStyle(.tint)
+                        .font(.system(size: 56))
+                        .foregroundStyle(Theme.onPrimaryContainer)
+                        .frame(width: 112, height: 112)
+                        .m3Surface(Theme.primaryContainer, shape: .extraLarge)
                     Text("Pair with Coco Hub?")
-                        .font(.largeTitle.weight(.semibold))
+                        .m3Font(.headlineSmall)
+                        .foregroundStyle(Theme.onSurface)
                     switch mode {
                     case .choose: choose
                     case .scan: ScanPairingView(pairScanned: pairScanned) { dismiss() }
@@ -214,6 +224,7 @@ struct PairingView: View {
                 .frame(maxWidth: 640)
                 .frame(maxWidth: .infinity)
             }
+            .background(Theme.surfaceContainerLow.ignoresSafeArea())
             .toolbar {
                 if mode != .choose {
                     ToolbarItem(placement: .cancellationAction) {
@@ -229,22 +240,21 @@ struct PairingView: View {
             Text("On the Mac, run `make hub-pair`, then scan its QR code or enter its 6-digit code.")
                 .font(.title3)
                 .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.onSurfaceVariant)
             HStack(spacing: 20) {
                 Button {
                     mode = .scan
                 } label: {
                     Label("Scan QR code", systemImage: "qrcode.viewfinder")
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(MaterialButtonStyle(colors: .filled, size: .medium))
                 Button {
                     mode = .code
                 } label: {
                     Label("Enter code", systemImage: "number")
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(MaterialButtonStyle(colors: .tonal, size: .medium))
             }
-            .controlSize(.large)
             Divider()
             Text("Or, with the token already entered in Settings: pair if `make hub-fingerprint` shows exactly")
                 .font(.callout)
@@ -261,11 +271,11 @@ struct PairingView: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
             if let error {
-                Text(error).foregroundStyle(.red)
+                Text(error).foregroundStyle(Theme.error)
             }
             HStack(spacing: 20) {
                 Button("Not now", role: .cancel) { dismiss() }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(MaterialButtonStyle(colors: .text, size: .medium))
                 Button("It matches. Pair") {
                     do {
                         try pair()
@@ -274,7 +284,7 @@ struct PairingView: View {
                         self.error = "Couldn't save the pairing: \(error.localizedDescription)"
                     }
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(MaterialButtonStyle(colors: .outlined, size: .medium))
             }
             Text("If a fingerprint doesn't match, tap Not now: another device is pretending to be Coco Hub.")
                 .font(.footnote)
@@ -388,7 +398,7 @@ struct SettingsView: View {
                 } footer: {
                     if tokenRequired {
                         Text("You changed the Hub, so enter its token again.")
-                            .foregroundStyle(.red)
+                            .foregroundStyle(Theme.error)
                     } else if saved.hasToken {
                         Label("Token saved. Leave empty to keep it.", systemImage: "checkmark.seal")
                     }
@@ -411,7 +421,7 @@ struct SettingsView: View {
                     Text("Use this after reinstalling Coco Hub or moving it to another Mac, then pair again with make hub-pair.")
                 }
                 if let error {
-                    Section { Text(error).foregroundStyle(.red) }
+                    Section { Text(error).foregroundStyle(Theme.error) }
                 }
                 Section {
                     HomeLocationRow()
@@ -422,6 +432,7 @@ struct SettingsView: View {
                     NavigationLink("Diagnostics…") { DiagnosticsScreen() }
                 }
             }
+            .m3FormStyle()
             .navigationTitle("Coco Hub")
             .confirmationDialog(
                 "Forget this Coco Hub?", isPresented: $confirmingForget, titleVisibility: .visible

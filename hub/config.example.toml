@@ -81,7 +81,7 @@ daily_quota = 9000        # API units/day before Coco refuses searches (a search
 #
 # [backends.kasa]                # TP-Link Kasa, local network only (no cloud)
 # timeout_s = 2.0                # limit on each call to a device
-# username = ""                  # only for newer (KLAP) firmware: your TP-Link login.
+# username = ""                  # only for newer (KLAP/AES) firmware: your TP-Link login.
 # password = ""                  # Keep it here, in config.local.toml (gitignored).
 #
 # [[devices]]

@@ -251,3 +251,23 @@ async def test_secrets_never_reach_the_log(caplog):
         with pytest.raises(AuthRequired):
             await svc.state("fan")
     assert "hunter2" not in caplog.text
+
+
+@pytest.mark.anyio
+async def test_device_with_no_alias_is_not_retried_forever(caplog):
+    devices = {"a": FakeDevice("")}
+    svc, _ = service(devices, entry("a"), retry_s=0.01)
+    with caplog.at_level(logging.WARNING):
+        await svc.start()
+        await asyncio.wait_for(svc.run(), 1)  # returns: nothing left to wait for
+    assert devices["a"].connects == 1
+    assert "no name" in caplog.text
+
+
+@pytest.mark.anyio
+async def test_bad_outlet_is_logged_with_the_reason(caplog):
+    devices = {"s": FakeDevice("Strip", outlets=[["Fan", False]])}
+    svc, _ = service(devices, entry("s", options={"child": "Toaster"}))
+    with caplog.at_level(logging.WARNING):
+        await svc.start()
+    assert "Toaster" in caplog.text

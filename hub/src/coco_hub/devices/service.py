@@ -241,6 +241,10 @@ class DeviceService:
                 return
             try:
                 await self._handle(dev)
+            except UnknownDevice as exc:
+                # Config error (e.g. a child outlet that doesn't exist): the message lists
+                # the device's real outlets, which is what's needed to fix it.
+                log.warning("devices: %s: %s", dev.label, exc)
             except DeviceError as exc:
                 log.warning(
                     "devices: %s not connected yet (%s)%s",
@@ -248,6 +252,13 @@ class DeviceService:
                     type(exc).__name__,
                     "" if dev.display_name else "; it has no name until it answers",
                 )
+            else:
+                if not dev.display_name:
+                    log.warning(
+                        "devices: %s answered with no name of its own; set name in its "
+                        "[[devices]] entry",
+                        dev.label,
+                    )
 
     async def start(self) -> None:
         """Connect every device at once (bounded by each timeout) to learn device aliases.
@@ -263,7 +274,9 @@ class DeviceService:
         """Background task: keep trying devices that have never answered (an unnamed device
         has no spoken name until it does)."""
         while True:
-            pending = [d for d in self._devices if d.alias is None]
+            # Unnamed devices that have never answered (one that answered without an alias of
+            # its own was logged and never will have a name: not retried).
+            pending = [d for d in self._devices if not d.display_name and d.handle is None]
             if not pending:
                 return
             await asyncio.sleep(self._retry_s)

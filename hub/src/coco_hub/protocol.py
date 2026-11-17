@@ -34,7 +34,7 @@ Percent = Annotated[int, Field(ge=0, le=100)]
 Seconds = Annotated[int, Field(ge=0)]
 
 ViewType = Literal[
-    "idle", "answer", "timers", "weather", "picture", "sound", "youtube", "now_playing"
+    "idle", "answer", "timers", "weather", "picture", "sound", "youtube", "now_playing", "calendar"
 ]
 MediaTarget = Literal["youtube", "music", "sound"]
 TimerState = Literal["running", "ringing", "dismissed", "cancelled"]
@@ -168,6 +168,48 @@ class NowPlayingView(Message):
     type: Literal["now_playing"] = "now_playing"
 
 
+# --- Calendar (#137) ----------------------------------------------------------------------
+
+
+class EventCalendar(Message):
+    name: str
+    """The calendar's configured name, or its own name from the feed."""
+    color: Annotated[str, Field(pattern=r"^#[0-9A-F]{6}$")] | None
+    """``#RRGGBB``."""
+
+
+class CalendarEvent(Message):
+    id: str
+    """Stable per occurrence, opaque."""
+    title: str
+    """``Busy`` when ``busy_only``."""
+    start: UtcDatetime
+    end: UtcDatetime
+    """All-day events run from Hub-local midnight to the midnight after their last day."""
+    all_day: bool
+    calendar: EventCalendar
+    busy_only: bool
+    """Private event, or a ``busy_only`` calendar: show the time, not a title."""
+
+
+class CalendarDay(Message):
+    date: IsoDate
+    """Hub-local date."""
+    events: list[CalendarEvent]
+    """Everything overlapping that date: all-day first, then by start."""
+
+
+class CalendarView(Message):
+    type: Literal["calendar"] = "calendar"
+    title: str
+    """What the screen is about: ``Today``, ``Saturday``, ``This weekend``, ``Soccer``."""
+    query: str | None
+    """What the person searched for ("when is soccer"); null for a day question."""
+    days: list[CalendarDay]
+    stale: bool
+    fetched_at: UtcDatetime | None
+
+
 View = Annotated[
     IdleView
     | AnswerView
@@ -176,7 +218,8 @@ View = Annotated[
     | PictureView
     | SoundView
     | YoutubeView
-    | NowPlayingView,
+    | NowPlayingView
+    | CalendarView,
     Field(discriminator="type"),
 ]
 
@@ -255,10 +298,22 @@ class IdleWeather(Message):
     stale: bool
 
 
+class IdleCalendar(Message):
+    days: list[CalendarDay]
+    """Today and tomorrow (Hub dates), calendars with ``show_on_idle`` only."""
+    stale: bool
+    fetched_at: UtcDatetime | None
+    """The oldest calendar's last good fetch; null if some calendar never fetched."""
+    hide_at_night: bool
+    """``night.hide_calendar``: leave events off the screen during night hours."""
+
+
 class IdleInfo(Message):
     server_time: UtcDatetime
     timezone: str
     weather: IdleWeather | None
+    calendar: IdleCalendar | None
+    """Null when no calendars are configured."""
     night: Night
 
 

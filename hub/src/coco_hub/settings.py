@@ -61,6 +61,8 @@ class Night(BaseModel):
     start: time = time(21, 30)
     end: time = time(6, 30)
     dark_after_idle_s: Annotated[int, Field(ge=0)] = 300
+    hide_calendar: bool = False
+    """Leave calendar events off the home screen during night hours (#142)."""
 
     _hhmm = field_validator("start", "end", mode="before")(_parse_hhmm)
 

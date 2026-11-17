@@ -151,10 +151,12 @@ public struct IdleInfo: Codable, Sendable, Equatable {
     public var timezone: String
     /// `nil` until the Hub has fetched weather at least once.
     public var weather: IdleWeather?
+    /// `nil` when no calendars are configured (or from a Hub older than #140).
+    public var calendar: IdleCalendar? = nil
     public var night: Night
 
     enum CodingKeys: String, CodingKey {
-        case timezone, weather, night
+        case timezone, weather, calendar, night
         case serverTime = "server_time"
     }
 }

@@ -248,3 +248,41 @@ func everyFixtureDecodesWithItsModel(name: String) throws {
     let event = try CocoJSON.decoder.decode(Event.self, from: Data(json.utf8))
     #expect(event.kind == .spotifyWakeRequested(SpotifyWakeRequest(deviceName: "iPad")))
 }
+
+// MARK: - Calendar (#140)
+
+@Test func idleInfoWithCalendarDecodes() throws {
+    let info = try Fixtures.decode(IdleInfo.self, "idle_info_calendar")
+    let calendar = try #require(info.calendar)
+    #expect(calendar.days.map(\.date) == ["2026-11-24", "2026-11-25"])
+    #expect(!calendar.stale)
+    #expect(calendar.hideAtNight == false)
+    let today = calendar.days[0].events
+    #expect(today.map(\.title) == ["School holiday", "Busy", "Soccer practice"])
+    #expect(today[0].allDay)
+    #expect(today[1].busyOnly)
+    #expect(today[2].calendar == EventCalendar(name: "Family", color: "#33B679"))
+    #expect(today[2].start == Date(timeIntervalSince1970: 1_795_564_800))  // 2026-11-25T00:00:00Z
+}
+
+@Test func idleInfoWithoutCalendarsIsNil() throws {
+    #expect(try Fixtures.decode(IdleInfo.self, "idle_info").calendar == nil)
+    // A Hub older than #140 sends no "calendar" key at all.
+    var json = try Fixtures.jsonObject(Fixtures.data("idle_info")) as! [String: Any]
+    json.removeValue(forKey: "calendar")
+    let data = try JSONSerialization.data(withJSONObject: json)
+    #expect(try CocoJSON.decoder.decode(IdleInfo.self, from: data).calendar == nil)
+}
+
+@Test func calendarActionDecodes() throws {
+    let action = try Fixtures.decode(Action.self, "action_calendar")
+    #expect(action.intent == "calendar.day")
+    guard case .calendar(let calendar) = action.view else {
+        Issue.record("expected calendar view, got \(String(describing: action.view))")
+        return
+    }
+    #expect(calendar.title == "Saturday")
+    #expect(calendar.query == nil)
+    #expect(calendar.stale)
+    #expect(calendar.days.first?.events.map(\.title) == ["Camping trip", "Call with Grandma"])
+}

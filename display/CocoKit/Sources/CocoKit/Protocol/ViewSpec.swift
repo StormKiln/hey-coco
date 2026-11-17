@@ -11,7 +11,33 @@ public enum ViewSpec: Codable, Sendable, Equatable {
     case sound(SoundPayload)
     case youtube(videoID: String, title: String)
     case nowPlaying
+    case calendar(CalendarPayload)
     case unknown(String)
+
+    public struct CalendarPayload: Codable, Sendable, Equatable {
+        /// `Today`, `Saturday`, `This weekend`, or what was searched for.
+        public var title: String
+        /// What the person searched for ("when is soccer"); nil for a day question.
+        public var query: String?
+        public var days: [CalendarDay]
+        public var stale: Bool
+        public var fetchedAt: Date?
+
+        enum CodingKeys: String, CodingKey {
+            case title, query, days, stale
+            case fetchedAt = "fetched_at"
+        }
+
+        // Encode nulls explicitly, like the Hub.
+        public func encode(to encoder: any Encoder) throws {
+            var c = encoder.container(keyedBy: CodingKeys.self)
+            try c.encode(title, forKey: .title)
+            try c.encode(query, forKey: .query)
+            try c.encode(days, forKey: .days)
+            try c.encode(stale, forKey: .stale)
+            try c.encode(fetchedAt, forKey: .fetchedAt)
+        }
+    }
 
     public struct WeatherPayload: Codable, Sendable, Equatable {
         public var current: WeatherNow
@@ -59,6 +85,7 @@ public enum ViewSpec: Codable, Sendable, Equatable {
         case .sound: "sound"
         case .youtube: "youtube"
         case .nowPlaying: "now_playing"
+        case .calendar: "calendar"
         case .unknown(let type): type
         }
     }
@@ -78,6 +105,7 @@ public enum ViewSpec: Codable, Sendable, Equatable {
                 videoID: try container.decode(String.self, forKey: .videoID),
                 title: try container.decode(String.self, forKey: .title))
         case "now_playing": self = .nowPlaying
+        case "calendar": self = .calendar(try CalendarPayload(from: decoder))
         default: self = .unknown(type)
         }
     }
@@ -91,6 +119,7 @@ public enum ViewSpec: Codable, Sendable, Equatable {
         case .weather(let payload): try payload.encode(to: encoder)
         case .picture(let payload): try payload.encode(to: encoder)
         case .sound(let payload): try payload.encode(to: encoder)
+        case .calendar(let payload): try payload.encode(to: encoder)
         case .youtube(let videoID, let title):
             try container.encode(videoID, forKey: .videoID)
             try container.encode(title, forKey: .title)

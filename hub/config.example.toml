@@ -74,3 +74,23 @@ daily_quota = 9000        # API units/day before Coco refuses searches (a search
 # Who plays "play Raffi": "spotify" (above) or "apple_music" (MusicKit on the iPad, #42).
 # See docs/apple-music.md. Decide with the Spotify spike: docs/spikes/spotify-test-procedure.md.
 # provider = "spotify"
+
+# --- Smart-home devices (#131, docs/kasa.md) ----------------------------------------------
+# "hey coco, turn on the desk lamp" / "is the fan on". One [[devices]] entry per thing you
+# want to name: a whole plug/strip, or one outlet of it. Names below are only examples.
+#
+# [backends.kasa]                # TP-Link Kasa, local network only (no cloud)
+# timeout_s = 2.0                # limit on each call to a device
+# username = ""                  # only for newer (KLAP) firmware: your TP-Link login.
+# password = ""                  # Keep it here, in config.local.toml (gitignored).
+#
+# [[devices]]
+# name = "desk lamp"             # optional: defaults to the name set in the Kasa app
+# aliases = ["lamp"]             # other names that work too
+# backend = "kasa"
+# options = { host = "192.0.2.10" }   # give the plug a DHCP reservation on your router
+#
+# [[devices]]                    # one outlet of a multi-outlet plug or power strip
+# backend = "kasa"               # no name: uses that outlet's name from the Kasa app
+# options = { host = "192.0.2.11", child = 0 }   # child: 0-based index or outlet name
+#                                # mac = "..." refuses a different device at that address

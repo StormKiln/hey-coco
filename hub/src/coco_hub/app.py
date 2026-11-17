@@ -2,7 +2,7 @@
 
 import asyncio
 import contextlib
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator, Callable, Mapping
 from contextlib import asynccontextmanager, suppress
 from datetime import UTC, datetime
 
@@ -11,6 +11,8 @@ from fastapi import APIRouter, Depends, FastAPI
 
 from coco_hub import db, diagnostics, discovery, events, home, identity
 from coco_hub.auth import require_token
+from coco_hub.devices.backend import DeviceBackend
+from coco_hub.devices.service import DeviceService
 from coco_hub.errors import install_error_handlers
 from coco_hub.intents import build_registry
 from coco_hub.intents.engine import RulesEngine, no_fallback
@@ -43,8 +45,11 @@ def create_app(
     weather: WeatherService | None = None,
     ollama_transport: httpx.AsyncBaseTransport | None = None,
     spotify_transport: httpx.AsyncBaseTransport | None = None,
+    device_backends: Mapping[str, DeviceBackend] | None = None,
 ) -> FastAPI:
     weather = weather or WeatherService(settings, clock=clock)
+    # Built here so bad [[devices]] config fails startup loudly; connects in the lifespan.
+    devices = DeviceService.from_settings(settings, backends=device_backends)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -86,6 +91,8 @@ def create_app(
             spotify_task = asyncio.create_task(spotify.run(), name="spotify-now-playing")
         # The first tick also settles timers that ended while the Hub was down.
         timer_task = asyncio.create_task(timers.run(), name="timers")
+        # In the background: an unreachable plug must never delay startup (#133).
+        devices_task = asyncio.create_task(devices.serve(), name="devices")
         advertiser = None
         weather_task = None
         qwen: QwenFallback | None = app.state.qwen
@@ -113,6 +120,10 @@ def create_app(
             with contextlib.suppress(asyncio.CancelledError):
                 await timer_task
             app.state.services.pop("timers", None)
+            devices_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await devices_task
+            await devices.aclose()
             if spotify_task is not None:
                 spotify_task.cancel()
                 with suppress(asyncio.CancelledError):
@@ -131,7 +142,7 @@ def create_app(
     # handlers as `ctx.services`), and the Qwen fallback replaces `app.state.fallback`.
     app.state.intents = build_registry()
     app.state.engine = RulesEngine(app.state.intents)
-    app.state.services = {"weather": weather}
+    app.state.services = {"weather": weather, "devices": devices}
     app.state.fallback = no_fallback
     app.state.qwen = None
     if settings.qwen.enabled:

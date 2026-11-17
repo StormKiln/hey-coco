@@ -18,6 +18,7 @@ import Foundation
 ///     screenshot idle-day                     → the app's windows to Documents/idle-day.png
 ///     rotate landscape | rotate portrait      → ask iPadOS to rotate the interface
 ///     view weather-compare                    → show Documents/weather-compare.json (a ViewSpec)
+///     idle home-busy                          → Documents/home-busy.json (an IdleInfo) as /v1/idle's answer
 ///     night sleep | night wake                → night mode
 ///     forget                                  → Forget Hub (clears pin and token)
 public enum DebugCommand: Equatable, Sendable {
@@ -40,6 +41,9 @@ public enum DebugCommand: Equatable, Sendable {
     /// Shows the `ViewSpec` JSON in `Documents/<name>.json` as if the Hub had sent it, to look at
     /// a screen (weather beside home, a sound) with recorded data. Names as for `screenshot`.
     case view(name: String)
+    /// Uses the `IdleInfo` JSON in `Documents/<name>.json` as if `/v1/idle` had answered it, to
+    /// look at the home screen with recorded data (fictional calendars, #142). Names as for `screenshot`.
+    case idle(name: String)
 
     public enum Orientation: String, Sendable { case portrait, landscape }
 
@@ -77,6 +81,8 @@ public enum DebugCommand: Equatable, Sendable {
             return isFileName(words[1]) ? .screenshot(name: words[1]) : nil
         case ("view", 2):
             return isFileName(words[1]) ? .view(name: words[1]) : nil
+        case ("idle", 2):
+            return isFileName(words[1]) ? .idle(name: words[1]) : nil
         case ("rotate", 2):
             return Orientation(rawValue: words[1].lowercased()).map(DebugCommand.rotate)
         case ("forget", 1):

@@ -96,6 +96,15 @@ enum DebugHarness {
             } catch {
                 note = "view failed: \(error)"
             }
+        case .idle(let name):
+            // Only sticks while no Hub is connected: the next real fetch replaces it.
+            do {
+                let data = try Data(contentsOf: documents.appendingPathComponent("\(name).json"))
+                let info = try CocoJSON.decoder.decode(IdleInfo.self, from: data)
+                await model.idleModel.refresh(using: RecordedIdleHub(info: info))
+            } catch {
+                note = "idle failed: \(error)"
+            }
         case .screenshot(let name):
             // Let animations settle before drawing.
             try? await Task.sleep(nanoseconds: 600_000_000)
@@ -155,5 +164,19 @@ enum DebugHarness {
             try? data.write(to: url)
         }
     }
+}
+
+/// Answers `/v1/idle` with a recorded `IdleInfo` (the `idle <name>` command); nothing else.
+private struct RecordedIdleHub: HubAPI {
+    let info: IdleInfo
+
+    func idle() async throws(HubError) -> IdleInfo { info }
+    func postUtterance(_ request: UtteranceRequest) async throws(HubError) -> Action { throw unsupported }
+    func timers() async throws(HubError) -> TimersList { throw unsupported }
+    func createTimer(_ request: TimerCreateRequest) async throws(HubError) -> TimerInfo { throw unsupported }
+    func dismissTimer(id: String) async throws(HubError) -> TimerInfo { throw unsupported }
+    func cancelTimer(id: String) async throws(HubError) -> TimerInfo { throw unsupported }
+
+    private var unsupported: HubError { .server(code: "unsupported", message: "Recorded idle data only.") }
 }
 #endif

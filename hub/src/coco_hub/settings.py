@@ -10,10 +10,10 @@ import os
 import re
 from datetime import time
 from pathlib import Path
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import BaseModel, Field, SecretStr, field_validator
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -150,6 +150,47 @@ class Diagnostics(BaseModel):
     100 utterances, never persisted) keeps them either way."""
 
 
+class BackendSettings(BaseModel):
+    """Shared settings for one device backend: ``[backends.<name>]`` (#131).
+
+    Credentials are optional and only sent to devices that need them (e.g. Kasa KLAP
+    firmware). Keep them in the gitignored ``hub/config.local.toml`` or ``COCO_BACKENDS__*``
+    env. A backend may read extra keys of its own (``extra="allow"``); anything secret belongs
+    in ``password`` or ``token`` so it stays a ``SecretStr``.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    timeout_s: Annotated[float, Field(gt=0, le=10)] = 2.0
+    """Limit on each call to a device (connect, read, switch)."""
+    username: str | None = None
+    password: SecretStr | None = None
+    token: SecretStr | None = None
+
+
+class DeviceConfig(BaseModel):
+    """One ``[[devices]]`` entry: a device (or one outlet) Coco can control by name (#131)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str | None = None
+    """What you call it ("desk lamp"). Unset: the name set in the device's own app."""
+    aliases: list[str] = []
+    """Other names that also work ("lamp")."""
+    backend: str
+    """Which backend talks to it, e.g. ``"kasa"``."""
+    options: dict[str, Any] = {}
+    """Backend-specific addressing, checked by the backend at startup (Kasa: ``host``,
+    optional ``mac``, optional ``child`` outlet index or alias)."""
+
+    @field_validator("name")
+    @classmethod
+    def _not_blank(cls, value: str | None) -> str | None:
+        if value is not None and not value.strip():
+            raise ValueError("name must not be blank (leave it out to use the device's alias)")
+        return value.strip() if value else value
+
+
 MIN_TOKEN_LENGTH = 24
 _PLACEHOLDER_TOKENS = {"changeme", "password", "token", "secret", "test"}
 
@@ -197,6 +238,8 @@ class Settings(BaseSettings):
     timers: Timers = Timers()
     weather: Weather = Weather()
     diagnostics: Diagnostics = Diagnostics()
+    backends: dict[str, BackendSettings] = {}
+    devices: list[DeviceConfig] = []
 
     @field_validator("data_dir", "sounds_dir", "log_dir")
     @classmethod

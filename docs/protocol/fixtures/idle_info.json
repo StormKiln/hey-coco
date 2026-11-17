@@ -57,6 +57,7 @@
     ],
     "stale": false
   },
+  "calendar": null,
   "night": {
     "start": "21:30",
     "end": "06:30",

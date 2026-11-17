@@ -1,0 +1,38 @@
+{
+  "say": "As of 9:52 AM, 2 things on Saturday: Camping trip all day, and Call with Grandma at 9 AM.",
+  "view": {
+    "type": "calendar",
+    "title": "Saturday",
+    "query": null,
+    "days": [
+      {
+        "date": "2026-11-28",
+        "events": [
+          {
+            "id": "e1a3c5e7092b4d6f",
+            "title": "Camping trip",
+            "start": "2026-11-27T06:00:00Z",
+            "end": "2026-11-30T06:00:00Z",
+            "all_day": true,
+            "calendar": {"name": "Family", "color": "#33B679"},
+            "busy_only": false
+          },
+          {
+            "id": "9c0e2a4b6d8f1357",
+            "title": "Call with Grandma",
+            "start": "2026-11-28T15:00:00Z",
+            "end": "2026-11-28T16:00:00Z",
+            "all_day": false,
+            "calendar": {"name": "Family", "color": "#33B679"},
+            "busy_only": false
+          }
+        ]
+      }
+    ],
+    "stale": true,
+    "fetched_at": "2026-11-24T15:52:00Z"
+  },
+  "commands": [],
+  "intent": "calendar.day",
+  "matched_by": "rules"
+}

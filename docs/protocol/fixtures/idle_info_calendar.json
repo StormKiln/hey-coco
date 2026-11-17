@@ -1,0 +1,63 @@
+{
+  "server_time": "2026-11-24T16:00:00Z",
+  "timezone": "America/Chicago",
+  "weather": null,
+  "calendar": {
+    "days": [
+      {
+        "date": "2026-11-24",
+        "events": [
+          {
+            "id": "3f1c9a0b7d2e4c51",
+            "title": "School holiday",
+            "start": "2026-11-24T06:00:00Z",
+            "end": "2026-11-25T06:00:00Z",
+            "all_day": true,
+            "calendar": {"name": "Family", "color": "#33B679"},
+            "busy_only": false
+          },
+          {
+            "id": "8a2d4f6e1b3c5d70",
+            "title": "Busy",
+            "start": "2026-11-24T20:00:00Z",
+            "end": "2026-11-24T21:00:00Z",
+            "all_day": false,
+            "calendar": {"name": "Work", "color": "#1A73E8"},
+            "busy_only": true
+          },
+          {
+            "id": "c4e6a8b0d2f41357",
+            "title": "Soccer practice",
+            "start": "2026-11-25T00:00:00Z",
+            "end": "2026-11-25T01:00:00Z",
+            "all_day": false,
+            "calendar": {"name": "Family", "color": "#33B679"},
+            "busy_only": false
+          }
+        ]
+      },
+      {
+        "date": "2026-11-25",
+        "events": [
+          {
+            "id": "5b7d9f1a3c5e7092",
+            "title": "Dentist",
+            "start": "2026-11-25T15:30:00Z",
+            "end": "2026-11-25T16:30:00Z",
+            "all_day": false,
+            "calendar": {"name": "Family", "color": "#33B679"},
+            "busy_only": false
+          }
+        ]
+      }
+    ],
+    "stale": false,
+    "fetched_at": "2026-11-24T15:52:00Z",
+    "hide_at_night": false
+  },
+  "night": {
+    "start": "21:30",
+    "end": "06:30",
+    "dark_after_idle_s": 300
+  }
+}

@@ -33,6 +33,15 @@ dark at night.
   outlet, named in config. A generic device layer (backend interface + contract tests) with
   Kasa as the first backend; local LAN only, no cloud. Rules-only intents (never Qwen), and
   Coco confirms only what the device reports when read back. Setup: `docs/kasa.md`.
+- Calendars (added by epic #137; was a non-goal): "what's going on today / tomorrow /
+  Saturday / this weekend", "when is <event>", and today's (and, when there's room,
+  tomorrow's) events on the idle screen beside the forecast. Read-only, configuration-driven
+  (`[[calendars]]`; nothing hard-coded). A generic `CalendarSource` interface with a reusable
+  contract test suite; Google's secret iCal (ICS) address is the first source (spike:
+  `docs/spikes/calendar.md`), iCloud and others later. The Hub polls every 15 minutes,
+  keeps the last good events (labelled stale when a fetch fails), and the clock and timers
+  never depend on it. Private events and `busy_only` calendars show "Busy". Setup:
+  `docs/calendar.md`.
 - Idle screen: large clock + current temp + forecast for the next ~6 hours.
 - Night mode on a configurable schedule: dim at bedtime, fully dark after a few idle
   minutes, wake on "hey coco" or tap.
@@ -49,8 +58,8 @@ dark at night.
 
 ## Non-goals (my calls, not discussed)
 
-- Wake-up alarms at a clock time, reminders, shopping lists, calendars, smart-home
-  control beyond smart plugs (lights, dimmers, scenes, rooms/groups), multi-room /
+- Wake-up alarms at a clock time, reminders, shopping lists, writing calendar events,
+  smart-home control beyond smart plugs (lights, dimmers, scenes, rooms/groups), multi-room /
   multiple Displays, voice identification of who is speaking.
   These are reasonable future features, not v1.
 

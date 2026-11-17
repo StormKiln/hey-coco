@@ -147,15 +147,24 @@ def test_hub_timezone_is_required():
     assert IcsSource(IcsOptions(url=SecretStr(SECRET)), tz=ZoneInfo("UTC"))
 
 
-async def test_runaway_recurrence_is_a_bad_feed():
+@pytest.mark.parametrize("freq", [b"SECONDLY", b"MINUTELY"])
+async def test_sub_hourly_series_are_dropped_before_expansion(freq):
     feed = Feed()
-    feed.body = (
-        b"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:tick@example.invalid\r\n"
-        b"SUMMARY:Tick\r\nDTSTART:20261123T000000Z\r\nDTEND:20261123T000001Z\r\n"
-        b"RRULE:FREQ=SECONDLY\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+    tick = (
+        b"BEGIN:VEVENT\r\nUID:tick@example.invalid\r\nSUMMARY:Tick\r\n"
+        b"DTSTART:20261123T000000Z\r\nDTEND:20261123T000001Z\r\nRRULE:FREQ=" + freq + b"\r\n"
+        b"END:VEVENT\r\n"
     )
+    feed.body = feed.body.replace(b"END:VCALENDAR", tick + b"END:VCALENDAR")
+    result = await make(feed).fetch(at(2026, 11, 23), at(2026, 12, 7))
+    titles = {e.title for e in result.events}
+    assert "Tick" not in titles and "Soccer practice" in titles
+
+
+async def test_too_many_occurrences_is_a_bad_feed(monkeypatch):
+    monkeypatch.setattr("coco_hub.calendar.sources.ics.MAX_OCCURRENCES", 3)
     with pytest.raises(BadFeed):
-        await make(feed).fetch(at(2026, 11, 23), at(2026, 12, 7))
+        await make(Feed()).fetch(at(2026, 10, 26), at(2026, 12, 31))
 
 
 async def test_a_slow_trickle_hits_the_overall_deadline():

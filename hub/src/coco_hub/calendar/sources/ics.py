@@ -160,6 +160,7 @@ class IcsSource:
 
 def parse(raw: bytes, start: datetime, end: datetime, tz: ZoneInfo) -> FetchResult:
     calendar = x_wr_timezone.to_standard(icalendar.Calendar.from_ical(raw))
+    _drop_sub_hourly_series(calendar)
     name = str(calendar.get("X-WR-CALNAME", "")).strip() or None
     events = []
     # ``after`` is lazy and in start order (``between`` builds the whole list first), so a
@@ -176,6 +177,28 @@ def parse(raw: bytes, start: datetime, end: datetime, tz: ZoneInfo) -> FetchResu
             events.append(event)
     events.sort(key=lambda e: (e.start, e.end, e.title))
     return FetchResult(name=name, events=events)
+
+
+_SUB_HOURLY = {"SECONDLY", "MINUTELY"}
+
+
+def _drop_sub_hourly_series(calendar: Any) -> None:
+    """Remove series repeating more often than hourly before expanding anything: calendar
+    apps don't create them, and one would expand to millions of occurrences (the library
+    expands in growing chunks, so MAX_OCCURRENCES alone isn't a hard bound). Dropping the
+    series keeps the rest of the calendar."""
+    doomed = {
+        str(c.get("UID", ""))
+        for c in calendar.walk("VEVENT")
+        if (rule := c.get("RRULE")) is not None
+        and any(str(f).upper() in _SUB_HOURLY for f in rule.get("FREQ", []))
+    }
+    if doomed:
+        calendar.subcomponents = [
+            c
+            for c in calendar.subcomponents
+            if not (c.name == "VEVENT" and str(c.get("UID", "")) in doomed)
+        ]
 
 
 def _event(component: Any, tz: ZoneInfo) -> CalendarEvent | None:

@@ -1,10 +1,11 @@
 import Foundation
 @testable import CocoKit
 
-/// `SpeechRecognizer` that logs `recognizer:start` to a shared `CallLog`
-/// and otherwise behaves like `FakeRecognizer`.
+/// `SpeechRecognizer` that logs `recognizer:start` (its own mic) or `recognizer:start(captured)`
+/// (audio handed over by the wake word) to a shared `CallLog` and otherwise behaves like
+/// `FakeRecognizer`.
 @MainActor
-final class LoggingRecognizer: SpeechRecognizer {
+final class LoggingRecognizer: FeedableSpeechRecognizer {
     let fake = FakeRecognizer()
     let log: CallLog
     let name: String
@@ -18,6 +19,31 @@ final class LoggingRecognizer: SpeechRecognizer {
 
     func start() throws -> AsyncThrowingStream<SpeechTranscript, any Error> {
         log.record("\(name):start")
+        return try fake.start()
+    }
+
+    func start(audio: any SpeechAudioFeed) throws -> AsyncThrowingStream<SpeechTranscript, any Error> {
+        log.record("\(name):start(captured)")
+        return try fake.start(audio: audio)
+    }
+
+    func stop() { fake.stop() }
+
+    func cancel() { fake.cancel() }
+}
+
+/// A recognizer that can only open its own mic (no `start(audio:)`), like before #112.
+@MainActor
+final class MicOnlyRecognizer: SpeechRecognizer {
+    let fake = FakeRecognizer()
+    let log: CallLog
+
+    init(log: CallLog) { self.log = log }
+
+    func requestPermission() async -> SpeechPermission { await fake.requestPermission() }
+
+    func start() throws -> AsyncThrowingStream<SpeechTranscript, any Error> {
+        log.record("recognizer:start")
         return try fake.start()
     }
 
@@ -67,7 +93,13 @@ final class FakeVoiceAudioSession: VoiceAudioSession {
         log.record("session:duck")
     }
 
-    func playListeningChime() async { log.record("session:chime") }
+    /// Runs while the chime plays (e.g. the user keeps talking over it).
+    var duringChime: (@MainActor () -> Void)?
+
+    func playListeningChime() async {
+        log.record("session:chime")
+        duringChime?()
+    }
 
     func deactivate() {
         guard mode != "inactive" else { return }

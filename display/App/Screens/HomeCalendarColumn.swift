@@ -56,8 +56,9 @@ private struct CalendarSectionView: View {
     }
 }
 
-/// "Updated 2:15 PM" beside "Today" when the Hub's calendars are out of date.
-private struct StaleChip: View {
+/// "Updated 2:15 PM" beside "Today" (or a calendar answer's title, #143) when the Hub's
+/// calendars are out of date.
+struct StaleChip: View {
     let text: String
 
     var body: some View {
@@ -114,8 +115,10 @@ private struct CalendarSectionsLayout: Layout {
     }
 }
 
-private struct CalendarRowView: View {
-    let row: HomeCalendarRow
+/// Colour dot, time, title; on the calendar screen (#143) also the calendar's name at the end.
+struct CalendarRowView: View {
+    let row: CalendarRow
+    var showsCalendar = false
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
@@ -134,6 +137,14 @@ private struct CalendarRowView: View {
                 .foregroundStyle(Theme.onSurface)
                 .lineLimit(1)
                 .truncationMode(.tail)
+            if showsCalendar {
+                Spacer(minLength: 12)
+                Text(row.calendarName)
+                    .m3Font(.labelMedium)
+                    .foregroundStyle(Theme.onSurfaceVariant)
+                    .lineLimit(1)
+                    .layoutPriority(-1)
+            }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(row.accessibilityLabel)

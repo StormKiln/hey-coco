@@ -7,7 +7,7 @@ public enum MediaTarget: String, Codable, Sendable, Equatable {
 }
 
 public enum ViewType: String, Codable, Sendable, Equatable {
-    case idle, answer, timers, weather, picture, sound, youtube
+    case idle, answer, timers, weather, picture, sound, youtube, calendar
     case nowPlaying = "now_playing"
 }
 

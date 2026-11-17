@@ -6,11 +6,13 @@ Hub publishes ``spotify.wake_requested`` on the event stream, then lists devices
 ``spotify.wake_poll_s`` (1 s) until the iPad is back or ``spotify.wake_wait_s`` (12 s) has
 passed (#95: one fixed 4 s wait missed an iPad that reappeared about 6 s after the wake).
 
-The Display opens the ``spotify:`` URL scheme **only when Guided Access is off**: under Guided
-Access iOS won't switch apps, so the Display ignores the event and Coco ends up saying "Open
-Spotify on the iPad once, then try again." after the whole wait. Even when it works, Spotify stays
-in front: iOS gives Coco no way to come back by itself. This is why spike #5 measures how long
-the iPad stays listed while Coco holds the screen (``make spotify-spike``).
+The Display opens Spotify **only when Guided Access is off**: under Guided Access iOS won't
+switch apps, so the Display ignores the event and Coco ends up saying "Open Spotify on the iPad
+once, then try again." after the whole wait. For a play request (#116) the event carries the URI
+and the Spotify ``client_id``: the Display wakes Spotify through the Spotify iOS SDK, which
+starts the URI and redirects back to Coco. Otherwise (a volume change, or no SDK) it opens the
+plain ``spotify:`` scheme and Spotify stays in front. Spike #5 measures how long the iPad stays
+listed while Coco holds the screen (``make spotify-spike``).
 """
 
 import asyncio
@@ -39,16 +41,28 @@ class DisplayWaker:
         poll_s: float = 1.0,
         clock: Callable[[], datetime] = _utc_now,
         sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+        client_id: str | None = None,
     ) -> None:
         self._bus = bus
+        self._client_id = client_id
         self._wait_s = wait_s
         self._poll_s = poll_s
         self._clock = clock
         self._sleep = sleep
 
-    async def wake(self, device_name: str | None, appeared: Callable[[], Awaitable[bool]]) -> bool:
+    async def wake(
+        self,
+        device_name: str | None,
+        appeared: Callable[[], Awaitable[bool]],
+        *,
+        play: bool = False,
+        uri: str | None = None,
+    ) -> bool:
         """Ask the Display to open Spotify, then call ``appeared`` (list devices) every
         ``poll_s`` until it returns True (-> True) or ``wait_s`` has passed (-> False).
+
+        ``play`` / ``uri`` and the Spotify ``client_id`` go to the Display, which then wakes
+        Spotify through the Spotify iOS SDK: it starts ``uri`` and bounces back to Coco (#116).
 
         The wait ends at whichever comes first: ``wait_s`` of sleeps, or ``wait_s`` on the
         clock (device listings take time too).
@@ -59,8 +73,21 @@ class DisplayWaker:
             log.info("Spotify device missing and no Display connected to wake it")
             return False
         started = self._clock()
-        self._bus.publish(SpotifyWakeRequestedEvent(server_time=started, device_name=device_name))
-        log.info("asked the Display to open Spotify; polling for up to %gs", self._wait_s)
+        self._bus.publish(
+            SpotifyWakeRequestedEvent(
+                server_time=started,
+                device_name=device_name,
+                play=play,
+                uri=uri,
+                client_id=self._client_id,
+            )
+        )
+        log.info(
+            "asked the Display to open Spotify (play=%s, uri=%s); polling for up to %gs",
+            play,
+            uri,
+            self._wait_s,
+        )
         deadline = started + timedelta(seconds=self._wait_s)
         slept = 0.0
         while (left := min(self._wait_s - slept, (deadline - self._clock()).total_seconds())) > 0:

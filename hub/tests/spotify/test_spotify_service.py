@@ -1,6 +1,7 @@
 import asyncio
 from datetime import UTC, datetime, timedelta
 
+import httpx
 import pytest
 
 from coco_hub import db
@@ -48,11 +49,15 @@ class Clock:
 class SpyWaker:
     def __init__(self, fake: FakeSpotify | None = None, result: bool = True) -> None:
         self.calls: list[str | None] = []
+        self.wakes: list[tuple[bool, str | None]] = []  # (play, uri)
         self.fake = fake
         self.result = result
 
-    async def wake(self, device_name: str | None, appeared) -> bool:
+    async def wake(
+        self, device_name: str | None, appeared, *, play: bool = False, uri: str | None = None
+    ) -> bool:
         self.calls.append(device_name)
+        self.wakes.append((play, uri))
         if self.fake is not None:  # the iPad shows up after waking
             self.fake.set("GET", "/v1/me/player/devices", json_response(200, "devices"))
         return self.result and await appeared()
@@ -198,6 +203,99 @@ async def test_waker_that_succeeds_lets_play_continue(make, fake):
     assert waker.calls == ["Kitchen iPad"]
     (request,) = fake.calls("PUT", "/v1/me/player/play")
     assert request.url.params["device_id"] == IPAD_ID
+
+
+async def test_play_wake_names_what_to_play(make, fake):
+    """#116: the Display's Spotify SDK starts this URI as it wakes the app."""
+    fake.set("GET", "/v1/me/player/devices", json_response(200, "devices_no_ipad"))
+    waker = SpyWaker(fake)
+    service = make(waker=waker)
+    raffi = Item(kind="artist", uri="spotify:artist:4RaffiArtistId0000000a", name="Raffi")
+    await service.play(raffi)
+    assert waker.wakes == [(True, "spotify:artist:4RaffiArtistId0000000a")]
+
+
+async def test_resume_wake_plays_without_a_uri(make, fake):
+    fake.set("GET", "/v1/me/player/devices", json_response(200, "devices_no_ipad"))
+    waker = SpyWaker(fake)
+    service = make(waker=waker)
+    await service.play(None)
+    assert waker.wakes == [(True, None)]
+
+
+async def test_already_playing_it_after_the_wake_is_not_restarted(make, fake):
+    """The SDK started the artist on the iPad as it woke Spotify: don't start it again."""
+    fake.set("GET", "/v1/me/player/devices", json_response(200, "devices_no_ipad"))
+    fake.set("GET", "/v1/me/player", json_response(200, "playback_state"))
+    service = make(waker=SpyWaker(fake))
+    raffi = Item(kind="artist", uri="spotify:artist:4RaffiArtistId0000000a", name="Raffi")
+    await service.play(raffi, shuffle=True)
+    assert fake.calls("PUT", "/v1/me/player/play") == []
+    (shuffle,) = fake.calls("PUT", "/v1/me/player/shuffle")
+    assert shuffle.url.params["device_id"] == IPAD_ID
+
+
+async def test_already_playing_the_track_after_the_wake_is_not_restarted(make, fake):
+    fake.set("GET", "/v1/me/player/devices", json_response(200, "devices_no_ipad"))
+    fake.set("GET", "/v1/me/player", json_response(200, "playback_state"))
+    service = make(waker=SpyWaker(fake))
+    track = Item(kind="track", uri="spotify:track:3BananaPhoneTrackId000a", name="Bananaphone")
+    await service.play(track)
+    assert fake.calls("PUT", "/v1/me/player/play") == []
+
+
+async def test_resume_after_a_wake_that_already_plays_is_not_restarted(make, fake):
+    fake.set("GET", "/v1/me/player/devices", json_response(200, "devices_no_ipad"))
+    fake.set("GET", "/v1/me/player", json_response(200, "playback_state"))
+    service = make(waker=SpyWaker(fake))
+    await service.play(None)
+    assert fake.calls("PUT", "/v1/me/player/play") == []
+
+
+async def test_something_else_playing_after_the_wake_is_replaced(make, fake):
+    """The fallback wake (plain ``spotify:``) or a Spotify that was already playing: start
+    what was asked for."""
+    fake.set("GET", "/v1/me/player/devices", json_response(200, "devices_no_ipad"))
+    fake.set("GET", "/v1/me/player", json_response(200, "playback_state"))
+    service = make(waker=SpyWaker(fake))
+    frozen = Item(kind="album", uri="spotify:album:Frozen", name="Frozen")
+    await service.play(frozen)
+    (request,) = fake.calls("PUT", "/v1/me/player/play")
+    assert fake.body(request) == {"context_uri": "spotify:album:Frozen"}
+
+
+async def test_playing_on_another_device_after_the_wake_is_transferred(make, fake):
+    fake.set("GET", "/v1/me/player/devices", json_response(200, "devices_no_ipad"))
+    state = fixture("playback_state")
+    state["device"]["id"] = "9f8e7d6c5b4a39281706f5e4d3c2b1a098765432"
+    fake.set("GET", "/v1/me/player", httpx.Response(200, json=state))
+    service = make(waker=SpyWaker(fake))
+    await service.play(None)
+    (request,) = fake.calls("PUT", "/v1/me/player/play")
+    assert request.url.params["device_id"] == IPAD_ID
+
+
+async def test_no_playback_state_after_the_wake_plays(make, fake):
+    fake.set("GET", "/v1/me/player/devices", json_response(200, "devices_no_ipad"))
+    fake.set("GET", "/v1/me/player", json_response(204))
+    service = make(waker=SpyWaker(fake))
+    await service.play(None)
+    assert len(fake.calls("PUT", "/v1/me/player/play")) == 1
+
+
+async def test_listed_device_never_checks_playback_state(service, fake):
+    await service.play(None)
+    assert fake.calls("GET", "/v1/me/player") == []
+    assert len(fake.calls("PUT", "/v1/me/player/play")) == 1
+
+
+async def test_volume_wake_only_opens_spotify(make, fake):
+    """Waking for a volume change must not start music."""
+    fake.set("GET", "/v1/me/player/devices", json_response(200, "devices_no_ipad"))
+    waker = SpyWaker(fake)
+    service = make(waker=waker)
+    await service.set_volume(30)
+    assert waker.wakes == [(False, None)]
 
 
 async def test_default_waker_is_a_no_op(service, fake):

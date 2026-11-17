@@ -87,6 +87,7 @@ struct DiagnosticsScreen: View {
             row("Hub address", DiagnosticsFormat.address(model.endpoint))
             row("Connection", DiagnosticsFormat.connection(model.connection))
             row("Wake word", DiagnosticsFormat.wakeWord(voice?.wakeWord))
+            row("Spotify wake", DiagnosticsFormat.spotifyWake(model.spotifyWaker?.lastOutcome))
             row("Last error", model.lastError.map(DiagnosticsFormat.error) ?? "None")
         }
     }

@@ -70,6 +70,18 @@ class Device:
     supports_volume: bool
 
 
+@dataclass(frozen=True)
+class Playback:
+    """The parts of ``/me/player`` that say what is playing where."""
+
+    device_id: str | None
+    is_playing: bool
+    context_uri: str | None
+    """The artist / album / playlist being played, if any."""
+    item_uri: str | None
+    """The track (or episode)."""
+
+
 # --- parsing -----------------------------------------------------------------------------
 
 
@@ -174,6 +186,21 @@ def parse_currently_playing(data: Any) -> NowPlaying | None:
         album=album,
         artwork_url=artwork,
         is_playing=bool(data.get("is_playing")),
+    )
+
+
+def parse_playback(data: Any) -> Playback | None:
+    """``Playback`` from ``/me/player``; None for an empty answer."""
+    if not isinstance(data, dict):
+        return None
+    device = data.get("device") if isinstance(data.get("device"), dict) else {}
+    context = data.get("context") if isinstance(data.get("context"), dict) else {}
+    item = data.get("item") if isinstance(data.get("item"), dict) else {}
+    return Playback(
+        device_id=_str(device.get("id")),
+        is_playing=bool(data.get("is_playing")),
+        context_uri=_str(context.get("uri")),
+        item_uri=_str(item.get("uri")),
     )
 
 
@@ -324,6 +351,13 @@ class SpotifyClient:
         if response.status_code == 204 or not response.content:
             return None
         return parse_currently_playing(self._json(response))
+
+    async def playback(self) -> Playback | None:
+        """What plays where (``/me/player``); None when nothing is (204)."""
+        response = await self._request("GET", "/me/player", params={"additional_types": "episode"})
+        if response.status_code == 204 or not response.content:
+            return None
+        return parse_playback(self._json(response))
 
     async def aclose(self) -> None:
         if self._http is not None:

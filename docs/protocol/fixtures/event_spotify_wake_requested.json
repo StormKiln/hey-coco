@@ -1,5 +1,8 @@
 {
   "type": "spotify.wake_requested",
   "server_time": "2026-11-14T15:04:05Z",
-  "device_name": "Kitchen iPad"
+  "device_name": "Kitchen iPad",
+  "play": true,
+  "uri": "spotify:artist:4RaffiArtistId0000000a",
+  "client_id": "0123456789abcdef0123456789abcdef"
 }

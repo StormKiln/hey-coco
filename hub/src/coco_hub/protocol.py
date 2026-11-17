@@ -331,11 +331,19 @@ class SettingsChangedEvent(Message):
 
 class SpotifyWakeRequestedEvent(Message):
     """The Hub can't see the iPad in Spotify's device list: asks the Display to open the
-    Spotify app (#5). The Display does nothing under Guided Access."""
+    Spotify app (#5). The Display does nothing under Guided Access.
+
+    With ``play`` (#116) the Display wakes Spotify through the Spotify iOS SDK, which starts
+    ``uri`` (None: whatever Spotify last played) and redirects back to Coco; it needs the
+    Spotify app's ``client_id``. Without ``play`` (or without the SDK) it opens the plain
+    ``spotify:`` scheme, which leaves Spotify in front."""
 
     type: Literal["spotify.wake_requested"] = "spotify.wake_requested"
     server_time: UtcDatetime
     device_name: str | None
+    play: bool = False
+    uri: str | None = None
+    client_id: str | None = None
 
 
 Event = Annotated[

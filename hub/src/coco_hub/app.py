@@ -69,6 +69,8 @@ def create_app(
             wait_s=settings.spotify.wake_wait_s,
             poll_s=settings.spotify.wake_poll_s,
             clock=clock,
+            # Public (not a secret): the Display's Spotify iOS SDK needs it (#116).
+            client_id=settings.spotify.client_id,
         )
         spotify = SpotifyService.from_settings(
             app.state.db,

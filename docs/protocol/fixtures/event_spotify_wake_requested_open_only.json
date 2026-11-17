@@ -1,0 +1,8 @@
+{
+  "type": "spotify.wake_requested",
+  "server_time": "2026-11-14T15:04:05Z",
+  "device_name": null,
+  "play": false,
+  "uri": null,
+  "client_id": null
+}

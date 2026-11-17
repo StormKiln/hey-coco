@@ -17,11 +17,20 @@ range) are examples; use your own.
 | "switch the fan on" / "switch the fan off" | same |
 | "desk lamp on" / "desk lamp off" | same |
 | "is the desk lamp on" | reads the state now and tells you |
+| "dim the desk lamp" | "The desk lamp can't dim." (plugs only switch on and off) |
 
 Coco only confirms what the device reports after the switch: "Desk lamp is on.", or "Desk
-lamp was already on." if there was nothing to do. A power strip with some outlets on and some
-off is reported as such. If the device doesn't answer, needs a login, or Coco doesn't know the
-name, it says so plainly instead of guessing.
+lamp was already on." if there was nothing to do. If the device takes the command but still
+reports the old state, Coco says "I asked the desk lamp to turn on, but it still says it's
+off." A power strip with some outlets on and some off is reported as such ("Power strip is
+partly on: Monitor is on, Speakers is off."). Otherwise it says plainly what went wrong:
+
+- "I couldn't reach the desk lamp. It may be unplugged or off the network."
+- "The desk lamp needs a login before I can control it. See the Hub's device setup."
+- "I don't know a device called toaster." (or "No devices are set up yet.")
+
+Avoid naming a device after one of Coco's own features (music, radio, timer, alarm, sound,
+picture, video, volume, screen): "turn the music off" keeps meaning the music.
 
 Device commands are matched by the rules engine only; they are **never** passed to the Qwen
 fallback. A misheard request gets "I don't know a device called ..." or no match, never a
@@ -160,10 +169,14 @@ options = { host = "192.0.2.11", mac = "<mac from the probe>" }
   it is more robust (see below).
 - **`aliases`** are extra names that also work. Names are matched the way speech is
   transcribed (case and a leading "the" don't matter). Two devices can't share a name: the
-  Hub refuses to start and says which name is taken twice.
+  Hub refuses to start and says which name is taken twice. Names that come from the devices
+  themselves are only known once they answer, so a clash between two unnamed devices can't be
+  caught at startup: the first device keeps the name and the log (`make hub-logs`) warns.
+  Give one of them a `name`.
 - **`options.host`** is the reserved IP address (or a hostname).
 - **`options.child`** picks **one outlet** of a multi-outlet plug or strip: its number from
-  the probe's `Outlets` list (0-based) or its name. Without `child`, the entry controls the
+  the probe's `Outlets` list (0-based) or its name. A number always means the position, so
+  for an outlet whose name is only digits, use its number. Without `child`, the entry controls the
   **whole device**: "turn off the power strip" switches every outlet, and "is the power strip
   on" reports mixed outlets as mixed. You can configure the whole strip and some of its outlets
   as separate entries, as above.
@@ -230,7 +243,8 @@ restart the Hub. If you changed your TP-Link password, update it here too.
   unreachable when the Hub started, either wait for the next retry (about a minute) or set
   `name`.
 - A `child` that doesn't match any outlet (wrong number or outlet name) leaves that entry
-  without a device. Check the outlet list with the probe.
+  without a device; `make hub-logs` shows a warning listing the outlets the device really
+  has. Check the outlet list with the probe.
 - Did you restart the Hub after editing the config?
 
 **Slow answers or timeouts**

@@ -41,7 +41,7 @@ permissions:
 jobs:
   upload:
     name: ${{ inputs.dry_run && 'Rehearsal (unsigned, no upload)' || 'Archive and upload' }}
-    runs-on: macos-26
+    runs-on: xcode-27
     # Checks ~6 min + cold Release archive ~15 min + upload + 20 min processing wait. Generous
     # so only a hang trips it.
     timeout-minutes: 90

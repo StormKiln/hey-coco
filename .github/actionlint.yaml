@@ -1,0 +1,4 @@
+# GitHub-hosted labels newer than the pinned actionlint knows. Remove once it lists them.
+self-hosted-runner:
+  labels:
+    - xcode-27

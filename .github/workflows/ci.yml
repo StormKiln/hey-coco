@@ -73,8 +73,8 @@ jobs:
             build: false
           # Primary: newest generally available Xcode. Keep equal to XCODE_PRIMARY in the
           # Makefile, which the TestFlight workflow uses, so CI builds what we ship.
-          - xcode: "26.6"
-            runner: macos-26
+          - xcode: "27.2"
+            runner: xcode-27
             build: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

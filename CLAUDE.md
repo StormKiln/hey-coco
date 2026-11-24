@@ -23,7 +23,7 @@ Always use the Makefile (`make help`). CI runs `make hub-lint`, `make hub-test`,
 - `make repo-check` (in CI's hub job) guards that wiring, SHA-pinned actions, and the
   TestFlight scripts' tests. `make check-workflows` runs actionlint.
 - Xcode is pinned via `DEVELOPER_DIR` (`make ci-xcode`), never the runner default. `kit-test` runs
-  on the oldest that compiles CocoKit (16.3) and the primary (`XCODE_PRIMARY`, 26.6);
+  on the oldest that compiles CocoKit (16.3) and the primary (`XCODE_PRIMARY`, 27.2);
   `display-build` and TestFlight use the primary. CI uses `uv --locked`: commit `hub/uv.lock` changes.
 - TestFlight: rehearse with the workflow's `dry_run` first; see `docs/testflight.md`.
 

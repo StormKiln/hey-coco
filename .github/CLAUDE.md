@@ -38,12 +38,12 @@ passes only if every needed job's result is `success`.
 
 ## Pinned Xcode
 
-Runners are explicit images (`macos-15`, `macos-26`), and Xcode is chosen with `DEVELOPER_DIR`
+Runners are explicit images (`macos-15`, `xcode-27`), and Xcode is chosen with `DEVELOPER_DIR`
 by `make ci-xcode XCODE_VERSION=...`, which fails naming the installed versions if the path is
 missing. Never rely on the image default: an image update would silently change the compiler.
 
 - `kit-test` runs on the oldest that compiles CocoKit (16.3 on `macos-15`; 16.0-16.2, Swift 6.0.x, reject
-  `TimerStore.swift` with a spurious actor-isolation error) and the primary (26.6 on `macos-26`).
+  `TimerStore.swift` with a spurious actor-isolation error) and the primary (27.2 on `xcode-27`).
 - `display-build` and the TestFlight workflow use the primary, `XCODE_PRIMARY` in the Makefile.
   `make repo-check` fails if `ci.yml` has no leg on `XCODE_PRIMARY`.
 - When GitHub drops an Xcode from an image, `ci-xcode` fails with the list of what is there:

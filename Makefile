@@ -263,7 +263,7 @@ check-workflows: ## Lint .github/workflows with actionlint (skipped if it is not
 # Xcode on GitHub's macOS runners is pinned, never the image default, so an image update cannot
 # change the compiler under us. XCODE_PRIMARY builds what ships (CI's display-build and the
 # TestFlight workflow); keep it equal to the primary leg in .github/workflows/ci.yml.
-XCODE_PRIMARY := 26.6
+XCODE_PRIMARY := 27.2
 XCODE_VERSION ?= $(XCODE_PRIMARY)
 ci-xcode: ## (CI) Select Xcode XCODE_VERSION= (default XCODE_PRIMARY) via DEVELOPER_DIR; fail if this runner lacks it
 	@dir=/Applications/Xcode_$(XCODE_VERSION).app/Contents/Developer; \
